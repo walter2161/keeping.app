@@ -47,7 +47,7 @@ export default function Layout({ children, currentPageName }) {
                       <HardDrive className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h1 className="font-bold text-gray-900">SENAI Drive</h1>
+                      <h1 className="font-bold text-gray-900">keeping</h1>
                       <p className="text-xs text-gray-500">Gestão de Arquivos</p>
                     </div>
                   </div>
@@ -77,7 +77,7 @@ export default function Layout({ children, currentPageName }) {
                 <HardDrive className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="font-bold text-gray-900 leading-tight">SENAI Drive</h1>
+                <h1 className="font-bold text-gray-900 leading-tight">keeping</h1>
                 <p className="text-xs text-gray-500">Gestão de Arquivos</p>
               </div>
             </Link>

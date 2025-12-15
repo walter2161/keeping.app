@@ -11,6 +11,8 @@ import FolderCard from '../components/drive/FolderCard';
 import FileCard from '../components/drive/FileCard';
 import CreateDialog from '../components/drive/CreateDialog';
 import ImportExportDialog from '../components/drive/ImportExportDialog';
+import Sidebar from '../components/drive/Sidebar';
+import ListView from '../components/drive/ListView';
 
 export default function Drive() {
   const [currentFolderId, setCurrentFolderId] = useState(null);
@@ -18,6 +20,8 @@ export default function Drive() {
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
   const [importDialog, setImportDialog] = useState(false);
   const [renameDialog, setRenameDialog] = useState({ open: false, item: null, isFolder: false });
+  const [viewMode, setViewMode] = useState('grid');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const queryClient = useQueryClient();
 
@@ -267,14 +271,27 @@ export default function Drive() {
         onExportAll={handleExportAll}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
       
-      <Breadcrumb 
-        path={breadcrumbPath} 
-        onNavigate={setCurrentFolderId} 
-      />
-      
-      <div className="flex-1 p-6">
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          folders={folders}
+          currentFolderId={currentFolderId}
+          onFolderSelect={setCurrentFolderId}
+          isOpen={sidebarOpen}
+        />
+        
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Breadcrumb 
+            path={breadcrumbPath} 
+            onNavigate={setCurrentFolderId} 
+          />
+          
+          <div className="flex-1 p-6 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -285,6 +302,18 @@ export default function Drive() {
             <p className="text-lg font-medium">Esta pasta está vazia</p>
             <p className="text-sm mt-1">Crie uma nova pasta ou arquivo para começar</p>
           </div>
+        ) : viewMode === 'list' ? (
+          <ListView
+            folders={currentFolders}
+            files={currentFiles}
+            onFolderClick={setCurrentFolderId}
+            onFileClick={handleFileClick}
+            onFolderDelete={handleDeleteFolder}
+            onFolderRename={handleRenameFolder}
+            onFileDelete={(id) => deleteFileMutation.mutate(id)}
+            onFileRename={handleRenameFile}
+            onFileExport={handleExportFile}
+          />
         ) : (
           <>
             {/* Folders */}
@@ -329,6 +358,8 @@ export default function Drive() {
             )}
           </>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Create Dialog */}

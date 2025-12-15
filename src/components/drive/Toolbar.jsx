@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
-  GanttChart, Calendar, FileText, FileSpreadsheet, Search
+  GanttChart, Calendar, FileText, FileSpreadsheet, Search,
+  List, Grid3x3, PanelLeftClose, PanelLeft
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,25 @@ export default function Toolbar({
   onImport, 
   onExportAll,
   searchQuery,
-  onSearchChange 
+  onSearchChange,
+  viewMode,
+  onViewModeChange,
+  sidebarOpen,
+  onToggleSidebar
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 bg-white border-b">
+      <Button 
+        variant="outline"
+        size="icon"
+        onClick={onToggleSidebar}
+        className="border-gray-300"
+      >
+        {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+      </Button>
+
+      <div className="h-8 w-px bg-gray-200" />
+
       <Button 
         onClick={onNewFolder}
         className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
@@ -75,6 +91,27 @@ export default function Toolbar({
         <Download className="w-4 h-4 mr-2" />
         Exportar Tudo
       </Button>
+
+      <div className="h-8 w-px bg-gray-200" />
+
+      <div className="flex items-center gap-1 border border-gray-300 rounded-lg p-1">
+        <Button
+          variant={viewMode === 'grid' ? 'default' : 'ghost'}
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => onViewModeChange?.('grid')}
+        >
+          <Grid3x3 className="w-4 h-4" />
+        </Button>
+        <Button
+          variant={viewMode === 'list' ? 'default' : 'ghost'}
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => onViewModeChange?.('list')}
+        >
+          <List className="w-4 h-4" />
+        </Button>
+      </div>
 
       <div className="flex-1" />
 
