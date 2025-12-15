@@ -109,10 +109,11 @@ export default function Drive() {
   }, [files, currentFolderId, searchQuery]);
 
   // Handlers
-  const handleCreateFolder = (name) => {
+  const handleCreateFolder = (name, color) => {
     createFolderMutation.mutate({
       name,
       parent_id: currentFolderId,
+      color,
       order: currentFolders.length,
     });
     setCreateDialog({ open: false, type: null });
@@ -510,9 +511,9 @@ export default function Drive() {
         type={createDialog.type}
         open={createDialog.open}
         onOpenChange={(open) => setCreateDialog({ ...createDialog, open })}
-        onSubmit={(name) => {
+        onSubmit={(name, color) => {
           if (createDialog.type === 'folder') {
-            handleCreateFolder(name);
+            handleCreateFolder(name, color);
           } else {
             handleCreateFile(name, createDialog.type);
           }

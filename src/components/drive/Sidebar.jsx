@@ -108,7 +108,7 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
           <Link to={createPageUrl('Dashboard')} className="flex-1">
             <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700">
               <LayoutDashboard className="w-5 h-5" />
-              <span className="font-medium">Dashboard</span>
+              <span className="font-medium text-base">Dashboard</span>
             </button>
           </Link>
           <Button 
@@ -120,15 +120,6 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
             <PanelLeftClose className="w-4 h-4" />
           </Button>
         </div>
-        <button
-          onClick={() => onFolderSelect(null)}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors mt-2 ${
-            currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-          }`}
-        >
-          <Folder className="w-5 h-5" />
-          <span className="font-medium">Todos os Arquivos</span>
-        </button>
       </div>
       <div className="py-2">
         {folderTree}
