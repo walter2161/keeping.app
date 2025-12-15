@@ -1,14 +1,7 @@
 import React, { useEffect, useRef } from 'react';
+import jspreadsheet from 'jspreadsheet-ce';
 import 'jspreadsheet-ce/dist/jspreadsheet.css';
 import 'jsuites/dist/jsuites.css';
-
-let jspreadsheet;
-let jSuites;
-
-if (typeof window !== 'undefined') {
-  jspreadsheet = require('jspreadsheet-ce');
-  jSuites = require('jsuites');
-}
 
 export default function XlsxEditor({ value, onChange }) {
   const jssRef = useRef(null);
