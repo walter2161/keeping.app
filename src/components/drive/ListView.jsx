@@ -143,7 +143,7 @@ export default function ListView({
                     <Download className="w-4 h-4 mr-2" />
                     Exportar
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); onFileDelete?.(file.id); }}>
+                  <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); handleFileDelete(file); }}>
                     <Trash2 className="w-4 h-4 mr-2" />
                     Excluir
                   </DropdownMenuItem>
