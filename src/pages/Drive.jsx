@@ -495,6 +495,7 @@ export default function Drive() {
             onFolderRename={handleRenameFolder}
             onFolderCopy={handleCopyFolder}
             onFolderExport={handleExportFolder}
+            onFolderColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
             onFileDelete={(file) => updateFileMutation.mutate({
               id: file.id,
               data: {
