@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video
+  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video, Palette
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const folderColors = {
+  default: 'text-gray-500',
+  blue: 'text-blue-500',
+  green: 'text-green-500',
+  orange: 'text-orange-500',
+  purple: 'text-purple-500',
+  red: 'text-red-500',
+};
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600' },
@@ -32,6 +41,7 @@ export default function ListView({
   onFolderRename,
   onFolderCopy,
   onFolderExport,
+  onFolderColorChange,
   onFileDelete,
   onFileRename,
   onFileExport,
@@ -63,7 +73,7 @@ export default function ListView({
           style={{ paddingLeft: `${level * 24 + 16}px` }}
         >
           <div className="col-span-5 flex items-center gap-2 min-w-0">
-            <Folder className="w-5 h-5 text-gray-500 flex-shrink-0" fill="currentColor" />
+            <Folder className={`w-5 h-5 ${folderColors[folder.color] || folderColors.default} flex-shrink-0`} fill="currentColor" />
             <span className="font-medium text-gray-800 truncate">{folder.name}</span>
             <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
           </div>
@@ -84,6 +94,18 @@ export default function ListView({
                   <Edit2 className="w-4 h-4 mr-2" />
                   Renomear
                 </DropdownMenuItem>
+                {onFolderColorChange && (
+                  <DropdownMenuItem onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const colors = ['blue', 'green', 'orange', 'purple', 'red', 'default'];
+                    const currentIndex = colors.indexOf(folder.color || 'default');
+                    const nextColor = colors[(currentIndex + 1) % colors.length];
+                    onFolderColorChange(folder, nextColor);
+                  }}>
+                    <Palette className="w-4 h-4 mr-2" />
+                    Mudar Cor
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderCopy?.(folder); }}>
                   <Copy className="w-4 h-4 mr-2" />
                   Copiar
