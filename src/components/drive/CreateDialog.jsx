@@ -20,6 +20,7 @@ export default function CreateDialog({
   onSubmit 
 }) {
   const [name, setName] = useState('');
+  const [color, setColor] = useState('blue');
 
   const config = {
     folder: { icon: Folder, title: 'Nova Pasta', placeholder: 'Nome da pasta', color: 'text-gray-600' },
@@ -33,10 +34,24 @@ export default function CreateDialog({
   const currentConfig = config[type] || config.folder;
   const Icon = currentConfig.icon;
 
+  const colors = [
+    { value: 'blue', label: 'Azul', class: 'bg-blue-500' },
+    { value: 'green', label: 'Verde', class: 'bg-green-500' },
+    { value: 'orange', label: 'Laranja', class: 'bg-orange-500' },
+    { value: 'purple', label: 'Roxo', class: 'bg-purple-500' },
+    { value: 'red', label: 'Vermelho', class: 'bg-red-500' },
+    { value: 'default', label: 'Cinza', class: 'bg-gray-500' },
+  ];
+
   const handleSubmit = () => {
     if (name.trim()) {
-      onSubmit(name.trim());
+      if (type === 'folder') {
+        onSubmit(name.trim(), color);
+      } else {
+        onSubmit(name.trim());
+      }
       setName('');
+      setColor('blue');
     }
   };
 
@@ -57,6 +72,25 @@ export default function CreateDialog({
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             autoFocus
           />
+          
+          {type === 'folder' && (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Cor da Pasta</label>
+              <div className="flex gap-2">
+                {colors.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setColor(c.value)}
+                    className={`w-8 h-8 rounded-full ${c.class} ${
+                      color === c.value ? 'ring-2 ring-offset-2 ring-blue-600' : ''
+                    } hover:scale-110 transition-transform`}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

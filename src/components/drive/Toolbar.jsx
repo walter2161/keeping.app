@@ -17,6 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function Toolbar({ 
   onNewFolder, 
@@ -31,9 +37,10 @@ export default function Toolbar({
   onPaste
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 h-14 bg-white border-b sticky top-0 z-30">
-      {/* Left Section */}
-      <div className="flex items-center gap-3">
+    <TooltipProvider>
+      <div className="flex items-center justify-between gap-3 px-4 h-14 bg-white border-b sticky top-0 z-30">
+        {/* Left Section */}
+        <div className="flex items-center gap-3">
         <Link to={createPageUrl('Drive')} className="flex items-center gap-2 flex-shrink-0">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/ae7dc63b6_logo-keepai-BABgUd28.png"
@@ -47,21 +54,33 @@ export default function Toolbar({
 
         <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
-        <Button 
-          onClick={onNewFolder}
-          size="sm"
-          className="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex"
-        >
-          <FolderPlus className="w-3.5 h-3.5 sm:mr-1.5" />
-          <span className="hidden lg:inline">Nova Pasta</span>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              onClick={onNewFolder}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex"
+            >
+              <FolderPlus className="w-3.5 h-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Nova Pasta</p>
+          </TooltipContent>
+        </Tooltip>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" className="hidden sm:flex">
-              <FilePlus className="w-3.5 h-3.5 sm:mr-1.5" />
-              <span className="hidden lg:inline">Novo</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" className="hidden sm:flex">
+                  <FilePlus className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Novo Arquivo</p>
+              </TooltipContent>
+            </Tooltip>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuItem onClick={() => onNewFile?.('kbn')}>

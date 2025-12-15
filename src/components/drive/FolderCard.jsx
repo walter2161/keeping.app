@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, MoreVertical, Trash2, Edit2, Copy, Download } from 'lucide-react';
+import { Folder, MoreVertical, Trash2, Edit2, Copy, Download, Palette } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import FolderColorDialog from './FolderColorDialog';
 
 const folderColors = {
   default: 'text-gray-500',
@@ -17,7 +18,8 @@ const folderColors = {
   red: 'text-red-500',
 };
 
-export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange }) {
+  const [colorDialogOpen, setColorDialogOpen] = React.useState(false);
   return (
     <div
       className="group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
@@ -42,6 +44,10 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setColorDialogOpen(true); }}>
+            <Palette className="w-4 h-4 mr-2" />
+            Mudar Cor
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(folder); }}>
             <Copy className="w-4 h-4 mr-2" />
             Copiar
@@ -58,7 +64,14 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
             Excluir
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
+        </DropdownMenu>
+
+        <FolderColorDialog
+        open={colorDialogOpen}
+        onOpenChange={setColorDialogOpen}
+        currentColor={folder.color}
+        onSubmit={(newColor) => onColorChange?.(folder, newColor)}
+        />
+        </div>
+        );
+        }
