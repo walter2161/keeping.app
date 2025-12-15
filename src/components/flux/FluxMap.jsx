@@ -1,236 +1,331 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Plus, Square, Circle, Diamond, ArrowRight, Trash2, 
-  ZoomIn, ZoomOut, Move, MousePointer, Type
+  Square, Circle, Diamond, ArrowRight, Trash2, 
+  ZoomIn, ZoomOut, Hand, MousePointer, Type, StickyNote,
+  Pencil, Image as ImageIcon, Frame as FrameIcon, Plus,
+  Minus, MessageSquare, ChevronDown
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-const nodeTypes = {
-  process: { 
-    label: 'Processo', 
-    shape: 'rect', 
-    color: '#3b82f6',
-    icon: Square 
-  },
-  decision: { 
-    label: 'Decisão', 
-    shape: 'diamond', 
-    color: '#f59e0b',
-    icon: Diamond 
-  },
-  start: { 
-    label: 'Início', 
-    shape: 'circle', 
-    color: '#10b981',
-    icon: Circle 
-  },
-  end: { 
-    label: 'Fim', 
-    shape: 'circle', 
-    color: '#ef4444',
-    icon: Circle 
-  },
-  note: { 
-    label: 'Nota', 
-    shape: 'rect', 
-    color: '#8b5cf6',
-    icon: Type 
-  }
-};
+const COLORS = ['#fef08a', '#fed7aa', '#fecaca', '#ddd6fe', '#bfdbfe', '#bbf7d0', '#e9d5ff'];
 
 export default function FluxMap({ data, onChange }) {
-  const [nodes, setNodes] = useState(data?.nodes || []);
+  const [elements, setElements] = useState(data?.elements || []);
   const [connections, setConnections] = useState(data?.connections || []);
-  const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [tool, setTool] = useState('select');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [dragStart, setDragStart] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [draggedElement, setDraggedElement] = useState(null);
   const [connectingFrom, setConnectingFrom] = useState(null);
+  const [tempConnection, setTempConnection] = useState(null);
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (onChange) {
-      onChange({ nodes, connections });
+      onChange({ elements, connections });
     }
-  }, [nodes, connections]);
+  }, [elements, connections]);
 
-  const addNode = (type) => {
-    const newNode = {
+  const addElement = (type, x = null, y = null) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const centerX = x !== null ? x : (rect.width / 2 - pan.x) / zoom;
+    const centerY = y !== null ? y : (rect.height / 2 - pan.y) / zoom;
+
+    const configs = {
+      sticky: { width: 200, height: 200, color: COLORS[Math.floor(Math.random() * COLORS.length)], text: 'Nova nota' },
+      rect: { width: 180, height: 100, color: '#3b82f6', text: 'Processo' },
+      circle: { width: 120, height: 120, color: '#10b981', text: 'Início' },
+      diamond: { width: 180, height: 100, color: '#f59e0b', text: 'Decisão' },
+      text: { width: 300, height: 150, color: '#ffffff', text: 'Adicione seu texto aqui...' },
+      frame: { width: 600, height: 400, color: '#f3f4f6', text: 'Frame' }
+    };
+
+    const config = configs[type] || configs.sticky;
+    const newElement = {
       id: Date.now().toString(),
       type,
-      x: (window.innerWidth / 2 - pan.x) / zoom - 75,
-      y: (window.innerHeight / 2 - pan.y) / zoom - 40,
-      width: 150,
-      height: 80,
-      text: nodeTypes[type].label
+      x: centerX - config.width / 2,
+      y: centerY - config.height / 2,
+      width: config.width,
+      height: config.height,
+      color: config.color,
+      text: config.text,
+      zIndex: elements.length
     };
-    setNodes([...nodes, newNode]);
+    setElements([...elements, newElement]);
   };
 
-  const updateNode = (id, updates) => {
-    setNodes(nodes.map(node => 
-      node.id === id ? { ...node, ...updates } : node
-    ));
+  const updateElement = (id, updates) => {
+    setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el));
   };
 
-  const deleteNode = (id) => {
-    setNodes(nodes.filter(node => node.id !== id));
-    setConnections(connections.filter(conn => 
-      conn.from !== id && conn.to !== id
-    ));
-    setSelectedNode(null);
+  const deleteElement = (id) => {
+    setElements(elements.filter(el => el.id !== id));
+    setConnections(connections.filter(conn => conn.from !== id && conn.to !== id));
+    setSelectedId(null);
   };
 
   const addConnection = (from, to) => {
     if (from !== to && !connections.find(c => c.from === from && c.to === to)) {
-      setConnections([...connections, { id: Date.now().toString(), from, to }]);
+      setConnections([...connections, { 
+        id: Date.now().toString(), 
+        from, 
+        to,
+        label: ''
+      }]);
     }
   };
 
-  const handleCanvasMouseDown = (e) => {
-    if (e.target === canvasRef.current) {
-      if (tool === 'pan') {
-        setIsDragging(true);
+  const handleWheel = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.min(Math.max(0.1, zoom * delta), 3);
+      setZoom(newZoom);
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.target === canvasRef.current || e.target.closest('.canvas-bg')) {
+      setSelectedId(null);
+      
+      if (tool === 'pan' || e.button === 1 || (e.button === 0 && e.shiftKey)) {
+        setIsPanning(true);
         setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
       }
-      setSelectedNode(null);
     }
   };
 
-  const handleCanvasMouseMove = (e) => {
-    if (isDragging && tool === 'pan') {
-      setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
+  const handleMouseMove = (e) => {
+    if (isPanning && dragStart) {
+      setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    } else if (isDragging && draggedElement) {
+      const dx = e.movementX / zoom;
+      const dy = e.movementY / zoom;
+      updateElement(draggedElement, {
+        x: elements.find(el => el.id === draggedElement).x + dx,
+        y: elements.find(el => el.id === draggedElement).y + dy
+      });
+    } else if (tempConnection) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setTempConnection({
+        ...tempConnection,
+        toX: (e.clientX - rect.left - pan.x) / zoom,
+        toY: (e.clientY - rect.top - pan.y) / zoom
       });
     }
   };
 
-  const handleCanvasMouseUp = () => {
+  const handleMouseUp = () => {
+    setIsPanning(false);
     setIsDragging(false);
+    setDraggedElement(null);
+    setDragStart(null);
+    setTempConnection(null);
   };
 
-  const handleNodeMouseDown = (e, nodeId) => {
+  const handleElementMouseDown = (e, elementId) => {
     e.stopPropagation();
-    if (tool === 'select') {
-      setSelectedNode(nodeId);
-    } else if (tool === 'connect') {
+    
+    if (tool === 'connect') {
+      const element = elements.find(el => el.id === elementId);
       if (!connectingFrom) {
-        setConnectingFrom(nodeId);
+        setConnectingFrom(elementId);
+        setTempConnection({
+          from: elementId,
+          fromX: element.x + element.width / 2,
+          fromY: element.y + element.height / 2,
+          toX: element.x + element.width / 2,
+          toY: element.y + element.height / 2
+        });
       } else {
-        addConnection(connectingFrom, nodeId);
+        addConnection(connectingFrom, elementId);
         setConnectingFrom(null);
+        setTempConnection(null);
       }
+    } else if (tool === 'select') {
+      setSelectedId(elementId);
+      setIsDragging(true);
+      setDraggedElement(elementId);
     }
   };
 
-  const handleNodeDrag = (nodeId, dx, dy) => {
-    updateNode(nodeId, {
-      x: nodes.find(n => n.id === nodeId).x + dx / zoom,
-      y: nodes.find(n => n.id === nodeId).y + dy / zoom
-    });
+  const getConnectionPoints = (element) => {
+    return {
+      x: element.x + element.width / 2,
+      y: element.y + element.height / 2
+    };
   };
 
-  const renderNode = (node) => {
-    const config = nodeTypes[node.type];
-    const isSelected = selectedNode === node.id;
-    
+  const renderElement = (element) => {
+    const isSelected = selectedId === element.id;
+    const style = {
+      position: 'absolute',
+      left: element.x,
+      top: element.y,
+      width: element.width,
+      height: element.height,
+      cursor: tool === 'select' ? 'move' : 'pointer',
+      zIndex: element.zIndex || 0
+    };
+
+    const commonClasses = `border-2 ${isSelected ? 'border-blue-500 shadow-lg' : 'border-gray-300'} transition-all`;
+
+    if (element.type === 'sticky') {
+      return (
+        <div
+          key={element.id}
+          style={{ ...style, backgroundColor: element.color }}
+          className={`${commonClasses} shadow-md p-4 font-handwriting`}
+          onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+        >
+          <textarea
+            value={element.text}
+            onChange={(e) => updateElement(element.id, { text: e.target.value })}
+            className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-800 text-sm"
+            style={{ fontFamily: 'Arial, sans-serif' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      );
+    }
+
+    if (element.type === 'text') {
+      return (
+        <div
+          key={element.id}
+          style={style}
+          className={`${commonClasses} bg-white p-4`}
+          onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+        >
+          <textarea
+            value={element.text}
+            onChange={(e) => updateElement(element.id, { text: e.target.value })}
+            className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      );
+    }
+
+    if (element.type === 'frame') {
+      return (
+        <div
+          key={element.id}
+          style={{ ...style, backgroundColor: element.color }}
+          className={`${commonClasses} border-dashed rounded-lg`}
+          onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+        >
+          <div className="p-2">
+            <input
+              value={element.text}
+              onChange={(e) => updateElement(element.id, { text: e.target.value })}
+              className="bg-transparent border-none outline-none font-semibold text-gray-700"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <g
-        key={node.id}
-        transform={`translate(${node.x}, ${node.y})`}
-        onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-        style={{ cursor: tool === 'select' ? 'move' : 'pointer' }}
+      <svg
+        key={element.id}
+        style={style}
+        viewBox={`0 0 ${element.width} ${element.height}`}
+        onMouseDown={(e) => handleElementMouseDown(e, element.id)}
       >
-        {config.shape === 'rect' && (
+        {element.type === 'rect' && (
           <rect
-            width={node.width}
-            height={node.height}
-            fill={config.color}
-            stroke={isSelected ? '#000' : '#fff'}
-            strokeWidth={isSelected ? 3 : 2}
+            width={element.width}
+            height={element.height}
+            fill={element.color}
+            stroke={isSelected ? '#3b82f6' : '#fff'}
+            strokeWidth={isSelected ? 4 : 2}
             rx={8}
           />
         )}
         
-        {config.shape === 'circle' && (
+        {element.type === 'circle' && (
           <circle
-            cx={node.width / 2}
-            cy={node.height / 2}
-            r={40}
-            fill={config.color}
-            stroke={isSelected ? '#000' : '#fff'}
-            strokeWidth={isSelected ? 3 : 2}
+            cx={element.width / 2}
+            cy={element.height / 2}
+            r={element.width / 2 - 5}
+            fill={element.color}
+            stroke={isSelected ? '#3b82f6' : '#fff'}
+            strokeWidth={isSelected ? 4 : 2}
           />
         )}
         
-        {config.shape === 'diamond' && (
+        {element.type === 'diamond' && (
           <path
-            d={`M ${node.width / 2} 0 L ${node.width} ${node.height / 2} L ${node.width / 2} ${node.height} L 0 ${node.height / 2} Z`}
-            fill={config.color}
-            stroke={isSelected ? '#000' : '#fff'}
-            strokeWidth={isSelected ? 3 : 2}
+            d={`M ${element.width / 2} 5 L ${element.width - 5} ${element.height / 2} L ${element.width / 2} ${element.height - 5} L 5 ${element.height / 2} Z`}
+            fill={element.color}
+            stroke={isSelected ? '#3b82f6' : '#fff'}
+            strokeWidth={isSelected ? 4 : 2}
           />
         )}
         
         <text
-          x={node.width / 2}
-          y={node.height / 2}
+          x={element.width / 2}
+          y={element.height / 2}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="white"
           fontSize="14"
           fontWeight="600"
-          pointerEvents="none"
         >
-          {node.text}
+          {element.text}
         </text>
-      </g>
+      </svg>
     );
   };
 
   const renderConnection = (conn) => {
-    const fromNode = nodes.find(n => n.id === conn.from);
-    const toNode = nodes.find(n => n.id === conn.to);
-    
-    if (!fromNode || !toNode) return null;
-    
-    const x1 = fromNode.x + fromNode.width / 2;
-    const y1 = fromNode.y + fromNode.height / 2;
-    const x2 = toNode.x + toNode.width / 2;
-    const y2 = toNode.y + toNode.height / 2;
-    
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const arrowSize = 10;
-    
+    const fromEl = elements.find(el => el.id === conn.from);
+    const toEl = elements.find(el => el.id === conn.to);
+    if (!fromEl || !toEl) return null;
+
+    const from = getConnectionPoints(fromEl);
+    const to = getConnectionPoints(toEl);
+
     return (
       <g key={conn.id}>
+        <defs>
+          <marker
+            id={`arrow-${conn.id}`}
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+          </marker>
+        </defs>
         <line
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
+          x1={from.x}
+          y1={from.y}
+          x2={to.x}
+          y2={to.y}
           stroke="#64748b"
           strokeWidth="2"
-          markerEnd="url(#arrowhead)"
+          markerEnd={`url(#arrow-${conn.id})`}
         />
       </g>
     );
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-100">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Toolbar */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-3">
+      <div className="bg-white border-b px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Button
             variant={tool === 'select' ? 'default' : 'outline'}
@@ -245,7 +340,7 @@ export default function FluxMap({ data, onChange }) {
             size="sm"
             onClick={() => setTool('pan')}
           >
-            <Move className="w-4 h-4" />
+            <Hand className="w-4 h-4" />
           </Button>
           
           <Button
@@ -258,106 +353,119 @@ export default function FluxMap({ data, onChange }) {
           
           <div className="h-6 w-px bg-gray-300" />
           
-          <Select value="process" onValueChange={addNode}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Adicionar nó" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(nodeTypes).map(([key, type]) => (
-                <SelectItem key={key} value={key}>
-                  <div className="flex items-center gap-2">
-                    <type.icon className="w-4 h-4" style={{ color: type.color }} />
-                    {type.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Button variant="outline" size="sm" onClick={() => addElement('sticky')}>
+            <StickyNote className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Nota</span>
+          </Button>
           
-          {selectedNode && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => deleteNode(selectedNode)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+          <Button variant="outline" size="sm" onClick={() => addElement('rect')}>
+            <Square className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Forma</span>
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={() => addElement('text')}>
+            <Type className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Texto</span>
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={() => addElement('frame')}>
+            <FrameIcon className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Frame</span>
+          </Button>
+          
+          {selectedId && (
+            <>
+              <div className="h-6 w-px bg-gray-300" />
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteElement(selectedId)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
           )}
         </div>
         
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
-          >
-            <ZoomOut className="w-4 h-4" />
+          <Button variant="outline" size="sm" onClick={() => setZoom(Math.max(0.1, zoom - 0.25))}>
+            <Minus className="w-4 h-4" />
           </Button>
-          
-          <span className="text-sm font-medium w-16 text-center">
-            {Math.round(zoom * 100)}%
-          </span>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setZoom(Math.min(2, zoom + 0.25))}
-          >
-            <ZoomIn className="w-4 h-4" />
+          <span className="text-sm font-medium w-14 text-center">{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="sm" onClick={() => setZoom(Math.min(3, zoom + 0.25))}>
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Canvas */}
-      <div 
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         className="flex-1 overflow-hidden relative"
-        onMouseDown={handleCanvasMouseDown}
-        onMouseMove={handleCanvasMouseMove}
-        onMouseUp={handleCanvasMouseUp}
-        style={{ cursor: tool === 'pan' ? 'grab' : 'default' }}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        style={{ cursor: isPanning ? 'grabbing' : tool === 'pan' ? 'grab' : 'default' }}
       >
-        <svg
-          width="100%"
-          height="100%"
+        <div
+          ref={canvasRef}
+          className="canvas-bg absolute inset-0"
           style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: '0 0',
+            backgroundImage: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
+            backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+            width: '10000px',
+            height: '10000px'
           }}
         >
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="10"
-              refX="9"
-              refY="3"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3, 0 6"
-                fill="#64748b"
+          <svg
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none'
+            }}
+          >
+            {connections.map(renderConnection)}
+            {tempConnection && (
+              <line
+                x1={tempConnection.fromX}
+                y1={tempConnection.fromY}
+                x2={tempConnection.toX}
+                y2={tempConnection.toY}
+                stroke="#64748b"
+                strokeWidth="2"
+                strokeDasharray="5,5"
               />
-            </marker>
-          </defs>
+            )}
+          </svg>
           
-          {connections.map(renderConnection)}
-          {nodes.map(renderNode)}
-        </svg>
+          {elements.map(renderElement)}
+        </div>
       </div>
 
-      {/* Node Properties */}
-      {selectedNode && (
+      {/* Properties Panel */}
+      {selectedId && (
         <div className="bg-white border-t p-4">
-          <div className="max-w-md">
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Texto do Nó
-            </label>
-            <input
-              type="text"
-              value={nodes.find(n => n.id === selectedNode)?.text || ''}
-              onChange={(e) => updateNode(selectedNode, { text: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="max-w-md flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Cor:</label>
+            <div className="flex gap-2">
+              {COLORS.map(color => (
+                <button
+                  key={color}
+                  className="w-8 h-8 rounded border-2 hover:scale-110 transition-transform"
+                  style={{ 
+                    backgroundColor: color,
+                    borderColor: elements.find(el => el.id === selectedId)?.color === color ? '#000' : '#ccc'
+                  }}
+                  onClick={() => updateElement(selectedId, { color })}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
