@@ -6,8 +6,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import FolderColorDialog from './FolderColorDialog';
 
 const folderColors = {
   default: 'text-gray-500',
@@ -18,8 +22,17 @@ const folderColors = {
   red: 'text-red-500',
 };
 
+const colors = [
+  { value: 'blue', label: 'Azul', class: 'bg-blue-500' },
+  { value: 'green', label: 'Verde', class: 'bg-green-500' },
+  { value: 'orange', label: 'Laranja', class: 'bg-orange-500' },
+  { value: 'purple', label: 'Roxo', class: 'bg-purple-500' },
+  { value: 'red', label: 'Vermelho', class: 'bg-red-500' },
+  { value: 'default', label: 'Cinza', class: 'bg-gray-500' },
+];
+
 export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange }) {
-  const [colorDialogOpen, setColorDialogOpen] = React.useState(false);
+  const [colorPopoverOpen, setColorPopoverOpen] = React.useState(false);
   
   const handleCardClick = (e) => {
     // Only open folder if not clicking on dropdown or dialog
@@ -52,10 +65,6 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setColorDialogOpen(true); }}>
-            <Palette className="w-4 h-4 mr-2" />
-            Mudar Cor
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(folder); }}>
             <Copy className="w-4 h-4 mr-2" />
             Copiar
@@ -72,14 +81,42 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
             Excluir
           </DropdownMenuItem>
         </DropdownMenuContent>
-        </DropdownMenu>
+      </DropdownMenu>
 
-        <FolderColorDialog
-        open={colorDialogOpen}
-        onOpenChange={setColorDialogOpen}
-        currentColor={folder.color}
-        onSubmit={(newColor) => onColorChange?.(folder, newColor)}
-        />
-        </div>
-        );
-        }
+      <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          >
+            <Palette className="w-4 h-4 text-gray-500" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-auto p-2" 
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex gap-2">
+            {colors.map(c => (
+              <button
+                key={c.value}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onColorChange?.(folder, c.value);
+                  setColorPopoverOpen(false);
+                }}
+                className={`w-8 h-8 rounded-full ${c.class} ${
+                  folder.color === c.value ? 'ring-2 ring-offset-2 ring-blue-600' : ''
+                } hover:scale-110 transition-transform`}
+                title={c.label}
+              />
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}

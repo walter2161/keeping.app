@@ -89,19 +89,15 @@ export default function Toolbar({
           </TooltipContent>
         </Tooltip>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" className="hidden sm:flex">
-                  <FilePlus className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Novo Arquivo</p>
-              </TooltipContent>
-            </Tooltip>
-          </DropdownMenuTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="hidden sm:flex">
+                    <FilePlus className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuItem onClick={() => onNewFile?.('kbn')}>
               <LayoutGrid className="w-4 h-4 mr-2 text-purple-600" />
