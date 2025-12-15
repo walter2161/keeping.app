@@ -20,6 +20,7 @@ import GanttChartComponent from '../components/gantt/GanttChart';
 import CronogramaBoard from '../components/cronograma/CronogramaBoard';
 import DocxEditor from '../components/editors/DocxEditor';
 import XlsxEditor from '../components/editors/XlsxEditor';
+import AIAssistant from '../components/ai/AIAssistant';
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
@@ -271,6 +272,12 @@ export default function FileViewer() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Assistant with file context */}
+      <AIAssistant 
+        fileContext={localContent} 
+        fileType={file.type}
+      />
     </div>
   );
 }

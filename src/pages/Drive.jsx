@@ -13,12 +13,15 @@ import CreateDialog from '../components/drive/CreateDialog';
 import ImportExportDialog from '../components/drive/ImportExportDialog';
 import Sidebar from '../components/drive/Sidebar';
 import ListView from '../components/drive/ListView';
+import UploadDialog from '../components/drive/UploadDialog';
+import AIAssistant from '../components/ai/AIAssistant';
 
 export default function Drive() {
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
   const [importDialog, setImportDialog] = useState(false);
+  const [uploadDialog, setUploadDialog] = useState(false);
   const [renameDialog, setRenameDialog] = useState({ open: false, item: null, isFolder: false });
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -298,6 +301,7 @@ export default function Drive() {
       <Toolbar
         onNewFolder={() => setCreateDialog({ open: true, type: 'folder' })}
         onNewFile={handleNewFile}
+        onUpload={() => setUploadDialog(true)}
         onImport={() => setImportDialog(true)}
         onExportAll={handleExportAll}
         searchQuery={searchQuery}
@@ -418,6 +422,19 @@ export default function Drive() {
         onOpenChange={setImportDialog}
         onImport={handleImport}
       />
+
+      {/* Upload Dialog */}
+      <UploadDialog
+        open={uploadDialog}
+        onOpenChange={setUploadDialog}
+        onUploadComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['files'] });
+        }}
+        folderId={currentFolderId}
+      />
+
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
 export default function Toolbar({ 
   onNewFolder, 
   onNewFile, 
+  onUpload,
   onImport, 
   onExportAll,
   searchQuery,
@@ -83,9 +84,14 @@ export default function Toolbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Button variant="outline" onClick={onImport} className="border-gray-300">
+      <Button variant="outline" onClick={onUpload} className="border-gray-300 bg-green-50 hover:bg-green-100 text-green-700 border-green-300">
         <Upload className="w-4 h-4 mr-2" />
-        Importar
+        Upload
+      </Button>
+
+      <Button variant="outline" onClick={onImport} className="border-gray-300">
+        <Download className="w-4 h-4 mr-2 rotate-180" />
+        Importar JSON
       </Button>
 
       <Button variant="outline" onClick={onExportAll} className="border-gray-300">
