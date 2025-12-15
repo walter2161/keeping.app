@@ -47,14 +47,31 @@ export default function ListView({
   onFileRename,
   onFileExport,
   onFileCopy,
-  level = 0
+  level = 0,
+  allFolders = [],
+  allFiles = []
 }) {
   const [colorPickerState, setColorPickerState] = React.useState({ open: false, folder: null });
+  const [expandedFolders, setExpandedFolders] = React.useState({});
 
   const handleFileDelete = (file) => {
     if (typeof onFileDelete === 'function') {
       onFileDelete(file);
     }
+  };
+
+  const toggleFolder = (folderId, e) => {
+    e.stopPropagation();
+    setExpandedFolders(prev => ({
+      ...prev,
+      [folderId]: !prev[folderId]
+    }));
+  };
+
+  const hasContent = (folderId) => {
+    const hasSubFolders = allFolders.some(f => f.parent_id === folderId);
+    const hasFiles = allFiles.some(f => f.folder_id === folderId);
+    return hasSubFolders || hasFiles;
   };
   
   return (
@@ -78,18 +95,31 @@ export default function ListView({
       </div>
 
       {/* Folders */}
-      {folders.map((folder) => (
-        <div
-          key={folder.id}
-          className="grid grid-cols-12 gap-4 px-4 py-3 border-b hover:bg-gray-50 cursor-pointer group items-center"
-          onClick={() => onFolderClick(folder.id)}
-          style={{ paddingLeft: `${level * 24 + 16}px` }}
-        >
-          <div className="col-span-5 flex items-center gap-2 min-w-0">
-            <Folder className={`w-5 h-5 ${folderColors[folder.color] || folderColors.default} flex-shrink-0`} fill="currentColor" />
-            <span className="font-medium text-gray-800 truncate">{folder.name}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          </div>
+      {folders.map((folder) => {
+        const folderHasContent = hasContent(folder.id);
+        const isExpanded = expandedFolders[folder.id];
+        const childFolders = allFolders.filter(f => f.parent_id === folder.id);
+        const childFiles = allFiles.filter(f => f.folder_id === folder.id);
+        
+        return (
+          <React.Fragment key={folder.id}>
+            <div
+              className="grid grid-cols-12 gap-4 px-4 py-3 border-b hover:bg-gray-50 cursor-pointer group items-center"
+              onClick={() => onFolderClick(folder.id)}
+              style={{ paddingLeft: `${level * 24 + 16}px` }}
+            >
+              <div className="col-span-5 flex items-center gap-2 min-w-0">
+                {folderHasContent ? (
+                  <ChevronRight 
+                    className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                    onClick={(e) => toggleFolder(folder.id, e)}
+                  />
+                ) : (
+                  <div className="w-4 h-4 flex-shrink-0" />
+                )}
+                <Folder className={`w-5 h-5 ${folderColors[folder.color] || folderColors.default} flex-shrink-0`} fill="currentColor" />
+                <span className="font-medium text-gray-800 truncate">{folder.name}</span>
+              </div>
           <div className="col-span-2 text-sm text-gray-500">Pasta</div>
           <div className="col-span-2 text-sm text-gray-500">
             {format(new Date(folder.updated_date), "dd/MM/yyyy", { locale: ptBR })}
@@ -132,7 +162,30 @@ export default function ListView({
             </DropdownMenu>
           </div>
         </div>
-      ))}
+        
+        {isExpanded && folderHasContent && (
+          <ListView
+            folders={childFolders}
+            files={childFiles}
+            onFolderClick={onFolderClick}
+            onFileClick={onFileClick}
+            onFolderDelete={onFolderDelete}
+            onFolderRename={onFolderRename}
+            onFolderCopy={onFolderCopy}
+            onFolderExport={onFolderExport}
+            onFolderColorChange={onFolderColorChange}
+            onFileDelete={onFileDelete}
+            onFileRename={onFileRename}
+            onFileExport={onFileExport}
+            onFileCopy={onFileCopy}
+            level={level + 1}
+            allFolders={allFolders}
+            allFiles={allFiles}
+          />
+        )}
+      </React.Fragment>
+      );
+      })}
 
       {/* Files */}
       {files.map((file) => {

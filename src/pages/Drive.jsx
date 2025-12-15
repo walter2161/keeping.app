@@ -507,6 +507,8 @@ export default function Drive() {
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
             onFileCopy={handleCopyFile}
+            allFolders={folders.filter(f => !f.deleted)}
+            allFiles={files.filter(f => !f.deleted)}
           />
         ) : (
           <>
