@@ -19,7 +19,7 @@ const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
   xlsx: { icon: FileSpreadsheet, color: 'text-green-600', label: 'Planilha' },
   kbn: { icon: LayoutGrid, color: 'text-purple-600', label: 'Kanban' },
-  gnt: { icon: GanttChart, color: 'text-orange-600', label: 'Gantt' },
+  gnt: { icon: GanttChartIcon, color: 'text-orange-600', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', label: 'Cronograma' },
 };
 
