@@ -84,6 +84,7 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
   const folderTree = useMemo(() => {
     const buildTree = (parentId = null, level = 0) => {
       return folders
+        .filter(f => !f.deleted)
         .filter(f => f.parent_id === parentId)
         .sort((a, b) => (a.order || 0) - (b.order || 0))
         .map(folder => {
