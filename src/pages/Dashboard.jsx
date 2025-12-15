@@ -69,9 +69,11 @@ export default function Dashboard() {
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <Link to={createPageUrl('Drive')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Folder className="w-6 h-6 text-white" />
-            </div>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/b1c311137_logo-keepai-BABgUd28.png"
+              alt="Keeping"
+              className="w-10 h-10 rounded-lg"
+            />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Keeping</h1>
               <p className="text-sm text-gray-500">Dashboard</p>
