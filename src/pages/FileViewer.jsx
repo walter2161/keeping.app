@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, Save, Download, FileText, FileSpreadsheet,
-  LayoutGrid, GanttChart, Calendar, Loader2, Check
+  LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check
 } from 'lucide-react';
 
 import KanbanBoard from '../components/kanban/KanbanBoard';
-import GanttChart from '../components/gantt/GanttChart';
+import GanttChartComponent from '../components/gantt/GanttChart';
 import CronogramaBoard from '../components/cronograma/CronogramaBoard';
 
 const fileTypeConfig = {
