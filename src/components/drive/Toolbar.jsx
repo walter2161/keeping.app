@@ -121,7 +121,13 @@ export default function Toolbar({
               Planilha
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+              </DropdownMenu>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Novo Arquivo</p>
+          </TooltipContent>
+        </Tooltip>
 
         <Button size="sm" variant="outline" onClick={onUpload} className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hidden sm:flex">
           <Upload className="w-3.5 h-3.5 sm:mr-1.5" />
