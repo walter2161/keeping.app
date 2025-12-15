@@ -197,8 +197,8 @@ export default function Toolbar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
-    </div>
     </TooltipProvider>
   );
 }
