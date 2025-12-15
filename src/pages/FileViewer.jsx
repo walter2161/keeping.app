@@ -65,7 +65,13 @@ export default function FileViewer() {
           setLocalContent(file.content);
         }
       } else {
-        setLocalContent(file.type === 'docx' || file.type === 'xlsx' ? '' : {});
+        if (file.type === 'docx' || file.type === 'xlsx') {
+          setLocalContent('');
+        } else if (file.type === 'flux') {
+          setLocalContent(null);
+        } else {
+          setLocalContent({});
+        }
       }
     }
   }, [file]);
@@ -218,7 +224,7 @@ export default function FileViewer() {
           />
         )}
         
-        {file.type === 'flux' && localContent && (
+        {file.type === 'flux' && (
           <FluxMap 
             data={localContent} 
             onChange={handleContentChange}
