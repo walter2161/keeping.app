@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
-  List, Grid3x3, PanelLeftClose, PanelLeft, Copy, HardDrive,
+  List, Grid3x3, Copy,
   Bell, User, Settings, Trash2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,6 @@ export default function Toolbar({
   onSearchChange,
   viewMode,
   onViewModeChange,
-  sidebarOpen,
-  onToggleSidebar,
   onPaste
 }) {
   return (

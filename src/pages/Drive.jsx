@@ -396,8 +396,6 @@ export default function Drive() {
         onSearchChange={setSearchQuery}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         onPaste={clipboard.item ? handlePaste : null}
       />
       
@@ -407,6 +405,7 @@ export default function Drive() {
           currentFolderId={currentFolderId}
           onFolderSelect={setCurrentFolderId}
           isOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
         
         <div className="flex-1 flex flex-col overflow-hidden">
