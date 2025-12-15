@@ -28,9 +28,12 @@ export default function DocxEditor({ value, onChange }) {
         [{ 'direction': 'rtl' }],
         [{ 'align': [] }],
         ['blockquote', 'code-block'],
-        ['link', 'image', 'video', 'formula'],
+        ['link', 'image', 'video'],
         ['clean']
       ],
+      handlers: {
+        image: imageHandler
+      }
     },
     clipboard: {
       matchVisual: false,
@@ -41,6 +44,27 @@ export default function DocxEditor({ value, onChange }) {
       userOnly: true
     },
   }), []);
+
+  const imageHandler = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const quill = quillRef.current.getEditor();
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, 'image', e.target.result);
+          quill.setSelection(range.index + 1);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+  };
 
   const formats = [
     'header', 'font', 'size',
@@ -53,26 +77,46 @@ export default function DocxEditor({ value, onChange }) {
   ];
 
   return (
-    <div className="bg-white h-full flex flex-col">
+    <div className="bg-gray-100 h-full flex flex-col">
       <style>{`
         .ql-container {
           font-family: 'Montserrat', Arial, sans-serif;
           font-size: 11pt;
         }
         .ql-editor {
-          min-height: calc(100vh - 300px);
-          padding: 60px 80px;
+          min-height: calc(100vh - 200px);
+          max-width: 21cm;
+          margin: 0 auto;
+          padding: 2.5cm 2cm;
           background: white;
-          line-height: 1.6;
+          line-height: 1.8;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        @media print {
+          .ql-editor {
+            box-shadow: none;
+            padding: 0;
+          }
         }
         .ql-toolbar {
           border: none !important;
           border-bottom: 1px solid #e5e7eb !important;
           background: #f9fafb;
-          padding: 12px 16px;
+          padding: 12px 20px;
           position: sticky;
           top: 0;
           z-index: 10;
+          display: flex !important;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+        .ql-toolbar .ql-formats {
+          margin-right: 8px !important;
+        }
+        @media print {
+          .ql-toolbar {
+            display: none !important;
+          }
         }
         .ql-toolbar .ql-stroke {
           fill: none;

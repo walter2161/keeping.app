@@ -28,7 +28,8 @@ export default function XlsxEditor({ value, onChange }) {
     const options = {
       data: initialData,
       minDimensions: [26, 100],
-      defaultColWidth: 100,
+      defaultColWidth: 120,
+      defaultRowHeight: 32,
       tableOverflow: true,
       tableHeight: 'calc(100vh - 200px)',
       tableWidth: '100%',
@@ -42,9 +43,11 @@ export default function XlsxEditor({ value, onChange }) {
       allowDeleteColumn: true,
       allowRenameColumn: true,
       allowComments: true,
-      wordWrap: false,
+      wordWrap: true,
       selectionCopy: true,
       mergeCells: {},
+      pagination: 100,
+      paginationOptions: [50, 100, 200, 500],
       toolbar: [
         {
           type: 'i',
@@ -67,12 +70,12 @@ export default function XlsxEditor({ value, onChange }) {
         {
           type: 'select',
           k: 'font-family',
-          v: ['Arial','Verdana','Courier New','Times New Roman','Georgia','Helvetica']
+          v: ['Arial','Verdana','Courier New','Times New Roman','Georgia','Helvetica','Montserrat','Calibri','Tahoma']
         },
         {
           type: 'select',
           k: 'font-size',
-          v: ['9px','10px','11px','12px','13px','14px','15px','16px','18px','20px','22px']
+          v: ['8px','9px','10px','11px','12px','13px','14px','15px','16px','18px','20px','22px','24px','28px','32px']
         },
         {
           type: 'i',
@@ -108,11 +111,34 @@ export default function XlsxEditor({ value, onChange }) {
           v: ['left','center','right']
         },
         {
+          type: 'select',
+          k: 'vertical-align',
+          v: ['top','middle','bottom']
+        },
+        {
           type: 'i',
           content: 'border_all',
           onclick: function() {
             if (worksheetRef.current) {
               worksheetRef.current.setBorder();
+            }
+          }
+        },
+        {
+          type: 'i',
+          content: 'border_outer',
+          onclick: function() {
+            if (worksheetRef.current) {
+              worksheetRef.current.setBorder(null, null, null, null, null, true);
+            }
+          }
+        },
+        {
+          type: 'i',
+          content: 'border_clear',
+          onclick: function() {
+            if (worksheetRef.current) {
+              worksheetRef.current.removeBorder();
             }
           }
         },
@@ -124,6 +150,18 @@ export default function XlsxEditor({ value, onChange }) {
               const cells = worksheetRef.current.getSelectedColumns();
               if (cells && cells.length > 0) {
                 worksheetRef.current.setMerge(cells);
+              }
+            }
+          }
+        },
+        {
+          type: 'i',
+          content: 'format_clear',
+          onclick: function() {
+            if (worksheetRef.current) {
+              const selected = worksheetRef.current.getSelected();
+              if (selected) {
+                worksheetRef.current.resetStyle(selected);
               }
             }
           }
@@ -258,7 +296,48 @@ export default function XlsxEditor({ value, onChange }) {
         }
         .jexcel {
           font-family: 'Montserrat', Arial, sans-serif;
-          font-size: 11px;
+          font-size: 12px;
+        }
+        .jexcel_pagination {
+          background: #f9fafb;
+          border-top: 1px solid #e5e7eb;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .jexcel_pagination select {
+          padding: 6px 10px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          background: white;
+          font-size: 13px;
+          cursor: pointer;
+          color: #374151;
+        }
+        .jexcel_pagination button {
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          background: white;
+          font-size: 13px;
+          cursor: pointer;
+          color: #374151;
+          transition: all 0.2s;
+        }
+        .jexcel_pagination button:hover:not(:disabled) {
+          background: #f3f4f6;
+          border-color: #3b82f6;
+          color: #3b82f6;
+        }
+        .jexcel_pagination button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .jexcel_pagination span {
+          color: #6b7280;
+          font-size: 13px;
         }
         .jexcel thead td {
           background: #f3f4f6;
