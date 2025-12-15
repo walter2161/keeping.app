@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Folder, MoreVertical, Trash2, Edit2, Copy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,7 @@ const folderColors = {
   red: 'text-red-500',
 };
 
-export default function FolderCard({ folder, onClick, onDelete, onRename }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy }) {
   return (
     <div
       className="group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
@@ -41,6 +41,10 @@ export default function FolderCard({ folder, onClick, onDelete, onRename }) {
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename?.(folder); }}>
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(folder); }}>
+            <Copy className="w-4 h-4 mr-2" />
+            Copiar
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-red-600" 

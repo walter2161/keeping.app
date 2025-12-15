@@ -5,15 +5,21 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, Save, Download, FileText, FileSpreadsheet,
-  LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check
+  LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
+  Image as ImageIcon, Video
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 import KanbanBoard from '../components/kanban/KanbanBoard';
 import GanttChartComponent from '../components/gantt/GanttChart';
 import CronogramaBoard from '../components/cronograma/CronogramaBoard';
+import DocxEditor from '../components/editors/DocxEditor';
+import XlsxEditor from '../components/editors/XlsxEditor';
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
@@ -21,6 +27,8 @@ const fileTypeConfig = {
   kbn: { icon: LayoutGrid, color: 'text-purple-600', label: 'Kanban' },
   gnt: { icon: GanttChartIcon, color: 'text-orange-600', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', label: 'Cronograma' },
+  img: { icon: ImageIcon, color: 'text-cyan-600', label: 'Imagem' },
+  video: { icon: Video, color: 'text-purple-600', label: 'Vídeo' },
 };
 
 export default function FileViewer() {
@@ -31,6 +39,7 @@ export default function FileViewer() {
   const [saving, setSaving] = useState(false);
   const [localContent, setLocalContent] = useState(null);
   const [fileName, setFileName] = useState('');
+  const [mediaPopup, setMediaPopup] = useState({ open: false, url: '', type: '' });
   
   const queryClient = useQueryClient();
 
@@ -206,22 +215,62 @@ export default function FileViewer() {
           />
         )}
         
-        {(file.type === 'docx' || file.type === 'xlsx') && (
-          <div className="p-6 max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <Textarea
-                value={typeof localContent === 'string' ? localContent : ''}
-                onChange={(e) => handleContentChange(e.target.value)}
-                placeholder={file.type === 'docx' 
-                  ? 'Escreva seu documento aqui...' 
-                  : 'Cole dados da planilha aqui ou escreva em formato CSV...'
-                }
-                className="min-h-[500px] font-mono text-sm resize-none border-none focus-visible:ring-0"
-              />
-            </div>
+        {file.type === 'docx' && (
+          <div className="p-6 max-w-5xl mx-auto">
+            <DocxEditor
+              value={typeof localContent === 'string' ? localContent : ''}
+              onChange={handleContentChange}
+            />
+          </div>
+        )}
+
+        {file.type === 'xlsx' && (
+          <XlsxEditor
+            value={typeof localContent === 'string' ? localContent : ''}
+            onChange={handleContentChange}
+          />
+        )}
+
+        {file.type === 'img' && file.file_url && (
+          <div className="p-6 flex items-center justify-center min-h-[500px]">
+            <img
+              src={file.file_url}
+              alt={file.name}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg cursor-pointer"
+              onClick={() => setMediaPopup({ open: true, url: file.file_url, type: 'img' })}
+            />
+          </div>
+        )}
+
+        {file.type === 'video' && file.file_url && (
+          <div className="p-6 flex items-center justify-center min-h-[500px]">
+            <video
+              src={file.file_url}
+              controls
+              className="max-w-full max-h-[80vh] rounded-lg shadow-lg cursor-pointer"
+              onClick={() => setMediaPopup({ open: true, url: file.file_url, type: 'video' })}
+            >
+              Seu navegador não suporta a reprodução de vídeos.
+            </video>
           </div>
         )}
       </div>
+
+      {/* Media Popup */}
+      <Dialog open={mediaPopup.open} onOpenChange={(open) => setMediaPopup({ ...mediaPopup, open })}>
+        <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0">
+          <div className="w-full h-full flex items-center justify-center bg-black">
+            {mediaPopup.type === 'img' && (
+              <img src={mediaPopup.url} alt="Preview" className="max-w-full max-h-full object-contain" />
+            )}
+            {mediaPopup.type === 'video' && (
+              <video src={mediaPopup.url} controls autoPlay className="max-w-full max-h-full">
+                Seu navegador não suporta a reprodução de vídeos.
+              </video>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

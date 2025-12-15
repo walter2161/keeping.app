@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, MoreVertical, Trash2, Edit2, GripVertical } from 'lucide-react';
+import { Plus, MoreVertical, Trash2, Edit2, GripVertical, Image, Paperclip, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { base44 } from '@/api/base44Client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,14 +33,29 @@ const priorityColors = {
   high: 'bg-red-100 text-red-700',
 };
 
+const coverColors = [
+  '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
+  '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899'
+];
+
 export default function KanbanBoard({ data, onChange }) {
   const [columns, setColumns] = useState(data?.columns || defaultColumns);
   const [cards, setCards] = useState(data?.cards || []);
   const [newCardDialog, setNewCardDialog] = useState({ open: false, columnId: null });
   const [editCardDialog, setEditCardDialog] = useState({ open: false, card: null });
-  const [newCard, setNewCard] = useState({ title: '', description: '', priority: 'medium' });
+  const [editColumnDialog, setEditColumnDialog] = useState({ open: false, column: null });
+  const [newCard, setNewCard] = useState({ 
+    title: '', 
+    description: '', 
+    priority: 'medium',
+    coverType: 'none',
+    coverColor: coverColors[0],
+    coverImage: '',
+    attachments: []
+  });
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [showNewColumn, setShowNewColumn] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const saveChanges = (newColumns, newCards) => {
     setColumns(newColumns);
@@ -61,6 +77,31 @@ export default function KanbanBoard({ data, onChange }) {
     saveChanges(columns, updatedCards);
   };
 
+  const handleFileUpload = async (e, cardData, setCardData) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (cardData.coverType === 'image') {
+        setCardData({ ...cardData, coverImage: file_url });
+      } else {
+        const newAttachment = {
+          id: Date.now().toString(),
+          name: file.name,
+          url: file_url
+        };
+        setCardData({ 
+          ...cardData, 
+          attachments: [...(cardData.attachments || []), newAttachment]
+        });
+      }
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const addCard = () => {
     const card = {
       id: `card-${Date.now()}`,
@@ -69,7 +110,15 @@ export default function KanbanBoard({ data, onChange }) {
       order: cards.filter(c => c.columnId === newCardDialog.columnId).length,
     };
     saveChanges(columns, [...cards, card]);
-    setNewCard({ title: '', description: '', priority: 'medium' });
+    setNewCard({ 
+      title: '', 
+      description: '', 
+      priority: 'medium',
+      coverType: 'none',
+      coverColor: coverColors[0],
+      coverImage: '',
+      attachments: []
+    });
     setNewCardDialog({ open: false, columnId: null });
   };
 
@@ -97,12 +146,153 @@ export default function KanbanBoard({ data, onChange }) {
     setShowNewColumn(false);
   };
 
+  const updateColumn = () => {
+    const updatedColumns = columns.map(c =>
+      c.id === editColumnDialog.column.id ? editColumnDialog.column : c
+    );
+    saveChanges(updatedColumns, cards);
+    setEditColumnDialog({ open: false, column: null });
+  };
+
   const deleteColumn = (colId) => {
     saveChanges(
       columns.filter(c => c.id !== colId),
       cards.filter(c => c.columnId !== colId)
     );
   };
+
+  const removeAttachment = (card, attachmentId) => {
+    const updatedAttachments = card.attachments.filter(a => a.id !== attachmentId);
+    if (editCardDialog.open) {
+      setEditCardDialog({
+        ...editCardDialog,
+        card: { ...card, attachments: updatedAttachments }
+      });
+    } else {
+      setNewCard({ ...newCard, attachments: updatedAttachments });
+    }
+  };
+
+  const CardCoverSection = ({ cardData, setCardData, isDialog = false }) => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium">Capa do Cartão:</label>
+        <select
+          className="text-sm p-1 border rounded"
+          value={cardData.coverType || 'none'}
+          onChange={(e) => setCardData({ ...cardData, coverType: e.target.value })}
+        >
+          <option value="none">Sem capa</option>
+          <option value="color">Cor</option>
+          <option value="image">Imagem</option>
+        </select>
+      </div>
+
+      {cardData.coverType === 'color' && (
+        <div className="flex gap-2 flex-wrap">
+          {coverColors.map(color => (
+            <button
+              key={color}
+              className={`w-8 h-8 rounded border-2 ${
+                cardData.coverColor === color ? 'border-blue-500' : 'border-gray-300'
+              }`}
+              style={{ backgroundColor: color }}
+              onClick={() => setCardData({ ...cardData, coverColor: color })}
+            />
+          ))}
+        </div>
+      )}
+
+      {cardData.coverType === 'image' && (
+        <div>
+          {cardData.coverImage ? (
+            <div className="relative">
+              <img src={cardData.coverImage} className="w-full h-32 object-cover rounded" />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6"
+                onClick={() => setCardData({ ...cardData, coverImage: '' })}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : (
+            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
+              <Image className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-600">Clique para adicionar imagem</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e, cardData, setCardData)}
+                disabled={uploadingFile}
+              />
+            </label>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const CardForm = ({ cardData, setCardData }) => (
+    <div className="space-y-4">
+      <Input
+        placeholder="Título"
+        value={cardData.title}
+        onChange={(e) => setCardData({ ...cardData, title: e.target.value })}
+      />
+      <Textarea
+        placeholder="Descrição"
+        value={cardData.description || ''}
+        onChange={(e) => setCardData({ ...cardData, description: e.target.value })}
+      />
+      <select
+        className="w-full p-2 border rounded-md"
+        value={cardData.priority}
+        onChange={(e) => setCardData({ ...cardData, priority: e.target.value })}
+      >
+        <option value="low">Prioridade Baixa</option>
+        <option value="medium">Prioridade Média</option>
+        <option value="high">Prioridade Alta</option>
+      </select>
+
+      <CardCoverSection cardData={cardData} setCardData={setCardData} isDialog={true} />
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Anexos:</label>
+        <label className="flex items-center gap-2 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
+          <Paperclip className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">Adicionar arquivo</span>
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => handleFileUpload(e, cardData, setCardData)}
+            disabled={uploadingFile}
+          />
+        </label>
+        {cardData.attachments && cardData.attachments.length > 0 && (
+          <div className="space-y-1">
+            {cardData.attachments.map(att => (
+              <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                <a href={att.url} target="_blank" className="text-blue-600 hover:underline truncate flex-1">
+                  {att.name}
+                </a>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => removeAttachment(cardData, att.id)}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
@@ -126,6 +316,10 @@ export default function KanbanBoard({ data, onChange }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => setEditColumnDialog({ open: true, column })}>
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Renomear Coluna
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => deleteColumn(column.id)} className="text-red-600">
                         <Trash2 className="w-4 h-4 mr-2" />
                         Excluir Coluna
@@ -152,40 +346,56 @@ export default function KanbanBoard({ data, onChange }) {
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                className={`p-3 bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow ${
+                                className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
                                   snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-400' : ''
                                 }`}
                               >
-                                <div className="flex items-start gap-2">
-                                  <div {...provided.dragHandleProps} className="mt-1 cursor-grab">
-                                    <GripVertical className="w-4 h-4 text-gray-400" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="font-medium text-gray-800 text-sm">{card.title}</p>
-                                    {card.description && (
-                                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
-                                    )}
-                                    <div className="flex items-center justify-between mt-2">
-                                      <Badge className={`text-xs ${priorityColors[card.priority]}`}>
-                                        {card.priority === 'high' ? 'Alta' : card.priority === 'medium' ? 'Média' : 'Baixa'}
-                                      </Badge>
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                                            <MoreVertical className="w-3 h-3" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                          <DropdownMenuItem onClick={() => setEditCardDialog({ open: true, card })}>
-                                            <Edit2 className="w-4 h-4 mr-2" />
-                                            Editar
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => deleteCard(card.id)} className="text-red-600">
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Excluir
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                {card.coverType === 'color' && (
+                                  <div className="h-10" style={{ backgroundColor: card.coverColor }} />
+                                )}
+                                {card.coverType === 'image' && card.coverImage && (
+                                  <img src={card.coverImage} className="w-full h-24 object-cover" />
+                                )}
+                                <div className="p-3">
+                                  <div className="flex items-start gap-2">
+                                    <div {...provided.dragHandleProps} className="mt-1 cursor-grab">
+                                      <GripVertical className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-gray-800 text-sm">{card.title}</p>
+                                      {card.description && (
+                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
+                                      )}
+                                      <div className="flex items-center justify-between mt-2 gap-2">
+                                        <div className="flex gap-1 flex-wrap">
+                                          <Badge className={`text-xs ${priorityColors[card.priority]}`}>
+                                            {card.priority === 'high' ? 'Alta' : card.priority === 'medium' ? 'Média' : 'Baixa'}
+                                          </Badge>
+                                          {card.attachments && card.attachments.length > 0 && (
+                                            <Badge variant="outline" className="text-xs">
+                                              <Paperclip className="w-3 h-3 mr-1" />
+                                              {card.attachments.length}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                                              <MoreVertical className="w-3 h-3" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => setEditCardDialog({ open: true, card })}>
+                                              <Edit2 className="w-4 h-4 mr-2" />
+                                              Editar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => deleteCard(card.id)} className="text-red-600">
+                                              <Trash2 className="w-4 h-4 mr-2" />
+                                              Excluir
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -238,32 +448,13 @@ export default function KanbanBoard({ data, onChange }) {
         </div>
       </DragDropContext>
 
+      {/* Dialog para novo cartão */}
       <Dialog open={newCardDialog.open} onOpenChange={(open) => setNewCardDialog({ ...newCardDialog, open })}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Cartão</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Título"
-              value={newCard.title}
-              onChange={(e) => setNewCard({ ...newCard, title: e.target.value })}
-            />
-            <Textarea
-              placeholder="Descrição"
-              value={newCard.description}
-              onChange={(e) => setNewCard({ ...newCard, description: e.target.value })}
-            />
-            <select
-              className="w-full p-2 border rounded-md"
-              value={newCard.priority}
-              onChange={(e) => setNewCard({ ...newCard, priority: e.target.value })}
-            >
-              <option value="low">Prioridade Baixa</option>
-              <option value="medium">Prioridade Média</option>
-              <option value="high">Prioridade Alta</option>
-            </select>
-          </div>
+          <CardForm cardData={newCard} setCardData={setNewCard} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewCardDialog({ open: false, columnId: null })}>
               Cancelar
@@ -273,48 +464,48 @@ export default function KanbanBoard({ data, onChange }) {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog para editar cartão */}
       <Dialog open={editCardDialog.open} onOpenChange={(open) => setEditCardDialog({ ...editCardDialog, open })}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Cartão</DialogTitle>
           </DialogHeader>
           {editCardDialog.card && (
-            <div className="space-y-4">
-              <Input
-                placeholder="Título"
-                value={editCardDialog.card.title}
-                onChange={(e) => setEditCardDialog({ 
-                  ...editCardDialog, 
-                  card: { ...editCardDialog.card, title: e.target.value } 
-                })}
-              />
-              <Textarea
-                placeholder="Descrição"
-                value={editCardDialog.card.description}
-                onChange={(e) => setEditCardDialog({ 
-                  ...editCardDialog, 
-                  card: { ...editCardDialog.card, description: e.target.value } 
-                })}
-              />
-              <select
-                className="w-full p-2 border rounded-md"
-                value={editCardDialog.card.priority}
-                onChange={(e) => setEditCardDialog({ 
-                  ...editCardDialog, 
-                  card: { ...editCardDialog.card, priority: e.target.value } 
-                })}
-              >
-                <option value="low">Prioridade Baixa</option>
-                <option value="medium">Prioridade Média</option>
-                <option value="high">Prioridade Alta</option>
-              </select>
-            </div>
+            <CardForm 
+              cardData={editCardDialog.card} 
+              setCardData={(updated) => setEditCardDialog({ ...editCardDialog, card: updated })} 
+            />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditCardDialog({ open: false, card: null })}>
               Cancelar
             </Button>
             <Button onClick={updateCard}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para renomear coluna */}
+      <Dialog open={editColumnDialog.open} onOpenChange={(open) => setEditColumnDialog({ ...editColumnDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear Coluna</DialogTitle>
+          </DialogHeader>
+          {editColumnDialog.column && (
+            <Input
+              placeholder="Nome da coluna"
+              value={editColumnDialog.column.title}
+              onChange={(e) => setEditColumnDialog({
+                ...editColumnDialog,
+                column: { ...editColumnDialog.column, title: e.target.value }
+              })}
+            />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditColumnDialog({ open: false, column: null })}>
+              Cancelar
+            </Button>
+            <Button onClick={updateColumn}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

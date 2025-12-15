@@ -22,6 +22,7 @@ export default function Drive() {
   const [renameDialog, setRenameDialog] = useState({ open: false, item: null, isFolder: false });
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [clipboard, setClipboard] = useState({ type: null, item: null });
   
   const queryClient = useQueryClient();
 
@@ -260,6 +261,36 @@ export default function Drive() {
     window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
   };
 
+  const handleCopyFolder = (folder) => {
+    setClipboard({ type: 'folder', item: folder });
+  };
+
+  const handleCopyFile = (file) => {
+    setClipboard({ type: 'file', item: file });
+  };
+
+  const handlePaste = async () => {
+    if (!clipboard.item) return;
+
+    if (clipboard.type === 'folder') {
+      await createFolderMutation.mutateAsync({
+        name: `${clipboard.item.name} (cópia)`,
+        parent_id: currentFolderId,
+        color: clipboard.item.color,
+        order: currentFolders.length,
+      });
+    } else if (clipboard.type === 'file') {
+      await createFileMutation.mutateAsync({
+        name: `${clipboard.item.name} (cópia)`,
+        type: clipboard.item.type,
+        folder_id: currentFolderId,
+        content: clipboard.item.content,
+        file_url: clipboard.item.file_url,
+        order: currentFiles.length,
+      });
+    }
+  };
+
   const isLoading = foldersLoading || filesLoading;
 
   return (
@@ -275,6 +306,7 @@ export default function Drive() {
         onViewModeChange={setViewMode}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onPaste={clipboard.item ? handlePaste : null}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -310,9 +342,11 @@ export default function Drive() {
             onFileClick={handleFileClick}
             onFolderDelete={handleDeleteFolder}
             onFolderRename={handleRenameFolder}
+            onFolderCopy={handleCopyFolder}
             onFileDelete={(id) => deleteFileMutation.mutate(id)}
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
+            onFileCopy={handleCopyFile}
           />
         ) : (
           <>
@@ -330,6 +364,7 @@ export default function Drive() {
                       onClick={() => setCurrentFolderId(folder.id)}
                       onDelete={() => handleDeleteFolder(folder)}
                       onRename={() => handleRenameFolder(folder)}
+                      onCopy={() => handleCopyFolder(folder)}
                     />
                   ))}
                 </div>
@@ -351,6 +386,7 @@ export default function Drive() {
                       onDelete={() => deleteFileMutation.mutate(file.id)}
                       onRename={() => handleRenameFile(file)}
                       onExport={() => handleExportFile(file)}
+                      onCopy={() => handleCopyFile(file)}
                     />
                   ))}
                 </div>

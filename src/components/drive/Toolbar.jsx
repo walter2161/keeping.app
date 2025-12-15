@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
-  List, Grid3x3, PanelLeftClose, PanelLeft
+  List, Grid3x3, PanelLeftClose, PanelLeft, Image, Video, Copy
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,8 @@ export default function Toolbar({
   viewMode,
   onViewModeChange,
   sidebarOpen,
-  onToggleSidebar
+  onToggleSidebar,
+  onPaste
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 bg-white border-b">
@@ -91,6 +92,13 @@ export default function Toolbar({
         <Download className="w-4 h-4 mr-2" />
         Exportar Tudo
       </Button>
+
+      {onPaste && (
+        <Button variant="outline" onClick={onPaste} className="border-gray-300">
+          <Copy className="w-4 h-4 mr-2" />
+          Colar
+        </Button>
+      )}
 
       <div className="h-8 w-px bg-gray-200" />
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -19,10 +19,11 @@ const fileTypeConfig = {
   crn: { icon: Calendar, color: 'text-pink-600', bg: 'bg-pink-50', label: 'Cronograma' },
   pdf: { icon: FileText, color: 'text-red-600', bg: 'bg-red-50', label: 'PDF' },
   img: { icon: Image, color: 'text-cyan-600', bg: 'bg-cyan-50', label: 'Imagem' },
+  video: { icon: Video, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Vídeo' },
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
 
@@ -54,6 +55,10 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport }
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename?.(file); }}>
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(file); }}>
+            <Copy className="w-4 h-4 mr-2" />
+            Copiar
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onExport?.(file); }}>
             <Download className="w-4 h-4 mr-2" />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, ChevronRight
+  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,8 @@ const fileTypeConfig = {
   kbn: { icon: LayoutGrid, color: 'text-purple-600' },
   gnt: { icon: GanttChart, color: 'text-orange-600' },
   crn: { icon: Calendar, color: 'text-pink-600' },
+  img: { icon: Image, color: 'text-cyan-600' },
+  video: { icon: Video, color: 'text-purple-600' },
 };
 
 export default function ListView({ 
@@ -28,9 +30,11 @@ export default function ListView({
   onFileClick,
   onFolderDelete,
   onFolderRename,
+  onFolderCopy,
   onFileDelete,
   onFileRename,
   onFileExport,
+  onFileCopy,
   level = 0
 }) {
   return (
@@ -74,6 +78,10 @@ export default function ListView({
                   <Edit2 className="w-4 h-4 mr-2" />
                   Renomear
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderCopy?.(folder); }}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar
+                </DropdownMenuItem>
                 <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); onFolderDelete?.(folder); }}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Excluir
@@ -116,6 +124,10 @@ export default function ListView({
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileRename?.(file); }}>
                     <Edit2 className="w-4 h-4 mr-2" />
                     Renomear
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileCopy?.(file); }}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileExport?.(file); }}>
                     <Download className="w-4 h-4 mr-2" />
