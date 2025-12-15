@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Loader2, FolderOpen, AlertCircle } from 'lucide-react';
 import JSZip from 'jszip';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 import Toolbar from '../components/drive/Toolbar';
 import Breadcrumb from '../components/drive/Breadcrumb';
@@ -339,6 +340,61 @@ export default function Drive() {
     }
   };
 
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const { source, destination, draggableId, type } = result;
+
+    // Handle folder drops in sidebar
+    if (destination.droppableId.startsWith('sidebar-folder-')) {
+      const targetFolderId = destination.droppableId.replace('sidebar-folder-', '');
+      const finalFolderId = targetFolderId === 'root' ? null : targetFolderId;
+
+      if (type === 'FOLDER') {
+        const folder = folders.find(f => f.id === draggableId);
+        if (folder && folder.parent_id !== finalFolderId) {
+          await updateFolderMutation.mutateAsync({
+            id: draggableId,
+            data: { parent_id: finalFolderId }
+          });
+        }
+      } else if (type === 'FILE') {
+        const file = files.find(f => f.id === draggableId);
+        if (file && file.folder_id !== finalFolderId) {
+          await updateFileMutation.mutateAsync({
+            id: draggableId,
+            data: { folder_id: finalFolderId }
+          });
+        }
+      }
+      return;
+    }
+
+    // Reordering in same list
+    if (source.droppableId === destination.droppableId) {
+      if (type === 'FOLDER') {
+        const items = Array.from(currentFolders);
+        const [reordered] = items.splice(source.index, 1);
+        items.splice(destination.index, 0, reordered);
+        
+        // Update order for all affected folders
+        const updates = items.map((item, index) => 
+          updateFolderMutation.mutateAsync({ id: item.id, data: { order: index } })
+        );
+        await Promise.all(updates);
+      } else if (type === 'FILE') {
+        const items = Array.from(currentFiles);
+        const [reordered] = items.splice(source.index, 1);
+        items.splice(destination.index, 0, reordered);
+        
+        const updates = items.map((item, index) => 
+          updateFileMutation.mutateAsync({ id: item.id, data: { order: index } })
+        );
+        await Promise.all(updates);
+      }
+    }
+  };
+
   const handleExportFolder = async (folder) => {
     const zip = new JSZip();
     
@@ -386,8 +442,9 @@ export default function Drive() {
   const isLoading = foldersLoading || filesLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Toolbar
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Toolbar
         onNewFolder={() => setCreateDialog({ open: true, type: 'folder' })}
         onNewFile={handleNewFile}
         onUpload={() => setUploadDialog(true)}
@@ -458,20 +515,34 @@ export default function Drive() {
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
                   Pastas
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {currentFolders.map(folder => (
-                    <FolderCard
-                      key={folder.id}
-                      folder={folder}
-                      onClick={() => setCurrentFolderId(folder.id)}
-                      onDelete={() => handleDeleteFolder(folder)}
-                      onRename={() => handleRenameFolder(folder)}
-                      onCopy={() => handleCopyFolder(folder)}
-                      onExport={() => handleExportFolder(folder)}
-                      onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
-                    />
-                  ))}
-                </div>
+                <Droppable droppableId="folders" type="FOLDER">
+                  {(provided) => (
+                    <div 
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    >
+                      {currentFolders.map((folder, index) => (
+                        <Draggable key={folder.id} draggableId={folder.id} index={index}>
+                          {(provided, snapshot) => (
+                            <FolderCard
+                              folder={folder}
+                              onClick={() => setCurrentFolderId(folder.id)}
+                              onDelete={() => handleDeleteFolder(folder)}
+                              onRename={() => handleRenameFolder(folder)}
+                              onCopy={() => handleCopyFolder(folder)}
+                              onExport={() => handleExportFolder(folder)}
+                              onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
+                              provided={provided}
+                              isDragging={snapshot.isDragging}
+                            />
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
               </div>
             )}
             
@@ -481,26 +552,40 @@ export default function Drive() {
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
                   Arquivos
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {currentFiles.map(file => (
-                    <FileCard
-                      key={file.id}
-                      file={file}
-                      onClick={() => handleFileClick(file)}
-                      onDelete={() => updateFileMutation.mutate({
-                        id: file.id,
-                        data: {
-                          deleted: true,
-                          deleted_at: new Date().toISOString(),
-                          original_folder_id: file.folder_id,
-                        }
-                      })}
-                      onRename={() => handleRenameFile(file)}
-                      onExport={() => handleExportFile(file)}
-                      onCopy={() => handleCopyFile(file)}
-                    />
-                  ))}
-                </div>
+                <Droppable droppableId="files" type="FILE">
+                  {(provided) => (
+                    <div 
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    >
+                      {currentFiles.map((file, index) => (
+                        <Draggable key={file.id} draggableId={file.id} index={index}>
+                          {(provided, snapshot) => (
+                            <FileCard
+                              file={file}
+                              onClick={() => handleFileClick(file)}
+                              onDelete={() => updateFileMutation.mutate({
+                                id: file.id,
+                                data: {
+                                  deleted: true,
+                                  deleted_at: new Date().toISOString(),
+                                  original_folder_id: file.folder_id,
+                                }
+                              })}
+                              onRename={() => handleRenameFile(file)}
+                              onExport={() => handleExportFile(file)}
+                              onCopy={() => handleCopyFile(file)}
+                              provided={provided}
+                              isDragging={snapshot.isDragging}
+                            />
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
               </div>
             )}
           </>
@@ -542,6 +627,7 @@ export default function Drive() {
 
       {/* AI Assistant */}
       <AIAssistant />
-    </div>
+      </div>
+    </DragDropContext>
   );
 }

@@ -31,20 +31,47 @@ const colors = [
   { value: 'default', label: 'Cinza', class: 'bg-gray-500' },
 ];
 
-export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange, provided, isDragging }) {
   const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
+  const [clickCount, setClickCount] = React.useState(0);
+  const clickTimer = React.useRef(null);
   
   const handleCardClick = (e) => {
-    // Only open folder if not clicking on dropdown or dialog
-    if (!e.defaultPrevented) {
-      onClick();
+    if (e.defaultPrevented) return;
+    
+    setClickCount(prev => prev + 1);
+    
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+    }
+    
+    clickTimer.current = setTimeout(() => {
+      if (clickCount === 0) {
+        // Double click
+        onClick();
+      }
+      setClickCount(0);
+    }, 250);
+  };
+  
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    const button = e.currentTarget.querySelector('button[data-dropdown-trigger]');
+    if (button) {
+      button.click();
     }
   };
   
   return (
     <div
-      className="group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
+      ref={provided?.innerRef}
+      {...provided?.draggableProps}
+      {...provided?.dragHandleProps}
+      className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
+        isDragging ? 'opacity-50 shadow-2xl' : ''
+      }`}
       onClick={handleCardClick}
+      onContextMenu={handleContextMenu}
     >
       <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
         <Folder className="w-6 h-6" fill="currentColor" />
@@ -56,7 +83,7 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" data-dropdown-trigger>
             <MoreVertical className="w-4 h-4 text-gray-500" />
           </Button>
         </DropdownMenuTrigger>
