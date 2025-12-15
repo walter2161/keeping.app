@@ -6,13 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Droppable } from '@hello-pangea/dnd';
+import FolderColorPicker from './FolderColorPicker';
 
 const folderColors = {
   default: 'text-gray-500',
@@ -22,15 +18,6 @@ const folderColors = {
   purple: 'text-purple-500',
   red: 'text-red-500',
 };
-
-const colors = [
-  { value: 'blue', label: 'Azul', class: 'bg-blue-500' },
-  { value: 'green', label: 'Verde', class: 'bg-green-500' },
-  { value: 'orange', label: 'Laranja', class: 'bg-orange-500' },
-  { value: 'purple', label: 'Roxo', class: 'bg-purple-500' },
-  { value: 'red', label: 'Vermelho', class: 'bg-red-500' },
-  { value: 'default', label: 'Cinza', class: 'bg-gray-500' },
-];
 
 export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange, provided, isDragging }) {
   const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
@@ -121,36 +108,13 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
-        <PopoverTrigger asChild>
-          <div style={{ display: 'none' }} />
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-auto p-3" 
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium mb-1">Escolha a cor</p>
-            <div className="flex gap-2">
-              {colors.map(c => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onColorChange?.(folder, c.value);
-                    setColorPickerOpen(false);
-                  }}
-                  className={`w-8 h-8 rounded-full ${c.class} ${
-                    folder.color === c.value ? 'ring-2 ring-offset-2 ring-blue-600' : ''
-                  } hover:scale-110 transition-transform`}
-                  title={c.label}
-                />
-              ))}
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+      <FolderColorPicker
+        folder={folder}
+        open={colorPickerOpen}
+        onOpenChange={setColorPickerOpen}
+        onColorSelect={onColorChange}
+      />
+      
       <div style={{ display: 'none' }}>{droppableProvided.placeholder}</div>
         </div>
       )}

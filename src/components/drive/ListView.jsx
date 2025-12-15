@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import FolderColorPicker from './FolderColorPicker';
 
 const folderColors = {
   default: 'text-gray-500',
@@ -48,12 +49,24 @@ export default function ListView({
   onFileCopy,
   level = 0
 }) {
+  const [colorPickerState, setColorPickerState] = React.useState({ open: false, folder: null });
+
   const handleFileDelete = (file) => {
     if (typeof onFileDelete === 'function') {
       onFileDelete(file);
     }
   };
+  
   return (
+    <>
+      <FolderColorPicker
+        folder={colorPickerState.folder}
+        open={colorPickerState.open}
+        onOpenChange={(open) => setColorPickerState({ open, folder: open ? colorPickerState.folder : null })}
+        onColorSelect={onFolderColorChange}
+      />
+      
+    
     <div className="bg-white rounded-lg border overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b text-xs font-semibold text-gray-600 uppercase tracking-wide">
@@ -97,10 +110,7 @@ export default function ListView({
                 {onFolderColorChange && (
                   <DropdownMenuItem onClick={(e) => { 
                     e.stopPropagation(); 
-                    const colors = ['blue', 'green', 'orange', 'purple', 'red', 'default'];
-                    const currentIndex = colors.indexOf(folder.color || 'default');
-                    const nextColor = colors[(currentIndex + 1) % colors.length];
-                    onFolderColorChange(folder, nextColor);
+                    setColorPickerState({ open: true, folder });
                   }}>
                     <Palette className="w-4 h-4 mr-2" />
                     Mudar Cor
@@ -182,5 +192,6 @@ export default function ListView({
         </div>
       )}
     </div>
+    </>
   );
 }
