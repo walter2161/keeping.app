@@ -23,14 +23,47 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy, provided, isDragging }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
+  const [clickCount, setClickCount] = React.useState(0);
+  const clickTimer = React.useRef(null);
+  
+  const handleCardClick = (e) => {
+    if (e.defaultPrevented) return;
+    
+    setClickCount(prev => prev + 1);
+    
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+    }
+    
+    clickTimer.current = setTimeout(() => {
+      if (clickCount === 0) {
+        onClick();
+      }
+      setClickCount(0);
+    }, 250);
+  };
+  
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    const button = e.currentTarget.querySelector('button[data-dropdown-trigger]');
+    if (button) {
+      button.click();
+    }
+  };
 
   return (
     <div
-      className="group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
-      onClick={onClick}
+      ref={provided?.innerRef}
+      {...provided?.draggableProps}
+      {...provided?.dragHandleProps}
+      className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
+        isDragging ? 'opacity-50 shadow-2xl' : ''
+      }`}
+      onClick={handleCardClick}
+      onContextMenu={handleContextMenu}
     >
       <div className={`p-2 rounded-lg ${config.bg} ${config.color}`}>
         <Icon className="w-6 h-6" />
@@ -47,7 +80,7 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" data-dropdown-trigger>
             <MoreVertical className="w-4 h-4 text-gray-500" />
           </Button>
         </DropdownMenuTrigger>
