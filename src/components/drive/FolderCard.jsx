@@ -32,7 +32,7 @@ const colors = [
 ];
 
 export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange }) {
-  const [colorPopoverOpen, setColorPopoverOpen] = React.useState(false);
+  const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
   
   const handleCardClick = (e) => {
     // Only open folder if not clicking on dropdown or dialog
@@ -65,6 +65,10 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setColorPickerOpen(true); }}>
+            <Palette className="w-4 h-4 mr-2" />
+            Mudar Cor
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(folder); }}>
             <Copy className="w-4 h-4 mr-2" />
             Copiar
@@ -83,37 +87,33 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+      <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
         <PopoverTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-          >
-            <Palette className="w-4 h-4 text-gray-500" />
-          </Button>
+          <div style={{ display: 'none' }} />
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-2" 
+          className="w-auto p-3" 
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex gap-2">
-            {colors.map(c => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onColorChange?.(folder, c.value);
-                  setColorPopoverOpen(false);
-                }}
-                className={`w-8 h-8 rounded-full ${c.class} ${
-                  folder.color === c.value ? 'ring-2 ring-offset-2 ring-blue-600' : ''
-                } hover:scale-110 transition-transform`}
-                title={c.label}
-              />
-            ))}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium mb-1">Escolha a cor</p>
+            <div className="flex gap-2">
+              {colors.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onColorChange?.(folder, c.value);
+                    setColorPickerOpen(false);
+                  }}
+                  className={`w-8 h-8 rounded-full ${c.class} ${
+                    folder.color === c.value ? 'ring-2 ring-offset-2 ring-blue-600' : ''
+                  } hover:scale-110 transition-transform`}
+                  title={c.label}
+                />
+              ))}
+            </div>
           </div>
         </PopoverContent>
       </Popover>
