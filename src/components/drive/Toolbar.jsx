@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
-  List, Grid3x3, PanelLeftClose, PanelLeft, Image, Video, Copy
+  List, Grid3x3, PanelLeftClose, PanelLeft, Copy, HardDrive,
+  Bell, User, Settings
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,113 +33,154 @@ export default function Toolbar({
   onPaste
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 p-4 bg-white border-b">
-      <Button 
-        variant="outline"
-        size="icon"
-        onClick={onToggleSidebar}
-        className="border-gray-300"
-      >
-        {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
-      </Button>
+    <div className="flex items-center justify-between gap-3 px-4 h-14 bg-white border-b sticky top-0 z-30">
+      {/* Left Section */}
+      <div className="flex items-center gap-3">
+        <Button 
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSidebar}
+          className="flex-shrink-0"
+        >
+          {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+        </Button>
 
-      <div className="h-8 w-px bg-gray-200" />
+        <Link to={createPageUrl('Drive')} className="flex items-center gap-2 flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <HardDrive className="w-4 h-4 text-white" />
+          </div>
+          <div className="hidden md:block">
+            <h1 className="font-bold text-gray-900 text-sm leading-tight">keeping</h1>
+          </div>
+        </Link>
 
-      <Button 
-        onClick={onNewFolder}
-        className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-      >
-        <FolderPlus className="w-4 h-4 mr-2" />
-        Nova Pasta
-      </Button>
+        <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="border-gray-300">
-            <FilePlus className="w-4 h-4 mr-2" />
-            Novo Arquivo
+        <Button 
+          onClick={onNewFolder}
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex"
+        >
+          <FolderPlus className="w-3.5 h-3.5 sm:mr-1.5" />
+          <span className="hidden lg:inline">Nova Pasta</span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" className="hidden sm:flex">
+              <FilePlus className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden lg:inline">Novo</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={() => onNewFile?.('kbn')}>
+              <LayoutGrid className="w-4 h-4 mr-2 text-purple-600" />
+              Kanban
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNewFile?.('gnt')}>
+              <GanttChart className="w-4 h-4 mr-2 text-orange-600" />
+              Gantt
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNewFile?.('crn')}>
+              <Calendar className="w-4 h-4 mr-2 text-pink-600" />
+              Cronograma
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onNewFile?.('docx')}>
+              <FileText className="w-4 h-4 mr-2 text-blue-600" />
+              Documento
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNewFile?.('xlsx')}>
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+              Planilha
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button size="sm" variant="outline" onClick={onUpload} className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hidden sm:flex">
+          <Upload className="w-3.5 h-3.5 sm:mr-1.5" />
+          <span className="hidden xl:inline">Upload</span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" className="hidden md:flex">
+              <Download className="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={onImport}>
+              <Download className="w-4 h-4 mr-2 rotate-180" />
+              Importar JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onExportAll}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar Tudo
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {onPaste && (
+          <Button size="sm" variant="outline" onClick={onPaste} className="hidden lg:flex">
+            <Copy className="w-3.5 h-3.5" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel>Arquivos Especiais</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => onNewFile?.('kbn')}>
-            <LayoutGrid className="w-4 h-4 mr-2 text-purple-600" />
-            Kanban (.kbn)
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onNewFile?.('gnt')}>
-            <GanttChart className="w-4 h-4 mr-2 text-orange-600" />
-            Gantt (.gnt)
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onNewFile?.('crn')}>
-            <Calendar className="w-4 h-4 mr-2 text-pink-600" />
-            Cronograma (.crn)
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>Arquivos Comuns</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => onNewFile?.('docx')}>
-            <FileText className="w-4 h-4 mr-2 text-blue-600" />
-            Documento (.docx)
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onNewFile?.('xlsx')}>
-            <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-            Planilha (.xlsx)
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        )}
 
-      <Button variant="outline" onClick={onUpload} className="border-gray-300 bg-green-50 hover:bg-green-100 text-green-700 border-green-300">
-        <Upload className="w-4 h-4 mr-2" />
-        Upload
-      </Button>
-
-      <Button variant="outline" onClick={onImport} className="border-gray-300">
-        <Download className="w-4 h-4 mr-2 rotate-180" />
-        Importar JSON
-      </Button>
-
-      <Button variant="outline" onClick={onExportAll} className="border-gray-300">
-        <Download className="w-4 h-4 mr-2" />
-        Exportar Tudo
-      </Button>
-
-      {onPaste && (
-        <Button variant="outline" onClick={onPaste} className="border-gray-300">
-          <Copy className="w-4 h-4 mr-2" />
-          Colar
-        </Button>
-      )}
-
-      <div className="h-8 w-px bg-gray-200" />
-
-      <div className="flex items-center gap-1 border border-gray-300 rounded-lg p-1">
-        <Button
-          variant={viewMode === 'grid' ? 'default' : 'ghost'}
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => onViewModeChange?.('grid')}
-        >
-          <Grid3x3 className="w-4 h-4" />
-        </Button>
-        <Button
-          variant={viewMode === 'list' ? 'default' : 'ghost'}
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => onViewModeChange?.('list')}
-        >
-          <List className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-0.5 border border-gray-300 rounded-md p-0.5">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => onViewModeChange?.('grid')}
+          >
+            <Grid3x3 className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => onViewModeChange?.('list')}
+          >
+            <List className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
 
-      <div className="flex-1" />
+      {/* Right Section */}
+      <div className="flex items-center gap-2">
+        <div className="relative hidden md:block">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Input
+            placeholder="Buscar..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            className="pl-8 w-48 h-8 text-sm"
+          />
+        </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input
-          placeholder="Buscar arquivos..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange?.(e.target.value)}
-          className="pl-10 w-64 border-gray-300"
-        />
+        <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
+          <Bell className="w-4 h-4" />
+        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <User className="w-3.5 h-3.5 text-white" />
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              <User className="w-4 h-4 mr-2" />
+              Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="w-4 h-4 mr-2" />
+              Configurações
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

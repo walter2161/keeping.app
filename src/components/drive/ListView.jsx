@@ -31,6 +31,7 @@ export default function ListView({
   onFolderDelete,
   onFolderRename,
   onFolderCopy,
+  onFolderExport,
   onFileDelete,
   onFileRename,
   onFileExport,
@@ -81,6 +82,10 @@ export default function ListView({
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderCopy?.(folder); }}>
                   <Copy className="w-4 h-4 mr-2" />
                   Copiar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderExport?.(folder); }}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar (.zip)
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); onFolderDelete?.(folder); }}>
                   <Trash2 className="w-4 h-4 mr-2" />

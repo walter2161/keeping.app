@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Loader2, FolderOpen, AlertCircle } from 'lucide-react';
+import JSZip from 'jszip';
 
 import Toolbar from '../components/drive/Toolbar';
 import Breadcrumb from '../components/drive/Breadcrumb';
@@ -165,7 +166,31 @@ export default function Drive() {
     }
   };
 
-  const handleExportFile = (file) => {
+  const handleExportFile = async (file) => {
+    // Export media files in original format
+    if ((file.type === 'img' || file.type === 'video') && file.file_url) {
+      const a = document.createElement('a');
+      a.href = file.file_url;
+      a.download = file.name;
+      a.click();
+      return;
+    }
+
+    // Export docx/xlsx with content
+    if (file.type === 'docx' || file.type === 'xlsx') {
+      const blob = new Blob([file.content || ''], { 
+        type: file.type === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${file.name}.${file.type}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // Export other files as JSON
     const exportData = {
       type: 'single_file',
       file: {
@@ -294,6 +319,50 @@ export default function Drive() {
     }
   };
 
+  const handleExportFolder = async (folder) => {
+    const zip = new JSZip();
+    
+    const addFolderToZip = async (folderId, zipFolder) => {
+      const subFolders = folders.filter(f => f.parent_id === folderId);
+      const folderFiles = files.filter(f => f.folder_id === folderId);
+      
+      for (const file of folderFiles) {
+        if ((file.type === 'img' || file.type === 'video') && file.file_url) {
+          try {
+            const response = await fetch(file.file_url);
+            const blob = await response.blob();
+            zipFolder.file(file.name, blob);
+          } catch (error) {
+            console.error('Error downloading file:', error);
+          }
+        } else if (file.type === 'docx' || file.type === 'xlsx') {
+          zipFolder.file(`${file.name}.${file.type}`, file.content || '');
+        } else {
+          zipFolder.file(`${file.name}.json`, JSON.stringify({
+            name: file.name,
+            type: file.type,
+            content: file.content
+          }, null, 2));
+        }
+      }
+      
+      for (const subFolder of subFolders) {
+        const subZipFolder = zipFolder.folder(subFolder.name);
+        await addFolderToZip(subFolder.id, subZipFolder);
+      }
+    };
+    
+    await addFolderToZip(folder.id, zip);
+    
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${folder.name}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const isLoading = foldersLoading || filesLoading;
 
   return (
@@ -347,6 +416,7 @@ export default function Drive() {
             onFolderDelete={handleDeleteFolder}
             onFolderRename={handleRenameFolder}
             onFolderCopy={handleCopyFolder}
+            onFolderExport={handleExportFolder}
             onFileDelete={(id) => deleteFileMutation.mutate(id)}
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
@@ -369,6 +439,7 @@ export default function Drive() {
                       onDelete={() => handleDeleteFolder(folder)}
                       onRename={() => handleRenameFolder(folder)}
                       onCopy={() => handleCopyFolder(folder)}
+                      onExport={() => handleExportFolder(folder)}
                     />
                   ))}
                 </div>
