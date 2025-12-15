@@ -20,10 +20,18 @@ const folderColors = {
 
 export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange }) {
   const [colorDialogOpen, setColorDialogOpen] = React.useState(false);
+  
+  const handleCardClick = (e) => {
+    // Only open folder if not clicking on dropdown or dialog
+    if (!e.defaultPrevented) {
+      onClick();
+    }
+  };
+  
   return (
     <div
       className="group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
         <Folder className="w-6 h-6" fill="currentColor" />
@@ -34,12 +42,12 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
       </span>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuTrigger asChild onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
             <MoreVertical className="w-4 h-4 text-gray-500" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename?.(folder); }}>
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear

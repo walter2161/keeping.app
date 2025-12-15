@@ -5,7 +5,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy,
-  Bell, User, Settings, Trash2
+  Bell, User, Settings, Trash2, PanelLeftOpen
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,13 +34,33 @@ export default function Toolbar({
   onSearchChange,
   viewMode,
   onViewModeChange,
-  onPaste
+  onPaste,
+  sidebarOpen,
+  onToggleSidebar
 }) {
   return (
     <TooltipProvider>
       <div className="flex items-center justify-between gap-3 px-4 h-14 bg-white border-b sticky top-0 z-30">
         {/* Left Section */}
         <div className="flex items-center gap-3">
+        {!sidebarOpen && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onToggleSidebar}
+                className="h-8 w-8 flex-shrink-0"
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Mostrar Sidebar</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
         <Link to={createPageUrl('Drive')} className="flex items-center gap-2 flex-shrink-0">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/ae7dc63b6_logo-keepai-BABgUd28.png"

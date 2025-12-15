@@ -398,6 +398,8 @@ export default function Drive() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onPaste={clipboard.item ? handlePaste : null}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
       
       <div className="flex flex-1 overflow-hidden">
