@@ -18,7 +18,9 @@ import UploadDialog from '../components/drive/UploadDialog';
 import AIAssistant from '../components/ai/AIAssistant';
 
 export default function Drive() {
-  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const urlParams = new URLSearchParams(window.location.search);
+  const folderParam = urlParams.get('folder');
+  const [currentFolderId, setCurrentFolderId] = useState(folderParam);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
   const [importDialog, setImportDialog] = useState(false);
@@ -92,6 +94,7 @@ export default function Drive() {
   // Filter items for current folder
   const currentFolders = useMemo(() => {
     return folders
+      .filter(f => !f.deleted)
       .filter(f => f.parent_id === currentFolderId)
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -99,6 +102,7 @@ export default function Drive() {
 
   const currentFiles = useMemo(() => {
     return files
+      .filter(f => !f.deleted)
       .filter(f => f.folder_id === currentFolderId)
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -138,7 +142,17 @@ export default function Drive() {
   };
 
   const handleDeleteFolder = async (folder) => {
-    // Delete all children recursively
+    // Move to trash instead of deleting
+    await updateFolderMutation.mutateAsync({
+      id: folder.id,
+      data: {
+        deleted: true,
+        deleted_at: new Date().toISOString(),
+        original_parent_id: folder.parent_id,
+      }
+    });
+
+    // Also move all children to trash
     const childFolders = folders.filter(f => f.parent_id === folder.id);
     const childFiles = files.filter(f => f.folder_id === folder.id);
     
@@ -146,10 +160,15 @@ export default function Drive() {
       await handleDeleteFolder(child);
     }
     for (const file of childFiles) {
-      await deleteFileMutation.mutateAsync(file.id);
+      await updateFileMutation.mutateAsync({
+        id: file.id,
+        data: {
+          deleted: true,
+          deleted_at: new Date().toISOString(),
+          original_folder_id: file.folder_id,
+        }
+      });
     }
-    
-    await deleteFolderMutation.mutateAsync(folder.id);
   };
 
   const handleRenameFolder = (folder) => {
@@ -417,7 +436,14 @@ export default function Drive() {
             onFolderRename={handleRenameFolder}
             onFolderCopy={handleCopyFolder}
             onFolderExport={handleExportFolder}
-            onFileDelete={(id) => deleteFileMutation.mutate(id)}
+            onFileDelete={(file) => updateFileMutation.mutate({
+              id: file.id,
+              data: {
+                deleted: true,
+                deleted_at: new Date().toISOString(),
+                original_folder_id: file.folder_id,
+              }
+            })}
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
             onFileCopy={handleCopyFile}
@@ -458,7 +484,14 @@ export default function Drive() {
                       key={file.id}
                       file={file}
                       onClick={() => handleFileClick(file)}
-                      onDelete={() => deleteFileMutation.mutate(file.id)}
+                      onDelete={() => updateFileMutation.mutate({
+                        id: file.id,
+                        data: {
+                          deleted: true,
+                          deleted_at: new Date().toISOString(),
+                          original_folder_id: file.folder_id,
+                        }
+                      })}
                       onRename={() => handleRenameFile(file)}
                       onExport={() => handleExportFile(file)}
                       onCopy={() => handleCopyFile(file)}

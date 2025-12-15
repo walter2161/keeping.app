@@ -38,6 +38,11 @@ export default function ListView({
   onFileCopy,
   level = 0
 }) {
+  const handleFileDelete = (file) => {
+    if (typeof onFileDelete === 'function') {
+      onFileDelete(file);
+    }
+  };
   return (
     <div className="bg-white rounded-lg border overflow-hidden">
       {/* Header */}

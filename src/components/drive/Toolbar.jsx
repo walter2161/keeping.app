@@ -5,7 +5,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, PanelLeftClose, PanelLeft, Copy, HardDrive,
-  Bell, User, Settings
+  Bell, User, Settings, Trash2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,6 +157,12 @@ export default function Toolbar({
             className="pl-8 w-48 h-8 text-sm"
           />
         </div>
+
+        <Link to={createPageUrl('Trash')}>
+          <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </Link>
 
         <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
           <Bell className="w-4 h-4" />

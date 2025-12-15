@@ -143,11 +143,11 @@ export default function FileViewer() {
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <Link to={createPageUrl('Drive')}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
+            <Link to={createPageUrl(`Drive${file.folder_id ? `?folder=${file.folder_id}` : ''}`)}>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
           <div className={`p-2 rounded-lg bg-gray-100 ${config.color}`}>
             <Icon className="w-5 h-5" />
           </div>
