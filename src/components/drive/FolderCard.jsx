@@ -19,10 +19,11 @@ const folderColors = {
   red: 'text-red-500',
 };
 
-export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange, provided, isDragging }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange, provided, isDragging, onExternalDrop }) {
   const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
   const [clickCount, setClickCount] = React.useState(0);
   const clickTimer = React.useRef(null);
+  const [isDragOver, setIsDragOver] = React.useState(false);
   
   const handleCardClick = (e) => {
     if (e.defaultPrevented) return;
@@ -49,6 +50,27 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
       button.click();
     }
   };
+
+  const handleExternalDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleExternalDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleExternalDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (onExternalDrop) {
+      onExternalDrop(e, folder.id);
+    }
+  };
   
   return (
     <Droppable droppableId={`folder-${folder.id}`} type="FILE">
@@ -63,9 +85,12 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
           {...droppableProvided.droppableProps}
           className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
             isDragging ? 'opacity-50 shadow-2xl' : ''
-          } ${droppableSnapshot.isDraggingOver ? 'bg-blue-100 border-blue-400 border-2' : ''}`}
+          } ${droppableSnapshot.isDraggingOver || isDragOver ? 'bg-blue-100 border-blue-400 border-2' : ''}`}
           onClick={handleCardClick}
           onContextMenu={handleContextMenu}
+          onDragOver={handleExternalDragOver}
+          onDragLeave={handleExternalDragLeave}
+          onDrop={handleExternalDrop}
         >
       <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
         <Folder className="w-6 h-6" fill="currentColor" />

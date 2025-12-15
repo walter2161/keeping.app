@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Loader2, FolderOpen, AlertCircle } from 'lucide-react';
+import { Loader2, FolderOpen, AlertCircle, Upload as UploadIcon } from 'lucide-react';
 import JSZip from 'jszip';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Toaster } from 'react-hot-toast';
 
 import Toolbar from '../components/drive/Toolbar';
 import Breadcrumb from '../components/drive/Breadcrumb';
@@ -30,6 +31,7 @@ export default function Drive() {
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clipboard, setClipboard] = useState({ type: null, item: null });
+  const [dragOverFolder, setDragOverFolder] = useState(null);
   
   const queryClient = useQueryClient();
 
@@ -468,12 +470,16 @@ export default function Drive() {
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div 
+          className="flex-1 flex flex-col overflow-hidden"
+          onDragOver={handleExternalDragOver}
+          onDrop={(e) => handleExternalDrop(e, currentFolderId)}
+        >
           <Breadcrumb 
             path={breadcrumbPath} 
             onNavigate={setCurrentFolderId} 
           />
-          
+
           <div className="flex-1 p-6 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
@@ -538,6 +544,7 @@ export default function Drive() {
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
                               provided={provided}
                               isDragging={snapshot.isDragging}
+                              onExternalDrop={handleExternalDrop}
                             />
                           )}
                         </Draggable>
@@ -630,7 +637,10 @@ export default function Drive() {
 
       {/* AI Assistant */}
       <AIAssistant />
+
+      {/* Toast Container */}
+      <Toaster />
       </div>
-    </DragDropContext>
-  );
-}
+      </DragDropContext>
+      );
+      }
