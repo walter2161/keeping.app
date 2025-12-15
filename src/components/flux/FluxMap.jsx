@@ -9,9 +9,42 @@ import { Button } from "@/components/ui/button";
 
 const COLORS = ['#fef08a', '#fed7aa', '#fecaca', '#ddd6fe', '#bfdbfe', '#bbf7d0', '#e9d5ff'];
 
+const SAMPLE_DATA = {
+  elements: [
+    { id: '1', type: 'circle', x: 200, y: 100, width: 120, height: 120, color: '#10b981', text: 'Lead Entra', zIndex: 1 },
+    { id: '2', type: 'rect', x: 450, y: 100, width: 180, height: 100, color: '#3b82f6', text: 'Qualificação', zIndex: 2 },
+    { id: '3', type: 'diamond', x: 750, y: 80, width: 180, height: 120, color: '#f59e0b', text: 'Tem Budget?', zIndex: 3 },
+    { id: '4', type: 'sticky', x: 1050, y: 50, width: 200, height: 150, color: '#fecaca', text: 'Objeção: Preço muito alto', zIndex: 4 },
+    { id: '5', type: 'rect', x: 1050, y: 250, width: 180, height: 100, color: '#3b82f6', text: 'Apresentar ROI', zIndex: 5 },
+    { id: '6', type: 'diamond', x: 750, y: 400, width: 180, height: 120, color: '#f59e0b', text: 'Tem Autoridade?', zIndex: 6 },
+    { id: '7', type: 'sticky', x: 1050, y: 380, width: 200, height: 150, color: '#fed7aa', text: 'Objeção: Precisa aprovação', zIndex: 7 },
+    { id: '8', type: 'rect', x: 450, y: 400, width: 180, height: 100, color: '#3b82f6', text: 'Proposta Comercial', zIndex: 8 },
+    { id: '9', type: 'diamond', x: 200, y: 380, width: 180, height: 120, color: '#f59e0b', text: 'Aprovou?', zIndex: 9 },
+    { id: '10', type: 'sticky', x: 50, y: 580, width: 200, height: 150, color: '#ddd6fe', text: 'Objeção: Timing ruim', zIndex: 10 },
+    { id: '11', type: 'rect', x: 350, y: 600, width: 180, height: 100, color: '#8b5cf6', text: 'Follow-up 30 dias', zIndex: 11 },
+    { id: '12', type: 'circle', x: 200, y: 750, width: 120, height: 120, color: '#ef4444', text: 'Cliente!', zIndex: 12 }
+  ],
+  connections: [
+    { id: 'c1', from: '1', to: '2' },
+    { id: 'c2', from: '2', to: '3' },
+    { id: 'c3', from: '3', to: '4' },
+    { id: 'c4', from: '4', to: '5' },
+    { id: 'c5', from: '5', to: '6' },
+    { id: 'c6', from: '6', to: '7' },
+    { id: 'c7', from: '3', to: '8' },
+    { id: 'c8', from: '8', to: '9' },
+    { id: 'c9', from: '9', to: '10' },
+    { id: 'c10', from: '10', to: '11' },
+    { id: 'c11', from: '11', to: '2' },
+    { id: 'c12', from: '9', to: '12' },
+    { id: 'c13', from: '6', to: '8' }
+  ]
+};
+
 export default function FluxMap({ data, onChange }) {
-  const [elements, setElements] = useState(data?.elements || []);
-  const [connections, setConnections] = useState(data?.connections || []);
+  const initialData = (data?.elements && data.elements.length > 0) ? data : SAMPLE_DATA;
+  const [elements, setElements] = useState(initialData?.elements || []);
+  const [connections, setConnections] = useState(initialData?.connections || []);
   const [selectedId, setSelectedId] = useState(null);
   const [tool, setTool] = useState('select');
   const [zoom, setZoom] = useState(1);
@@ -131,6 +164,7 @@ export default function FluxMap({ data, onChange }) {
 
   const handleElementMouseDown = (e, elementId) => {
     e.stopPropagation();
+    e.preventDefault();
     
     if (tool === 'connect') {
       const element = elements.find(el => el.id === elementId);
@@ -147,11 +181,14 @@ export default function FluxMap({ data, onChange }) {
         addConnection(connectingFrom, elementId);
         setConnectingFrom(null);
         setTempConnection(null);
+        setTool('select');
       }
     } else if (tool === 'select') {
       setSelectedId(elementId);
-      setIsDragging(true);
-      setDraggedElement(elementId);
+      if (e.button === 0) {
+        setIsDragging(true);
+        setDraggedElement(elementId);
+      }
     }
   };
 
@@ -170,8 +207,9 @@ export default function FluxMap({ data, onChange }) {
       top: element.y,
       width: element.width,
       height: element.height,
-      cursor: tool === 'select' ? 'move' : 'pointer',
-      zIndex: element.zIndex || 0
+      cursor: tool === 'select' ? 'move' : tool === 'connect' ? 'crosshair' : 'pointer',
+      zIndex: element.zIndex || 0,
+      userSelect: 'none'
     };
 
     const commonClasses = `border-2 ${isSelected ? 'border-blue-500 shadow-lg' : 'border-gray-300'} transition-all`;
@@ -181,15 +219,15 @@ export default function FluxMap({ data, onChange }) {
         <div
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
-          className={`${commonClasses} shadow-md p-4 font-handwriting`}
+          className={`${commonClasses} shadow-md p-4`}
           onMouseDown={(e) => handleElementMouseDown(e, element.id)}
         >
           <textarea
             value={element.text}
             onChange={(e) => updateElement(element.id, { text: e.target.value })}
-            className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-800 text-sm"
+            className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-800 text-sm leading-relaxed"
             style={{ fontFamily: 'Arial, sans-serif' }}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           />
         </div>
       );
@@ -207,7 +245,7 @@ export default function FluxMap({ data, onChange }) {
             value={element.text}
             onChange={(e) => updateElement(element.id, { text: e.target.value })}
             className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-700"
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           />
         </div>
       );
@@ -226,7 +264,7 @@ export default function FluxMap({ data, onChange }) {
               value={element.text}
               onChange={(e) => updateElement(element.id, { text: e.target.value })}
               className="bg-transparent border-none outline-none font-semibold text-gray-700"
-              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -239,6 +277,7 @@ export default function FluxMap({ data, onChange }) {
         style={style}
         viewBox={`0 0 ${element.width} ${element.height}`}
         onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+        className="select-none"
       >
         {element.type === 'rect' && (
           <rect
@@ -279,6 +318,7 @@ export default function FluxMap({ data, onChange }) {
           fill="white"
           fontSize="14"
           fontWeight="600"
+          pointerEvents="none"
         >
           {element.text}
         </text>
