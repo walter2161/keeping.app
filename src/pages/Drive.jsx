@@ -441,6 +441,79 @@ export default function Drive() {
     URL.revokeObjectURL(url);
   };
 
+  // Drag and drop externo (do PC para o navegador)
+  const handleExternalDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleExternalDrop = async (e, targetFolderId = null) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (!droppedFiles.length) return;
+
+    const toast = (await import('react-hot-toast')).default;
+    
+    const uploadToastId = toast.loading(
+      `Importando ${droppedFiles.length} arquivo${droppedFiles.length > 1 ? 's' : ''}...`,
+      { position: 'bottom-left' }
+    );
+
+    try {
+      let successCount = 0;
+      
+      for (const file of droppedFiles) {
+        const fileType = detectFileType(file);
+        
+        // Upload do arquivo
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        
+        // Criar registro no banco
+        await createFileMutation.mutateAsync({
+          name: file.name,
+          type: fileType,
+          folder_id: targetFolderId || currentFolderId,
+          file_url: file_url,
+          order: currentFiles.length + successCount,
+        });
+        
+        successCount++;
+        
+        toast.loading(
+          `Importando ${successCount}/${droppedFiles.length} arquivos...`,
+          { id: uploadToastId, position: 'bottom-left' }
+        );
+      }
+
+      toast.success(
+        `${successCount} arquivo${successCount > 1 ? 's importados' : ' importado'} com sucesso!`,
+        { id: uploadToastId, position: 'bottom-left', duration: 3000 }
+      );
+      
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    } catch (error) {
+      toast.error('Erro ao importar arquivos', { 
+        id: uploadToastId, 
+        position: 'bottom-left' 
+      });
+    }
+  };
+
+  const detectFileType = (file) => {
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.docx') || name.endsWith('.doc')) return 'docx';
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) return 'xlsx';
+    if (name.endsWith('.pdf')) return 'pdf';
+    if (name.match(/\.(jpg|jpeg|png|gif|bmp|svg|webp)$/)) return 'img';
+    if (name.match(/\.(mp4|avi|mov|wmv|flv|webm)$/)) return 'video';
+    if (name.endsWith('.kbn')) return 'kbn';
+    if (name.endsWith('.gnt')) return 'gnt';
+    if (name.endsWith('.crn')) return 'crn';
+    return 'other';
+  };
+
   const isLoading = foldersLoading || filesLoading;
 
   return (
