@@ -3,6 +3,7 @@ import { Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard } fr
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { Droppable } from '@hello-pangea/dnd';
 
 const folderColors = {
   default: 'text-gray-500',
@@ -18,17 +19,19 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
   const isActive = currentFolderId === folder.id;
 
   return (
-    <div>
-      <button
-        onClick={() => {
-          onSelect(folder.id);
-          if (hasChildren) onToggle(folder.id);
-        }}
-        className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
-          isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-        }`}
-        style={{ paddingLeft: `${level * 12 + 12}px` }}
-      >
+    <Droppable droppableId={`sidebar-folder-${folder.id}`} type="FOLDER">
+      {(provided, snapshot) => (
+        <div ref={provided.innerRef} {...provided.droppableProps}>
+          <button
+            onClick={() => {
+              onSelect(folder.id);
+              if (hasChildren) onToggle(folder.id);
+            }}
+            className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+              isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+            } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
+            style={{ paddingLeft: `${level * 12 + 12}px` }}
+          >
         {hasChildren && (
           <button
             onClick={(e) => {
@@ -50,13 +53,16 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
           fill="currentColor"
         />
         <span className="truncate flex-1 text-left">{folder.name}</span>
-      </button>
-      {hasChildren && isExpanded && (
-        <div>
-          {children}
+          </button>
+          <div style={{ display: 'none' }}>{provided.placeholder}</div>
+          {hasChildren && isExpanded && (
+            <div>
+              {children}
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </Droppable>
   );
 }
 
@@ -122,6 +128,22 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
         </div>
       </div>
       <div className="py-2">
+        <Droppable droppableId="sidebar-folder-root" type="FOLDER">
+          {(provided, snapshot) => (
+            <div ref={provided.innerRef} {...provided.droppableProps}>
+              <button
+                onClick={() => onFolderSelect(null)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+                  currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
+              >
+                <Folder className="w-4 h-4 text-gray-500" fill="currentColor" />
+                <span className="truncate flex-1 text-left">Meu Drive</span>
+              </button>
+              <div style={{ display: 'none' }}>{provided.placeholder}</div>
+            </div>
+          )}
+        </Droppable>
         {folderTree}
       </div>
     </div>
