@@ -193,7 +193,7 @@ export default function FileViewer() {
         )}
         
         {file.type === 'gnt' && localContent && (
-          <GanttChart 
+          <GanttChartComponent 
             data={localContent} 
             onChange={handleContentChange}
           />
