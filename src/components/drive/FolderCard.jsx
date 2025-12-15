@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Droppable } from '@hello-pangea/dnd';
 
 const folderColors = {
   default: 'text-gray-500',
@@ -63,16 +64,22 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
   };
   
   return (
-    <div
-      ref={provided?.innerRef}
-      {...provided?.draggableProps}
-      {...provided?.dragHandleProps}
-      className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
-        isDragging ? 'opacity-50 shadow-2xl' : ''
-      }`}
-      onClick={handleCardClick}
-      onContextMenu={handleContextMenu}
-    >
+    <Droppable droppableId={`folder-${folder.id}`} type="FILE">
+      {(droppableProvided, droppableSnapshot) => (
+        <div
+          ref={(el) => {
+            droppableProvided.innerRef(el);
+            if (provided?.innerRef) provided.innerRef(el);
+          }}
+          {...provided?.draggableProps}
+          {...provided?.dragHandleProps}
+          {...droppableProvided.droppableProps}
+          className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
+            isDragging ? 'opacity-50 shadow-2xl' : ''
+          } ${droppableSnapshot.isDraggingOver ? 'bg-blue-100 border-blue-400 border-2' : ''}`}
+          onClick={handleCardClick}
+          onContextMenu={handleContextMenu}
+        >
       <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
         <Folder className="w-6 h-6" fill="currentColor" />
       </div>
@@ -144,6 +151,9 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
           </div>
         </PopoverContent>
       </Popover>
-    </div>
+      <div style={{ display: 'none' }}>{droppableProvided.placeholder}</div>
+        </div>
+      )}
+    </Droppable>
   );
 }
