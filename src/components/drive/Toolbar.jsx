@@ -89,15 +89,12 @@ export default function Toolbar({
           </TooltipContent>
         </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="hidden sm:flex">
-                    <FilePlus className="w-3.5 h-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" className="hidden sm:flex">
+              <FilePlus className="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuItem onClick={() => onNewFile?.('kbn')}>
               <LayoutGrid className="w-4 h-4 mr-2 text-purple-600" />
@@ -121,13 +118,7 @@ export default function Toolbar({
               Planilha
             </DropdownMenuItem>
           </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Novo Arquivo</p>
-          </TooltipContent>
-        </Tooltip>
+        </DropdownMenu>
 
         <Button size="sm" variant="outline" onClick={onUpload} className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hidden sm:flex">
           <Upload className="w-3.5 h-3.5 sm:mr-1.5" />
@@ -219,7 +210,7 @@ export default function Toolbar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        </div>
+      </div>
       </div>
     </TooltipProvider>
   );
