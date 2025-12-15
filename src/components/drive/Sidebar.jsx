@@ -102,33 +102,25 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
   return (
     <div className="w-64 bg-white border-r overflow-y-auto flex-shrink-0">
       <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/ae7dc63b6_logo-keepai-BABgUd28.png"
-              alt="keeping"
-              className="w-6 h-6 rounded"
-            />
-            <span className="font-bold text-gray-900 text-sm">keeping</span>
-          </div>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => onFolderSelect(null)}
+            className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+              currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+            }`}
+          >
+            <Folder className="w-5 h-5" />
+            <span className="font-medium">Todos os Arquivos</span>
+          </button>
           <Button 
             variant="ghost"
             size="icon"
             onClick={onToggleSidebar}
-            className="h-8 w-8 flex-shrink-0"
+            className="h-8 w-8 flex-shrink-0 ml-2"
           >
             <PanelLeftClose className="w-4 h-4" />
           </Button>
         </div>
-        <button
-          onClick={() => onFolderSelect(null)}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
-            currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-          }`}
-        >
-          <Folder className="w-5 h-5" />
-          <span className="font-medium">Todos os Arquivos</span>
-        </button>
       </div>
       <div className="py-2">
         {folderTree}
