@@ -31,7 +31,7 @@ export default function XlsxEditor({ value, onChange }) {
       defaultColWidth: 120,
       defaultRowHeight: 32,
       tableOverflow: true,
-      tableHeight: 'calc(100vh - 200px)',
+      tableHeight: 'calc(100vh - 250px)',
       tableWidth: '100%',
       freezeColumns: 0,
       csvFileName: 'planilha',
@@ -48,6 +48,9 @@ export default function XlsxEditor({ value, onChange }) {
       mergeCells: {},
       pagination: 100,
       paginationOptions: [50, 100, 200, 500],
+      worksheets: [
+        { name: 'Planilha 1' }
+      ],
       toolbar: [
         {
           type: 'i',
@@ -386,38 +389,60 @@ export default function XlsxEditor({ value, onChange }) {
         .jexcel_toolbar {
           background: #f9fafb;
           border-bottom: 1px solid #e5e7eb;
-          padding: 8px 12px;
-          display: flex;
+          padding: 10px 16px;
+          display: flex !important;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
+          min-height: 50px;
         }
         .jexcel_toolbar i {
           cursor: pointer;
-          padding: 6px 8px;
-          border-radius: 4px;
+          padding: 8px 10px;
+          border-radius: 6px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 20px;
           color: #4b5563;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .jexcel_toolbar i:hover {
           background: #e5e7eb;
           color: #1f2937;
         }
         .jexcel_toolbar select {
-          padding: 4px 8px;
+          padding: 6px 10px;
           border: 1px solid #d1d5db;
-          border-radius: 4px;
+          border-radius: 6px;
           background: white;
-          font-size: 12px;
+          font-size: 13px;
           cursor: pointer;
+          min-width: 100px;
         }
         .jexcel_toolbar input[type="color"] {
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           border: 1px solid #d1d5db;
-          border-radius: 4px;
+          border-radius: 6px;
           cursor: pointer;
+          padding: 2px;
+        }
+        .jexcel_formula {
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+          padding: 8px 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .jexcel_formula input {
+          flex: 1;
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
         }
         .jexcel_content {
           overflow: auto;
@@ -459,25 +484,51 @@ export default function XlsxEditor({ value, onChange }) {
         .jtabs {
           background: #f9fafb;
           border-top: 1px solid #e5e7eb;
-        }
-        .jtabs-headers {
-          display: flex;
-          gap: 4px;
           padding: 8px 12px;
         }
+        .jtabs-headers {
+          display: flex !important;
+          gap: 6px;
+          align-items: center;
+        }
         .jtabs-headers div {
-          padding: 6px 16px;
+          padding: 8px 20px;
           background: #e5e7eb;
-          border-radius: 4px 4px 0 0;
+          border-radius: 6px 6px 0 0;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 13px;
           color: #4b5563;
           font-weight: 500;
+          transition: all 0.2s;
+        }
+        .jtabs-headers div:hover {
+          background: #d1d5db;
         }
         .jtabs-headers div.jtabs-selected {
           background: white;
           color: #1f2937;
           font-weight: 600;
+          border: 1px solid #e5e7eb;
+          border-bottom: none;
+        }
+        .jtabs-add {
+          width: 32px;
+          height: 32px;
+          background: white;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4b5563;
+          font-size: 18px;
+          transition: all 0.2s;
+        }
+        .jtabs-add:hover {
+          background: #f3f4f6;
+          border-color: #3b82f6;
+          color: #3b82f6;
         }
       `}</style>
       <div ref={jssRef} className="w-full" />
