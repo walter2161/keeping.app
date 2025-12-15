@@ -36,19 +36,12 @@ export default function Toolbar({
     <div className="flex items-center justify-between gap-3 px-4 h-14 bg-white border-b sticky top-0 z-30">
       {/* Left Section */}
       <div className="flex items-center gap-3">
-        <Button 
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-          className="flex-shrink-0"
-        >
-          {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
-        </Button>
-
         <Link to={createPageUrl('Drive')} className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <HardDrive className="w-4 h-4 text-white" />
-          </div>
+          <img 
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/ae7dc63b6_logo-keepai-BABgUd28.png"
+            alt="keeping"
+            className="w-8 h-8 rounded-lg"
+          />
           <div className="hidden md:block">
             <h1 className="font-bold text-gray-900 text-sm leading-tight">keeping</h1>
           </div>
