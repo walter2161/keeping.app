@@ -1,81 +1,47 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { 
   Square, Circle, Diamond, ArrowRight, Trash2, 
-  ZoomIn, ZoomOut, Hand, MousePointer, Type, StickyNote,
-  Pencil, Image as ImageIcon, Frame as FrameIcon, Plus,
-  Minus, MessageSquare, ChevronDown
+  Hand, MousePointer, Type, StickyNote,
+  Frame as FrameIcon, Plus, Minus, Move
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
-const COLORS = ['#fef08a', '#fed7aa', '#fecaca', '#ddd6fe', '#bfdbfe', '#bbf7d0', '#e9d5ff'];
-
-const SAMPLE_DATA = {
-  elements: [
-    { id: '1', type: 'circle', x: 200, y: 100, width: 120, height: 120, color: '#10b981', text: 'Lead Entra', zIndex: 1 },
-    { id: '2', type: 'rect', x: 450, y: 100, width: 180, height: 100, color: '#3b82f6', text: 'Qualificação', zIndex: 2 },
-    { id: '3', type: 'diamond', x: 750, y: 80, width: 180, height: 120, color: '#f59e0b', text: 'Tem Budget?', zIndex: 3 },
-    { id: '4', type: 'sticky', x: 1050, y: 50, width: 200, height: 150, color: '#fecaca', text: 'Objeção: Preço muito alto', zIndex: 4 },
-    { id: '5', type: 'rect', x: 1050, y: 250, width: 180, height: 100, color: '#3b82f6', text: 'Apresentar ROI', zIndex: 5 },
-    { id: '6', type: 'diamond', x: 750, y: 400, width: 180, height: 120, color: '#f59e0b', text: 'Tem Autoridade?', zIndex: 6 },
-    { id: '7', type: 'sticky', x: 1050, y: 380, width: 200, height: 150, color: '#fed7aa', text: 'Objeção: Precisa aprovação', zIndex: 7 },
-    { id: '8', type: 'rect', x: 450, y: 400, width: 180, height: 100, color: '#3b82f6', text: 'Proposta Comercial', zIndex: 8 },
-    { id: '9', type: 'diamond', x: 200, y: 380, width: 180, height: 120, color: '#f59e0b', text: 'Aprovou?', zIndex: 9 },
-    { id: '10', type: 'sticky', x: 50, y: 580, width: 200, height: 150, color: '#ddd6fe', text: 'Objeção: Timing ruim', zIndex: 10 },
-    { id: '11', type: 'rect', x: 350, y: 600, width: 180, height: 100, color: '#8b5cf6', text: 'Follow-up 30 dias', zIndex: 11 },
-    { id: '12', type: 'circle', x: 200, y: 750, width: 120, height: 120, color: '#ef4444', text: 'Cliente!', zIndex: 12 }
-  ],
-  connections: [
-    { id: 'c1', from: '1', to: '2' },
-    { id: 'c2', from: '2', to: '3' },
-    { id: 'c3', from: '3', to: '4' },
-    { id: 'c4', from: '4', to: '5' },
-    { id: 'c5', from: '5', to: '6' },
-    { id: 'c6', from: '6', to: '7' },
-    { id: 'c7', from: '3', to: '8' },
-    { id: 'c8', from: '8', to: '9' },
-    { id: 'c9', from: '9', to: '10' },
-    { id: 'c10', from: '10', to: '11' },
-    { id: 'c11', from: '11', to: '2' },
-    { id: 'c12', from: '9', to: '12' },
-    { id: 'c13', from: '6', to: '8' }
-  ]
-};
+const COLORS = ['#fef08a', '#fed7aa', '#fecaca', '#ddd6fe', '#bfdbfe', '#bbf7d0', '#e9d5ff', '#ffffff'];
 
 export default function FluxMap({ data, onChange }) {
-  const initialData = (data?.elements && data.elements.length > 0) ? data : SAMPLE_DATA;
-  const [elements, setElements] = useState(initialData?.elements || []);
-  const [connections, setConnections] = useState(initialData?.connections || []);
+  const [elements, setElements] = useState(data?.elements || []);
+  const [connections, setConnections] = useState(data?.connections || []);
   const [selectedId, setSelectedId] = useState(null);
   const [tool, setTool] = useState('select');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [dragStart, setDragStart] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedElement, setDraggedElement] = useState(null);
+  const [dragState, setDragState] = useState({ active: false, type: null, startX: 0, startY: 0, elementStart: null });
   const [connectingFrom, setConnectingFrom] = useState(null);
-  const [tempConnection, setTempConnection] = useState(null);
+  const [tempLine, setTempLine] = useState(null);
+  
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
-  useEffect(() => {
+  const updateData = useCallback((newElements, newConnections) => {
+    setElements(newElements);
+    setConnections(newConnections);
     if (onChange) {
-      onChange({ elements, connections });
+      onChange({ elements: newElements, connections: newConnections });
     }
-  }, [elements, connections]);
+  }, [onChange]);
 
-  const addElement = (type, x = null, y = null) => {
+  const addElement = (type) => {
     const rect = containerRef.current?.getBoundingClientRect();
-    const centerX = x !== null ? x : (rect.width / 2 - pan.x) / zoom;
-    const centerY = y !== null ? y : (rect.height / 2 - pan.y) / zoom;
+    const centerX = (rect.width / 2 - pan.x) / zoom;
+    const centerY = (rect.height / 2 - pan.y) / zoom;
 
     const configs = {
-      sticky: { width: 200, height: 200, color: COLORS[Math.floor(Math.random() * COLORS.length)], text: 'Nova nota' },
+      sticky: { width: 200, height: 200, color: COLORS[0], text: 'Nova nota' },
       rect: { width: 180, height: 100, color: '#3b82f6', text: 'Processo' },
-      circle: { width: 120, height: 120, color: '#10b981', text: 'Início' },
-      diamond: { width: 180, height: 100, color: '#f59e0b', text: 'Decisão' },
-      text: { width: 300, height: 150, color: '#ffffff', text: 'Adicione seu texto aqui...' },
-      frame: { width: 600, height: 400, color: '#f3f4f6', text: 'Frame' }
+      circle: { width: 120, height: 120, color: '#10b981', text: 'Início/Fim' },
+      diamond: { width: 160, height: 120, color: '#f59e0b', text: 'Decisão?' },
+      text: { width: 300, height: 150, color: '#ffffff', text: 'Texto livre...' },
+      frame: { width: 600, height: 400, color: '#f3f4f6', text: 'Área / Seção' }
     };
 
     const config = configs[type] || configs.sticky;
@@ -90,28 +56,121 @@ export default function FluxMap({ data, onChange }) {
       text: config.text,
       zIndex: elements.length
     };
-    setElements([...elements, newElement]);
+    
+    updateData([...elements, newElement], connections);
   };
 
   const updateElement = (id, updates) => {
-    setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el));
+    const newElements = elements.map(el => el.id === id ? { ...el, ...updates } : el);
+    updateData(newElements, connections);
   };
 
-  const deleteElement = (id) => {
-    setElements(elements.filter(el => el.id !== id));
-    setConnections(connections.filter(conn => conn.from !== id && conn.to !== id));
+  const deleteElement = () => {
+    if (!selectedId) return;
+    const newElements = elements.filter(el => el.id !== selectedId);
+    const newConnections = connections.filter(conn => conn.from !== selectedId && conn.to !== selectedId);
+    updateData(newElements, newConnections);
     setSelectedId(null);
   };
 
-  const addConnection = (from, to) => {
-    if (from !== to && !connections.find(c => c.from === from && c.to === to)) {
-      setConnections([...connections, { 
-        id: Date.now().toString(), 
-        from, 
-        to,
-        label: ''
-      }]);
+  const handleMouseDown = (e) => {
+    const rect = containerRef.current.getBoundingClientRect();
+    const canvasX = (e.clientX - rect.left - pan.x) / zoom;
+    const canvasY = (e.clientY - rect.top - pan.y) / zoom;
+
+    if (tool === 'pan') {
+      setDragState({
+        active: true,
+        type: 'pan',
+        startX: e.clientX,
+        startY: e.clientY,
+        panStart: { ...pan }
+      });
+      return;
     }
+
+    // Check if clicking on an element
+    let clickedElement = null;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      if (canvasX >= el.x && canvasX <= el.x + el.width &&
+          canvasY >= el.y && canvasY <= el.y + el.height) {
+        clickedElement = el;
+        break;
+      }
+    }
+
+    if (clickedElement) {
+      setSelectedId(clickedElement.id);
+      
+      if (tool === 'connect') {
+        if (!connectingFrom) {
+          setConnectingFrom(clickedElement.id);
+          setTempLine({
+            fromX: clickedElement.x + clickedElement.width / 2,
+            fromY: clickedElement.y + clickedElement.height / 2,
+            toX: canvasX,
+            toY: canvasY
+          });
+        } else {
+          // Create connection
+          if (connectingFrom !== clickedElement.id) {
+            const newConn = {
+              id: Date.now().toString(),
+              from: connectingFrom,
+              to: clickedElement.id,
+              label: ''
+            };
+            updateData(elements, [...connections, newConn]);
+          }
+          setConnectingFrom(null);
+          setTempLine(null);
+          setTool('select');
+        }
+      } else if (tool === 'select') {
+        setDragState({
+          active: true,
+          type: 'element',
+          startX: e.clientX,
+          startY: e.clientY,
+          elementStart: { x: clickedElement.x, y: clickedElement.y },
+          elementId: clickedElement.id
+        });
+      }
+    } else {
+      setSelectedId(null);
+      if (connectingFrom) {
+        setConnectingFrom(null);
+        setTempLine(null);
+      }
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (dragState.active) {
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+
+      if (dragState.type === 'pan') {
+        setPan({
+          x: dragState.panStart.x + dx,
+          y: dragState.panStart.y + dy
+        });
+      } else if (dragState.type === 'element') {
+        const newX = dragState.elementStart.x + dx / zoom;
+        const newY = dragState.elementStart.y + dy / zoom;
+        updateElement(dragState.elementId, { x: newX, y: newY });
+      }
+    } else if (tempLine) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const canvasX = (e.clientX - rect.left - pan.x) / zoom;
+      const canvasY = (e.clientY - rect.top - pan.y) / zoom;
+      setTempLine({ ...tempLine, toX: canvasX, toY: canvasY });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDragState({ active: false, type: null, startX: 0, startY: 0, elementStart: null });
   };
 
   const handleWheel = (e) => {
@@ -123,82 +182,6 @@ export default function FluxMap({ data, onChange }) {
     }
   };
 
-  const handleMouseDown = (e) => {
-    if (e.target === canvasRef.current || e.target.closest('.canvas-bg')) {
-      setSelectedId(null);
-      
-      if (tool === 'pan' || e.button === 1 || (e.button === 0 && e.shiftKey)) {
-        setIsPanning(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-      }
-    }
-  };
-
-  const handleMouseMove = (e) => {
-    if (isPanning && dragStart) {
-      setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    } else if (isDragging && draggedElement) {
-      const dx = e.movementX / zoom;
-      const dy = e.movementY / zoom;
-      updateElement(draggedElement, {
-        x: elements.find(el => el.id === draggedElement).x + dx,
-        y: elements.find(el => el.id === draggedElement).y + dy
-      });
-    } else if (tempConnection) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setTempConnection({
-        ...tempConnection,
-        toX: (e.clientX - rect.left - pan.x) / zoom,
-        toY: (e.clientY - rect.top - pan.y) / zoom
-      });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsPanning(false);
-    setIsDragging(false);
-    setDraggedElement(null);
-    setDragStart(null);
-    setTempConnection(null);
-  };
-
-  const handleElementMouseDown = (e, elementId) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    if (tool === 'connect') {
-      const element = elements.find(el => el.id === elementId);
-      if (!connectingFrom) {
-        setConnectingFrom(elementId);
-        setTempConnection({
-          from: elementId,
-          fromX: element.x + element.width / 2,
-          fromY: element.y + element.height / 2,
-          toX: element.x + element.width / 2,
-          toY: element.y + element.height / 2
-        });
-      } else {
-        addConnection(connectingFrom, elementId);
-        setConnectingFrom(null);
-        setTempConnection(null);
-        setTool('select');
-      }
-    } else if (tool === 'select') {
-      setSelectedId(elementId);
-      if (e.button === 0) {
-        setIsDragging(true);
-        setDraggedElement(elementId);
-      }
-    }
-  };
-
-  const getConnectionPoints = (element) => {
-    return {
-      x: element.x + element.width / 2,
-      y: element.y + element.height / 2
-    };
-  };
-
   const renderElement = (element) => {
     const isSelected = selectedId === element.id;
     const style = {
@@ -207,27 +190,24 @@ export default function FluxMap({ data, onChange }) {
       top: element.y,
       width: element.width,
       height: element.height,
-      cursor: tool === 'select' ? 'move' : tool === 'connect' ? 'crosshair' : 'pointer',
+      cursor: tool === 'select' ? 'move' : tool === 'connect' ? 'crosshair' : 'default',
       zIndex: element.zIndex || 0,
-      userSelect: 'none'
+      pointerEvents: 'auto'
     };
-
-    const commonClasses = `border-2 ${isSelected ? 'border-blue-500 shadow-lg' : 'border-gray-300'} transition-all`;
 
     if (element.type === 'sticky') {
       return (
         <div
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
-          className={`${commonClasses} shadow-md p-4`}
-          onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+          className={`shadow-md p-3 rounded border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'}`}
         >
           <textarea
             value={element.text}
             onChange={(e) => updateElement(element.id, { text: e.target.value })}
-            className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-800 text-sm leading-relaxed"
-            style={{ fontFamily: 'Arial, sans-serif' }}
             onMouseDown={(e) => e.stopPropagation()}
+            className="w-full h-full bg-transparent border-none outline-none resize-none text-sm text-gray-800"
+            style={{ pointerEvents: 'auto' }}
           />
         </div>
       );
@@ -237,15 +217,15 @@ export default function FluxMap({ data, onChange }) {
       return (
         <div
           key={element.id}
-          style={style}
-          className={`${commonClasses} bg-white p-4`}
-          onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+          style={{ ...style, backgroundColor: element.color }}
+          className={`p-3 rounded border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'}`}
         >
           <textarea
             value={element.text}
             onChange={(e) => updateElement(element.id, { text: e.target.value })}
-            className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-700"
             onMouseDown={(e) => e.stopPropagation()}
+            className="w-full h-full bg-transparent border-none outline-none resize-none text-sm"
+            style={{ pointerEvents: 'auto' }}
           />
         </div>
       );
@@ -256,28 +236,25 @@ export default function FluxMap({ data, onChange }) {
         <div
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
-          className={`${commonClasses} border-dashed rounded-lg`}
-          onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+          className={`rounded-lg border-2 border-dashed ${isSelected ? 'border-blue-500' : 'border-gray-400'}`}
         >
-          <div className="p-2">
-            <input
-              value={element.text}
-              onChange={(e) => updateElement(element.id, { text: e.target.value })}
-              className="bg-transparent border-none outline-none font-semibold text-gray-700"
-              onMouseDown={(e) => e.stopPropagation()}
-            />
-          </div>
+          <input
+            value={element.text}
+            onChange={(e) => updateElement(element.id, { text: e.target.value })}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="m-2 bg-transparent border-none outline-none font-semibold text-gray-700"
+            style={{ pointerEvents: 'auto' }}
+          />
         </div>
       );
     }
 
+    // SVG shapes
     return (
       <svg
         key={element.id}
         style={style}
         viewBox={`0 0 ${element.width} ${element.height}`}
-        onMouseDown={(e) => handleElementMouseDown(e, element.id)}
-        className="select-none"
       >
         {element.type === 'rect' && (
           <rect
@@ -285,7 +262,7 @@ export default function FluxMap({ data, onChange }) {
             height={element.height}
             fill={element.color}
             stroke={isSelected ? '#3b82f6' : '#fff'}
-            strokeWidth={isSelected ? 4 : 2}
+            strokeWidth={isSelected ? 3 : 2}
             rx={8}
           />
         )}
@@ -294,10 +271,10 @@ export default function FluxMap({ data, onChange }) {
           <circle
             cx={element.width / 2}
             cy={element.height / 2}
-            r={element.width / 2 - 5}
+            r={Math.min(element.width, element.height) / 2 - 5}
             fill={element.color}
             stroke={isSelected ? '#3b82f6' : '#fff'}
-            strokeWidth={isSelected ? 4 : 2}
+            strokeWidth={isSelected ? 3 : 2}
           />
         )}
         
@@ -306,7 +283,7 @@ export default function FluxMap({ data, onChange }) {
             d={`M ${element.width / 2} 5 L ${element.width - 5} ${element.height / 2} L ${element.width / 2} ${element.height - 5} L 5 ${element.height / 2} Z`}
             fill={element.color}
             stroke={isSelected ? '#3b82f6' : '#fff'}
-            strokeWidth={isSelected ? 4 : 2}
+            strokeWidth={isSelected ? 3 : 2}
           />
         )}
         
@@ -316,7 +293,7 @@ export default function FluxMap({ data, onChange }) {
           textAnchor="middle"
           dominantBaseline="middle"
           fill="white"
-          fontSize="14"
+          fontSize="13"
           fontWeight="600"
           pointerEvents="none"
         >
@@ -331,8 +308,10 @@ export default function FluxMap({ data, onChange }) {
     const toEl = elements.find(el => el.id === conn.to);
     if (!fromEl || !toEl) return null;
 
-    const from = getConnectionPoints(fromEl);
-    const to = getConnectionPoints(toEl);
+    const fromX = fromEl.x + fromEl.width / 2;
+    const fromY = fromEl.y + fromEl.height / 2;
+    const toX = toEl.x + toEl.width / 2;
+    const toY = toEl.y + toEl.height / 2;
 
     return (
       <g key={conn.id}>
@@ -341,7 +320,7 @@ export default function FluxMap({ data, onChange }) {
             id={`arrow-${conn.id}`}
             markerWidth="10"
             markerHeight="10"
-            refX="9"
+            refX="8"
             refY="3"
             orient="auto"
             markerUnits="strokeWidth"
@@ -350,14 +329,26 @@ export default function FluxMap({ data, onChange }) {
           </marker>
         </defs>
         <line
-          x1={from.x}
-          y1={from.y}
-          x2={to.x}
-          y2={to.y}
+          x1={fromX}
+          y1={fromY}
+          x2={toX}
+          y2={toY}
           stroke="#64748b"
           strokeWidth="2"
           markerEnd={`url(#arrow-${conn.id})`}
         />
+        {conn.label && (
+          <text
+            x={(fromX + toX) / 2}
+            y={(fromY + toY) / 2}
+            textAnchor="middle"
+            fill="#374151"
+            fontSize="12"
+            fontWeight="600"
+          >
+            {conn.label}
+          </text>
+        )}
       </g>
     );
   };
@@ -365,52 +356,65 @@ export default function FluxMap({ data, onChange }) {
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Toolbar */}
-      <div className="bg-white border-b px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
+      <div className="bg-white border-b px-4 py-2 flex items-center justify-between gap-3 flex-wrap shadow-sm">
         <div className="flex items-center gap-2">
           <Button
             variant={tool === 'select' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setTool('select')}
+            onClick={() => { setTool('select'); setConnectingFrom(null); setTempLine(null); }}
           >
-            <MousePointer className="w-4 h-4" />
+            <MousePointer className="w-4 h-4 mr-1" />
+            Selecionar
           </Button>
           
           <Button
             variant={tool === 'pan' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setTool('pan')}
+            onClick={() => { setTool('pan'); setConnectingFrom(null); setTempLine(null); }}
           >
-            <Hand className="w-4 h-4" />
+            <Hand className="w-4 h-4 mr-1" />
+            Mover
           </Button>
           
           <Button
             variant={tool === 'connect' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => { setTool('connect'); setConnectingFrom(null); }}
+            onClick={() => { setTool('connect'); setConnectingFrom(null); setTempLine(null); }}
           >
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 mr-1" />
+            Conectar
           </Button>
           
           <div className="h-6 w-px bg-gray-300" />
           
           <Button variant="outline" size="sm" onClick={() => addElement('sticky')}>
             <StickyNote className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Nota</span>
+            Nota
           </Button>
           
           <Button variant="outline" size="sm" onClick={() => addElement('rect')}>
             <Square className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Forma</span>
+            Retângulo
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={() => addElement('circle')}>
+            <Circle className="w-4 h-4 mr-1" />
+            Círculo
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={() => addElement('diamond')}>
+            <Diamond className="w-4 h-4 mr-1" />
+            Decisão
           </Button>
           
           <Button variant="outline" size="sm" onClick={() => addElement('text')}>
             <Type className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Texto</span>
+            Texto
           </Button>
           
           <Button variant="outline" size="sm" onClick={() => addElement('frame')}>
             <FrameIcon className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Frame</span>
+            Frame
           </Button>
           
           {selectedId && (
@@ -419,20 +423,21 @@ export default function FluxMap({ data, onChange }) {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => deleteElement(selectedId)}
+                onClick={deleteElement}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 mr-1" />
+                Excluir
               </Button>
             </>
           )}
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setZoom(Math.max(0.1, zoom - 0.25))}>
+          <Button variant="outline" size="sm" onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}>
             <Minus className="w-4 h-4" />
           </Button>
-          <span className="text-sm font-medium w-14 text-center">{Math.round(zoom * 100)}%</span>
-          <Button variant="outline" size="sm" onClick={() => setZoom(Math.min(3, zoom + 0.25))}>
+          <span className="text-sm font-medium w-16 text-center">{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="sm" onClick={() => setZoom(Math.min(3, zoom + 0.2))}>
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -446,20 +451,27 @@ export default function FluxMap({ data, onChange }) {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        style={{ cursor: isPanning ? 'grabbing' : tool === 'pan' ? 'grab' : 'default' }}
+        onMouseLeave={handleMouseUp}
+        style={{ 
+          cursor: dragState.active && dragState.type === 'pan' ? 'grabbing' : tool === 'pan' ? 'grab' : 'default',
+          touchAction: 'none'
+        }}
       >
         <div
           ref={canvasRef}
-          className="canvas-bg absolute inset-0"
+          className="absolute"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: '0 0',
+            width: '5000px',
+            height: '5000px',
             backgroundImage: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
-            backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
-            width: '10000px',
-            height: '10000px'
+            backgroundSize: '20px 20px',
+            backgroundPosition: '0 0',
+            pointerEvents: 'none'
           }}
         >
+          {/* Connections layer */}
           <svg
             style={{
               position: 'absolute',
@@ -471,40 +483,46 @@ export default function FluxMap({ data, onChange }) {
             }}
           >
             {connections.map(renderConnection)}
-            {tempConnection && (
+            {tempLine && (
               <line
-                x1={tempConnection.fromX}
-                y1={tempConnection.fromY}
-                x2={tempConnection.toX}
-                y2={tempConnection.toY}
-                stroke="#64748b"
+                x1={tempLine.fromX}
+                y1={tempLine.fromY}
+                x2={tempLine.toX}
+                y2={tempLine.toY}
+                stroke="#3b82f6"
                 strokeWidth="2"
                 strokeDasharray="5,5"
               />
             )}
           </svg>
           
-          {elements.map(renderElement)}
+          {/* Elements layer */}
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {elements.map(renderElement)}
+          </div>
         </div>
       </div>
 
       {/* Properties Panel */}
       {selectedId && (
-        <div className="bg-white border-t p-4">
-          <div className="max-w-md flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Cor:</label>
+        <div className="bg-white border-t p-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Cor:</span>
             <div className="flex gap-2">
-              {COLORS.map(color => (
-                <button
-                  key={color}
-                  className="w-8 h-8 rounded border-2 hover:scale-110 transition-transform"
-                  style={{ 
-                    backgroundColor: color,
-                    borderColor: elements.find(el => el.id === selectedId)?.color === color ? '#000' : '#ccc'
-                  }}
-                  onClick={() => updateElement(selectedId, { color })}
-                />
-              ))}
+              {COLORS.map(color => {
+                const el = elements.find(e => e.id === selectedId);
+                return (
+                  <button
+                    key={color}
+                    className="w-8 h-8 rounded border-2 hover:scale-110 transition-transform"
+                    style={{ 
+                      backgroundColor: color,
+                      borderColor: el?.color === color ? '#3b82f6' : '#d1d5db'
+                    }}
+                    onClick={() => updateElement(selectedId, { color })}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>
