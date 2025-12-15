@@ -68,10 +68,15 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">Visão geral do seu keeping</p>
-          </div>
+          <Link to={createPageUrl('Drive')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <Folder className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">CloudDrive</h1>
+              <p className="text-sm text-gray-500">Dashboard</p>
+            </div>
+          </Link>
           <Link to={createPageUrl('Drive')}>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <Folder className="w-4 h-4 mr-2" />
