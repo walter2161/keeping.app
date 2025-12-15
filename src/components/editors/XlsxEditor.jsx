@@ -293,6 +293,7 @@ export default function XlsxEditor({ value, onChange }) {
 
   return (
     <div className="w-full h-full bg-white">
+      <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
       <style>{`
         .jexcel_container {
           background: white;
@@ -395,6 +396,8 @@ export default function XlsxEditor({ value, onChange }) {
           gap: 6px;
           flex-wrap: wrap;
           min-height: 50px;
+          position: relative;
+          z-index: 1;
         }
         .jexcel_toolbar i {
           cursor: pointer;
@@ -403,9 +406,20 @@ export default function XlsxEditor({ value, onChange }) {
           transition: all 0.2s;
           font-size: 20px;
           color: #4b5563;
-          display: inline-flex;
+          display: inline-flex !important;
           align-items: center;
           justify-content: center;
+          font-family: 'Material Icons' !important;
+          font-weight: normal;
+          font-style: normal;
+          line-height: 1;
+          letter-spacing: normal;
+          text-transform: none;
+          white-space: nowrap;
+          word-wrap: normal;
+          direction: ltr;
+          -webkit-font-feature-settings: 'liga';
+          -webkit-font-smoothing: antialiased;
         }
         .jexcel_toolbar i:hover {
           background: #e5e7eb;
@@ -432,9 +446,11 @@ export default function XlsxEditor({ value, onChange }) {
           background: white;
           border-bottom: 1px solid #e5e7eb;
           padding: 8px 16px;
-          display: flex;
+          display: flex !important;
           align-items: center;
           gap: 10px;
+          position: relative;
+          z-index: 0;
         }
         .jexcel_formula input {
           flex: 1;
@@ -446,6 +462,10 @@ export default function XlsxEditor({ value, onChange }) {
         }
         .jexcel_content {
           overflow: auto;
+          position: relative;
+          z-index: 0;
+        }
+        .jexcel_container {
           position: relative;
         }
         .jcontextmenu {
