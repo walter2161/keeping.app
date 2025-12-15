@@ -48,7 +48,7 @@ export default function Toolbar({
             className="w-8 h-8 rounded-lg"
           />
           <div className="hidden md:block">
-            <h1 className="font-bold text-gray-900 text-sm leading-tight">keeping</h1>
+            <h1 className="font-bold text-gray-900 text-base leading-tight">keeping</h1>
           </div>
         </Link>
 
@@ -199,5 +199,6 @@ export default function Toolbar({
         </DropdownMenu>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
