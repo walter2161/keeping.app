@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, Save, Download, FileText, FileSpreadsheet,
   LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
-  Image as ImageIcon, Video
+  Image as ImageIcon, Video, ArrowRight
 } from 'lucide-react';
 import {
   Dialog,
@@ -18,6 +18,7 @@ import {
 import KanbanBoard from '../components/kanban/KanbanBoard';
 import GanttChartComponent from '../components/gantt/GanttChart';
 import CronogramaBoard from '../components/cronograma/CronogramaBoard';
+import FluxMap from '../components/flux/FluxMap';
 import DocxEditor from '../components/editors/DocxEditor';
 import XlsxEditor from '../components/editors/XlsxEditor';
 import AIAssistant from '../components/ai/AIAssistant';
@@ -28,6 +29,7 @@ const fileTypeConfig = {
   kbn: { icon: LayoutGrid, color: 'text-purple-600', label: 'Kanban' },
   gnt: { icon: GanttChartIcon, color: 'text-orange-600', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', label: 'Cronograma' },
+  flux: { icon: ArrowRight, color: 'text-teal-600', label: 'FluxMap' },
   img: { icon: ImageIcon, color: 'text-cyan-600', label: 'Imagem' },
   video: { icon: Video, color: 'text-purple-600', label: 'Vídeo' },
 };
@@ -211,6 +213,13 @@ export default function FileViewer() {
         
         {file.type === 'crn' && localContent && (
           <CronogramaBoard 
+            data={localContent} 
+            onChange={handleContentChange}
+          />
+        )}
+        
+        {file.type === 'flux' && localContent && (
+          <FluxMap 
             data={localContent} 
             onChange={handleContentChange}
           />

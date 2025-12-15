@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
-  List, Grid3x3, Copy,
+  List, Grid3x3, Copy, ArrowRight,
   Bell, User, Settings, Trash2, PanelLeftOpen
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -107,6 +107,10 @@ export default function Toolbar({
             <DropdownMenuItem onClick={() => onNewFile?.('crn')}>
               <Calendar className="w-4 h-4 mr-2 text-pink-600" />
               Cronograma
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNewFile?.('flux')}>
+              <ArrowRight className="w-4 h-4 mr-2 text-teal-600" />
+              FluxMap
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onNewFile?.('docx')}>
