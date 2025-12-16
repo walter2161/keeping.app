@@ -318,10 +318,10 @@ export default function KanbanBoard({ data, onChange }) {
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex-1 overflow-x-auto p-6">
-          <div className="flex gap-4 h-full min-w-max">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+          <div className="flex gap-4 min-w-max" style={{ height: 'calc(100vh - 220px)' }}>
             {columns.map((column) => (
-              <div key={column.id} className="w-72 flex-shrink-0 flex flex-col bg-white rounded-xl shadow-sm border">
+              <div key={column.id} className="w-72 flex-shrink-0 flex flex-col bg-white rounded-xl shadow-sm border h-full">
                 <div className={`flex items-center justify-between p-3 rounded-t-xl ${column.color} bg-opacity-10`}>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${column.color}`} />
@@ -375,18 +375,21 @@ export default function KanbanBoard({ data, onChange }) {
                                   <div className="h-10" style={{ backgroundColor: card.coverColor }} />
                                 )}
                                 {card.coverType === 'image' && card.coverImage && (
-                                  <img src={card.coverImage} className="w-full aspect-square object-cover" />
+                                 <img src={card.coverImage} className="w-full aspect-square object-cover" alt={card.title} />
                                 )}
                                 <div className="p-3">
-                                  <div className="flex items-start gap-2">
-                                    <div {...provided.dragHandleProps} className="mt-1 cursor-grab">
-                                      <GripVertical className="w-4 h-4 text-gray-400" />
-                                    </div>
-                                    <div className="flex-1">
-                                      <p className="font-medium text-gray-800 text-sm">{card.title}</p>
-                                      {card.description && (
-                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
-                                      )}
+                                 <div className="flex items-start gap-2">
+                                   <div {...provided.dragHandleProps} className="mt-1 cursor-grab">
+                                     <GripVertical className="w-4 h-4 text-gray-400" />
+                                   </div>
+                                   <div 
+                                     className="flex-1 cursor-pointer"
+                                     onClick={() => setEditCardDialog({ open: true, card })}
+                                   >
+                                     <p className="font-medium text-gray-800 text-sm">{card.title}</p>
+                                     {card.description && (
+                                       <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
+                                     )}
                                       <div className="flex items-center justify-between mt-2 gap-2">
                                         <div className="flex gap-1 flex-wrap">
                                           <Badge className={`text-xs ${priorityColors[card.priority]}`}>
