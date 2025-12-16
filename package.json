@@ -79,7 +79,8 @@
     "zod": "^3.24.2",
     "jszip": "^3.10.1",
     "jspreadsheet-ce": "^4.13.1",
-    "jsuites": "^4.16.3"
+    "jsuites": "^4.16.3",
+    "drawflow": "^0.0.60"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
