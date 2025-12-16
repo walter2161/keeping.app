@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import CardEditDialog from './CardEditDialog';
 
 const defaultColumns = [
   { id: 'todo', title: 'A Fazer', color: 'bg-gray-500' },
@@ -56,7 +57,6 @@ export default function KanbanBoard({ data, onChange }) {
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [showNewColumn, setShowNewColumn] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [editingCardData, setEditingCardData] = useState(null);
 
   const saveChanges = (newColumns, newCards) => {
     setColumns(newColumns);
@@ -123,13 +123,12 @@ export default function KanbanBoard({ data, onChange }) {
     setNewCardDialog({ open: false, columnId: null });
   };
 
-  const updateCard = () => {
+  const handleEditCard = (updatedCard) => {
     const updatedCards = cards.map(c => 
-      c.id === editingCardData.id ? editingCardData : c
+      c.id === updatedCard.id ? updatedCard : c
     );
     saveChanges(columns, updatedCards);
     setEditCardDialog({ open: false, card: null });
-    setEditingCardData(null);
   };
 
   const deleteCard = (cardId) => {
@@ -165,11 +164,7 @@ export default function KanbanBoard({ data, onChange }) {
 
   const removeAttachment = (card, attachmentId) => {
     const updatedAttachments = card.attachments.filter(a => a.id !== attachmentId);
-    if (editingCardData) {
-      setEditingCardData({ ...editingCardData, attachments: updatedAttachments });
-    } else {
-      setNewCard({ ...newCard, attachments: updatedAttachments });
-    }
+    setNewCard({ ...newCard, attachments: updatedAttachments });
   };
 
   const CardCoverSection = ({ cardData, setCardData, isDialog = false }) => (
@@ -385,10 +380,7 @@ export default function KanbanBoard({ data, onChange }) {
                                    </div>
                                    <div 
                                      className="flex-1 cursor-pointer"
-                                     onClick={() => {
-                                       setEditingCardData(card);
-                                       setEditCardDialog({ open: true, card });
-                                     }}
+                                     onClick={() => setEditCardDialog({ open: true, card })}
                                    >
                                      <p className="font-medium text-gray-800 text-sm">{card.title}</p>
                                      {card.description && (
@@ -413,10 +405,7 @@ export default function KanbanBoard({ data, onChange }) {
                                             </Button>
                                           </DropdownMenuTrigger>
                                           <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => {
-                                              setEditingCardData(card);
-                                              setEditCardDialog({ open: true, card });
-                                            }}>
+                                            <DropdownMenuItem onClick={() => setEditCardDialog({ open: true, card })}>
                                               <Edit2 className="w-4 h-4 mr-2" />
                                               Editar
                                             </DropdownMenuItem>
@@ -496,36 +485,12 @@ export default function KanbanBoard({ data, onChange }) {
       </Dialog>
 
       {/* Dialog para editar cartão */}
-      <Dialog 
-        open={editCardDialog.open} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditCardDialog({ open: false, card: null });
-            setEditingCardData(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Cartão</DialogTitle>
-          </DialogHeader>
-          {editingCardData && (
-            <CardForm 
-              cardData={editingCardData} 
-              setCardData={setEditingCardData} 
-            />
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setEditCardDialog({ open: false, card: null });
-              setEditingCardData(null);
-            }}>
-              Cancelar
-            </Button>
-            <Button onClick={updateCard}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CardEditDialog
+        open={editCardDialog.open}
+        onOpenChange={(open) => setEditCardDialog({ open, card: null })}
+        data={editCardDialog.card}
+        onSave={handleEditCard}
+      />
 
       {/* Dialog para renomear coluna */}
       <Dialog open={editColumnDialog.open} onOpenChange={(open) => setEditColumnDialog({ ...editColumnDialog, open })}>
