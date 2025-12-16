@@ -15,71 +15,73 @@ export default function FluxMap({ data, onChange }) {
     let outputs = 1;
 
     switch (name) {
-      case 'card-trello':
+      case 'sticky-note':
         html = `
-          <div style="padding: 12px; background: white; border-radius: 8px; min-width: 240px;">
-            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #172b4d;">
-              <input type="text" value="Nova Tarefa" style="width: 100%; border: none; font-size: 14px; font-weight: 600; padding: 4px;" />
-            </div>
-            <div style="font-size: 12px; color: #5e6c84; display: flex; gap: 12px;">
-              <span>✔️ 0/3</span>
-              <span>💬 1</span>
-              <span>📎 2</span>
+          <div style="width: 180px; min-height: 180px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative;">
+            <textarea style="width: 100%; height: 140px; border: none; background: transparent; resize: none; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif;" placeholder="Escreva aqui...">Nota</textarea>
+          </div>
+        `;
+        inputs = 0;
+        outputs = 0;
+        break;
+
+      case 'card-kanban':
+        html = `
+          <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
+            <div style="padding: 12px;">
+              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 12px;">
+                <input type="text" value="Nome da tarefa" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
+              </div>
+              <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                <span style="background: #22c55e; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">Feature</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span>👤</span>
+                  <span>John</span>
+                </div>
+                <span>📅 Dec 16</span>
+              </div>
             </div>
           </div>
         `;
         break;
 
-      case 'card-fluxograma':
+      case 'rectangle-shape':
         html = `
-          <div style="padding: 12px; background: white; border-radius: 8px; border-left: 4px solid #6b7280; min-width: 180px;">
-            <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">
-              <input type="text" value="Passo do Fluxo" style="width: 100%; border: none; font-size: 13px; font-weight: 600;" />
-            </div>
-            <div style="font-size: 12px; color: #6b7280;">
-              <textarea style="width: 100%; border: none; font-size: 12px; resize: none;" rows="2">Descrição da ação</textarea>
-            </div>
+          <div style="width: 180px; height: 100px; background: #93c5fd; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+            <input type="text" value="Passo" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #1e40af; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
         break;
 
-      case 'decisao':
+      case 'circle-shape':
         html = `
-          <div style="width: 120px; height: 120px; background: #d1fae5; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; border: 2px solid #10b981;">
-            <div style="transform: rotate(-45deg); font-size: 12px; font-weight: 600; text-align: center; padding: 10px;">
-              <input type="text" value="Decisão?" style="width: 80px; border: none; background: transparent; text-align: center; font-size: 12px; font-weight: 600;" />
-            </div>
+          <div style="width: 140px; height: 140px; background: #fde047; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            <input type="text" value="Círculo" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #854d0e; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
         outputs = 2;
         break;
 
-      case 'ideia':
+      case 'name-bubble':
         html = `
-          <div style="width: 140px; height: 140px; background: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid #f59e0b; padding: 20px;">
-            <div style="font-size: 12px; font-weight: 600; text-align: center;">
-              <textarea style="width: 100px; border: none; background: transparent; text-align: center; font-size: 12px; font-weight: 600; resize: none;" rows="3">Ideia Central</textarea>
-            </div>
+          <div style="background: white; border: 3px solid #a855f7; border-radius: 50px; padding: 12px 24px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <input type="text" value="Nome" style="border: none; background: transparent; text-align: center; font-size: 15px; font-weight: 600; color: #6b21a8; width: 100px; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
-        outputs = 3;
+        inputs = 0;
+        outputs = 0;
         break;
 
-      case 'cargo':
+      case 'text-box':
         html = `
-          <div style="padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white; min-width: 200px; display: flex; align-items: center; gap: 10px;">
-            <div style="font-size: 24px;">👤</div>
-            <div>
-              <div style="font-size: 14px; font-weight: 600;">
-                <input type="text" value="Gerente" style="width: 100%; border: none; background: transparent; color: white; font-size: 14px; font-weight: 600;" />
-              </div>
-              <div style="font-size: 12px; opacity: 0.9;">
-                <input type="text" value="Coordenador" style="width: 100%; border: none; background: transparent; color: white; font-size: 12px;" />
-              </div>
-            </div>
+          <div style="background: transparent; padding: 8px;">
+            <input type="text" value="Texto" style="border: none; background: transparent; font-size: 16px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; min-width: 120px;" />
           </div>
         `;
-        outputs = 2;
+        inputs = 0;
+        outputs = 0;
         break;
 
       default:
@@ -130,7 +132,6 @@ export default function FluxMap({ data, onChange }) {
     
     editorRef.current = editor;
 
-    // Carregar dados existentes
     if (data && data.drawflow) {
       try {
         editor.import(data);
@@ -139,7 +140,6 @@ export default function FluxMap({ data, onChange }) {
       }
     }
 
-    // Salvar ao fazer alterações
     const saveData = () => {
       if (onChange) {
         const exportData = editor.export();
@@ -153,7 +153,6 @@ export default function FluxMap({ data, onChange }) {
     editor.on('connectionCreated', saveData);
     editor.on('connectionRemoved', saveData);
 
-    // Setup drag and drop
     const elements = document.getElementsByClassName('drag-drawflow');
     for (let i = 0; i < elements.length; i++) {
       elements[i].addEventListener('touchend', drop, false);
@@ -228,52 +227,70 @@ export default function FluxMap({ data, onChange }) {
     <div className="h-full flex">
       <style>{`
         #drawflow {
-          background: radial-gradient(circle, #d1d5db 1px, transparent 1px);
-          background-size: 20px 20px;
+          background: #f8fafc;
           position: relative;
         }
         
         .drawflow .drawflow-node {
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          border: none;
+          background: transparent;
+          box-shadow: none;
         }
         
         .drawflow .drawflow-node.selected {
-          box-shadow: 0 0 0 3px #3b82f6;
+          outline: 2px solid #3b82f6;
+          outline-offset: 4px;
         }
 
         .drawflow .connection .main-path {
-          stroke: #64748b;
+          stroke: #94a3b8;
           stroke-width: 2px;
         }
 
         .drawflow .connection .main-path:hover {
           stroke: #3b82f6;
+          stroke-width: 3px;
+        }
+
+        .drawflow .drawflow-node .input,
+        .drawflow .drawflow-node .output {
+          width: 12px;
+          height: 12px;
+          border: 2px solid #64748b;
+          background: white;
+        }
+
+        .drawflow .drawflow-node .input:hover,
+        .drawflow .drawflow-node .output:hover {
+          background: #3b82f6;
+          border-color: #3b82f6;
         }
 
         .sidebar-flux {
-          width: 260px;
+          width: 280px;
           background: white;
-          border-right: 1px solid #e5e7eb;
-          padding: 16px;
+          border-right: 1px solid #e2e8f0;
+          padding: 20px;
           overflow-y: auto;
         }
 
         .drag-drawflow {
           cursor: grab;
           user-select: none;
-          margin-bottom: 8px;
-          padding: 12px;
+          margin-bottom: 10px;
+          padding: 14px 16px;
           border-radius: 8px;
           border: 2px solid;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           transition: all 0.2s;
+          font-family: 'Montserrat', sans-serif;
         }
 
         .drag-drawflow:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          transform: translateX(4px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
         .drag-drawflow:active {
@@ -281,69 +298,79 @@ export default function FluxMap({ data, onChange }) {
         }
       `}</style>
 
-      {/* Sidebar com itens arrastáveis */}
       <div className="sidebar-flux">
-        <div className="mb-4">
-          <h3 className="font-bold text-sm text-gray-700 mb-3">ELEMENTOS</h3>
+        <div className="mb-6">
+          <h3 className="font-bold text-sm text-gray-700 mb-4 uppercase tracking-wide">Elementos</h3>
           
           <div
             className="drag-drawflow"
             draggable="true"
-            data-node="card-trello"
-            onClick={() => handleClickToAdd('card-trello')}
+            data-node="sticky-note"
+            onClick={() => handleClickToAdd('sticky-note')}
+            style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
+          >
+            <span style={{ fontSize: '22px' }}>📝</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#92400e' }}>Sticky Note</span>
+          </div>
+
+          <div
+            className="drag-drawflow"
+            draggable="true"
+            data-node="card-kanban"
+            onClick={() => handleClickToAdd('card-kanban')}
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
           >
-            <span style={{ fontSize: '20px' }}>📋</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>Card Trello</span>
+            <span style={{ fontSize: '22px' }}>🎯</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>Card Kanban</span>
           </div>
 
           <div
             className="drag-drawflow"
             draggable="true"
-            data-node="card-fluxograma"
-            onClick={() => handleClickToAdd('card-fluxograma')}
-            style={{ background: '#f3f4f6', borderColor: '#6b7280' }}
+            data-node="rectangle-shape"
+            onClick={() => handleClickToAdd('rectangle-shape')}
+            style={{ background: '#e0f2fe', borderColor: '#0284c7' }}
           >
-            <span style={{ fontSize: '20px' }}>📝</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Passo Fluxo</span>
+            <span style={{ fontSize: '22px' }}>▭</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#075985' }}>Retângulo</span>
           </div>
 
           <div
             className="drag-drawflow"
             draggable="true"
-            data-node="decisao"
-            onClick={() => handleClickToAdd('decisao')}
-            style={{ background: '#d1fae5', borderColor: '#10b981' }}
+            data-node="circle-shape"
+            onClick={() => handleClickToAdd('circle-shape')}
+            style={{ background: '#fef9c3', borderColor: '#eab308' }}
           >
-            <span style={{ fontSize: '20px' }}>◆</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#047857' }}>Decisão</span>
+            <span style={{ fontSize: '22px' }}>●</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#713f12' }}>Círculo</span>
           </div>
 
           <div
             className="drag-drawflow"
             draggable="true"
-            data-node="ideia"
-            onClick={() => handleClickToAdd('ideia')}
-            style={{ background: '#fef3c7', borderColor: '#f59e0b' }}
+            data-node="name-bubble"
+            onClick={() => handleClickToAdd('name-bubble')}
+            style={{ background: '#f3e8ff', borderColor: '#a855f7' }}
           >
-            <span style={{ fontSize: '20px' }}>💡</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#d97706' }}>Ideia</span>
+            <span style={{ fontSize: '22px' }}>👤</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
           </div>
 
           <div
             className="drag-drawflow"
             draggable="true"
-            data-node="cargo"
-            onClick={() => handleClickToAdd('cargo')}
-            style={{ background: '#ede9fe', borderColor: '#8b5cf6' }}
+            data-node="text-box"
+            onClick={() => handleClickToAdd('text-box')}
+            style={{ background: '#f1f5f9', borderColor: '#64748b' }}
           >
-            <span style={{ fontSize: '20px' }}>👤</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#6d28d9' }}>Cargo</span>
+            <span style={{ fontSize: '22px' }}>T</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Texto</span>
           </div>
         </div>
 
         <div className="pt-4 border-t border-gray-200">
-          <h3 className="font-bold text-sm text-gray-700 mb-3">CONTROLES</h3>
+          <h3 className="font-bold text-sm text-gray-700 mb-3 uppercase tracking-wide">Controles</h3>
           
           <div className="flex items-center gap-2 mb-3">
             <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1">
@@ -357,12 +384,11 @@ export default function FluxMap({ data, onChange }) {
 
           <Button variant="destructive" size="sm" onClick={handleDelete} className="w-full">
             <Trash2 className="w-4 h-4 mr-2" />
-            Excluir Selecionado
+            Excluir
           </Button>
         </div>
       </div>
 
-      {/* Canvas */}
       <div
         id="drawflow"
         ref={drawflowRef}
