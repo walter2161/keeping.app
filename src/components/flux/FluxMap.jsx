@@ -419,44 +419,44 @@ export default function FluxMap({ data, onChange, onImport }) {
           transform: scale(1.2);
         }
         
-        .drawflow .drawflow-node .inputs .input_1 {
-          left: -5px;
-          top: 50%;
-          transform: translateY(-50%);
+        .drawflow .drawflow-node .input_1 {
+          left: -5px !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
         }
 
-        .drawflow .drawflow-node .inputs .input_2 {
-          left: 50%;
-          top: -5px;
-          transform: translateX(-50%);
+        .drawflow .drawflow-node .input_2 {
+          left: 50% !important;
+          top: -5px !important;
+          transform: translateX(-50%) !important;
         }
         
-        .drawflow .drawflow-node .outputs .output_1 {
-          right: -5px;
-          top: 50%;
-          transform: translateY(-50%);
+        .drawflow .drawflow-node .output_1 {
+          right: -5px !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
         }
 
-        .drawflow .drawflow-node .outputs .output_2 {
-          left: 50%;
-          bottom: -5px;
-          transform: translateX(-50%);
+        .drawflow .drawflow-node .output_2 {
+          left: 50% !important;
+          bottom: -5px !important;
+          transform: translateX(-50%) !important;
         }
 
-        .drawflow .drawflow-node .input:hover {
-          transform: translateY(-50%) scale(1.2);
+        .drawflow .drawflow-node .input_1:hover {
+          transform: translateY(-50%) scale(1.2) !important;
         }
 
         .drawflow .drawflow-node .input_2:hover {
-          transform: translateX(-50%) scale(1.2);
+          transform: translateX(-50%) scale(1.2) !important;
         }
 
-        .drawflow .drawflow-node .output:hover {
-          transform: translateY(-50%) scale(1.2);
+        .drawflow .drawflow-node .output_1:hover {
+          transform: translateY(-50%) scale(1.2) !important;
         }
 
         .drawflow .drawflow-node .output_2:hover {
-          transform: translateX(-50%) scale(1.2);
+          transform: translateX(-50%) scale(1.2) !important;
         }
 
         .sidebar-flux {
