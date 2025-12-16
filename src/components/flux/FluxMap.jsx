@@ -60,8 +60,41 @@ export default function FluxMap({ data, onChange }) {
     updateData([...elements, newElement], connections);
   };
 
+  const getElementsInFrame = useCallback((frameId) => {
+    const frame = elements.find(el => el.id === frameId);
+    if (!frame || frame.type !== 'frame') return [];
+    
+    return elements.filter(el => {
+      if (el.id === frameId || el.type === 'frame') return false;
+      const centerX = el.x + el.width / 2;
+      const centerY = el.y + el.height / 2;
+      return centerX >= frame.x && centerX <= frame.x + frame.width &&
+             centerY >= frame.y && centerY <= frame.y + frame.height;
+    });
+  }, [elements]);
+
   const updateElement = (id, updates) => {
     const newElements = elements.map(el => el.id === id ? { ...el, ...updates } : el);
+    
+    // Se moveu um frame, mover elementos dentro dele
+    const element = elements.find(el => el.id === id);
+    if (element && element.type === 'frame' && (updates.x !== undefined || updates.y !== undefined)) {
+      const dx = (updates.x || element.x) - element.x;
+      const dy = (updates.y || element.y) - element.y;
+      
+      const childElements = getElementsInFrame(id);
+      childElements.forEach(child => {
+        const childIndex = newElements.findIndex(el => el.id === child.id);
+        if (childIndex !== -1) {
+          newElements[childIndex] = {
+            ...newElements[childIndex],
+            x: newElements[childIndex].x + dx,
+            y: newElements[childIndex].y + dy
+          };
+        }
+      });
+    }
+    
     updateData(newElements, connections);
   };
 
@@ -232,19 +265,27 @@ export default function FluxMap({ data, onChange }) {
     }
 
     if (element.type === 'frame') {
+      const childrenCount = getElementsInFrame(element.id).length;
       return (
         <div
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
-          className={`rounded-lg border-2 border-dashed ${isSelected ? 'border-blue-500' : 'border-gray-400'}`}
+          className={`rounded-lg border-2 border-dashed ${isSelected ? 'border-blue-500 border-4' : 'border-gray-400'} transition-all`}
         >
-          <input
-            value={element.text}
-            onChange={(e) => updateElement(element.id, { text: e.target.value })}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="m-2 bg-transparent border-none outline-none font-semibold text-gray-700"
-            style={{ pointerEvents: 'auto' }}
-          />
+          <div className="m-2 flex items-center justify-between">
+            <input
+              value={element.text}
+              onChange={(e) => updateElement(element.id, { text: e.target.value })}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="bg-transparent border-none outline-none font-semibold text-gray-700 flex-1"
+              style={{ pointerEvents: 'auto' }}
+            />
+            {childrenCount > 0 && (
+              <span className="text-xs bg-gray-200 px-2 py-1 rounded-full text-gray-600 font-medium">
+                {childrenCount} {childrenCount === 1 ? 'item' : 'itens'}
+              </span>
+            )}
+          </div>
         </div>
       );
     }
@@ -498,7 +539,14 @@ export default function FluxMap({ data, onChange }) {
           
           {/* Elements layer */}
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {elements.map(renderElement)}
+            {elements
+              .sort((a, b) => {
+                // Frames sempre atrás
+                if (a.type === 'frame' && b.type !== 'frame') return -1;
+                if (b.type === 'frame' && a.type !== 'frame') return 1;
+                return (a.zIndex || 0) - (b.zIndex || 0);
+              })
+              .map(renderElement)}
           </div>
         </div>
       </div>
