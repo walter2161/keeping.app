@@ -281,22 +281,20 @@ export default function FluxMap({ data, onChange }) {
           border: none !important;
           background: transparent !important;
           box-shadow: none !important;
+          padding: 0 !important;
+          min-height: auto !important;
+          width: auto !important;
+          height: auto !important;
         }
         
-        .drawflow .drawflow-node.selected {
-          background: transparent !important;
+        .drawflow .drawflow-node .drawflow_content_node {
+          padding: 0 !important;
+          margin: 0 !important;
         }
         
-        .drawflow .drawflow-node.selected::before {
-          content: '';
-          position: absolute;
-          top: -4px;
-          left: -4px;
-          right: -4px;
-          bottom: -4px;
-          border: 2px solid #3b82f6;
-          border-radius: 4px;
-          pointer-events: none;
+        .drawflow .drawflow-node.selected .drawflow_content_node {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
         }
 
         .drawflow .connection .main-path {
