@@ -15,6 +15,8 @@ export default function AIAssistant({ fileContext = null, fileType = null }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const [messages, setMessages] = useState([
