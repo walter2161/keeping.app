@@ -181,6 +181,17 @@ export default function FluxMap({ data, onChange }) {
       ev.preventDefault();
     };
 
+    // Função para adicionar node no centro da viewport
+    window.addNodeToCenter = (nodeType) => {
+      if (!editor) return;
+      
+      const rect = drawflowRef.current.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      addNodeToDrawFlow(nodeType, rect.left + centerX, rect.top + centerY);
+    };
+
     return () => {
       if (editorRef.current) {
         editorRef.current.clear();
@@ -274,6 +285,7 @@ export default function FluxMap({ data, onChange }) {
             className="drag-drawflow"
             draggable="true"
             data-node="card-trello"
+            onClick={() => window.addNodeToCenter && window.addNodeToCenter('card-trello')}
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
           >
             <span style={{ fontSize: '20px' }}>📋</span>
@@ -284,6 +296,7 @@ export default function FluxMap({ data, onChange }) {
             className="drag-drawflow"
             draggable="true"
             data-node="card-fluxograma"
+            onClick={() => window.addNodeToCenter && window.addNodeToCenter('card-fluxograma')}
             style={{ background: '#f3f4f6', borderColor: '#6b7280' }}
           >
             <span style={{ fontSize: '20px' }}>📝</span>
@@ -294,6 +307,7 @@ export default function FluxMap({ data, onChange }) {
             className="drag-drawflow"
             draggable="true"
             data-node="decisao"
+            onClick={() => window.addNodeToCenter && window.addNodeToCenter('decisao')}
             style={{ background: '#d1fae5', borderColor: '#10b981' }}
           >
             <span style={{ fontSize: '20px' }}>◆</span>
@@ -304,6 +318,7 @@ export default function FluxMap({ data, onChange }) {
             className="drag-drawflow"
             draggable="true"
             data-node="ideia"
+            onClick={() => window.addNodeToCenter && window.addNodeToCenter('ideia')}
             style={{ background: '#fef3c7', borderColor: '#f59e0b' }}
           >
             <span style={{ fontSize: '20px' }}>💡</span>
@@ -314,6 +329,7 @@ export default function FluxMap({ data, onChange }) {
             className="drag-drawflow"
             draggable="true"
             data-node="cargo"
+            onClick={() => window.addNodeToCenter && window.addNodeToCenter('cargo')}
             style={{ background: '#ede9fe', borderColor: '#8b5cf6' }}
           >
             <span style={{ fontSize: '20px' }}>👤</span>
