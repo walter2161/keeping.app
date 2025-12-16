@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, 
-  GanttChart, Calendar 
+  GanttChart, Calendar, ArrowRight
 } from 'lucide-react';
 
 export default function CreateDialog({ 
@@ -27,6 +27,7 @@ export default function CreateDialog({
     kbn: { icon: LayoutGrid, title: 'Novo Kanban', placeholder: 'Nome do arquivo Kanban', color: 'text-purple-600' },
     gnt: { icon: GanttChart, title: 'Novo Gantt', placeholder: 'Nome do arquivo Gantt', color: 'text-orange-600' },
     crn: { icon: Calendar, title: 'Novo Cronograma', placeholder: 'Nome do arquivo Cronograma', color: 'text-pink-600' },
+    flux: { icon: ArrowRight, title: 'Novo FluxMap', placeholder: 'Nome do FluxMap', color: 'text-teal-600' },
     docx: { icon: FileText, title: 'Novo Documento', placeholder: 'Nome do documento', color: 'text-blue-600' },
     xlsx: { icon: FileSpreadsheet, title: 'Nova Planilha', placeholder: 'Nome da planilha', color: 'text-green-600' },
   };
