@@ -4,13 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Save, Loader2, ArrowLeft } from 'lucide-react';
+import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 export default function Profile() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -19,12 +20,14 @@ export default function Profile() {
 
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
+    profile_picture: user?.profile_picture || '',
   });
 
   React.useEffect(() => {
     if (user) {
       setFormData({
         full_name: user.full_name || '',
+        profile_picture: user.profile_picture || '',
       });
     }
   }, [user]);
@@ -45,6 +48,21 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     updateProfileMutation.mutate(formData);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({ ...formData, profile_picture: file_url });
+    } catch (error) {
+      alert('Erro ao fazer upload da imagem: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (isLoading) {
@@ -76,6 +94,64 @@ export default function Profile() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-3 block">
+                Foto de Perfil
+              </label>
+              {formData.profile_picture ? (
+                <div className="flex items-center gap-4">
+                  <img 
+                    src={formData.profile_picture} 
+                    alt="Perfil"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-blue-100"
+                  />
+                  <div className="flex gap-2">
+                    <label>
+                      <Button variant="outline" size="sm" asChild disabled={uploading}>
+                        <span className="cursor-pointer">
+                          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                          Trocar Foto
+                        </span>
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={uploading}
+                      />
+                    </label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, profile_picture: '' })}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-2xl">
+                    {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Adicionar foto de perfil</p>
+                    <p className="text-xs text-gray-500">Clique para selecionar uma imagem</p>
+                  </div>
+                  {uploading && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                  />
+                </label>
+              )}
+            </div>
+
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 Nome Completo

@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -203,13 +203,19 @@ export default function Toolbar({
             <Bot className="w-4 h-4" />
           </Button>
         </Link>
+
+        <Link to={createPageUrl('Wiki')}>
+          <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
+            <BookOpen className="w-4 h-4" />
+          </Button>
+        </Link>
         
         <Link to={createPageUrl('Profile')}>
           <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 p-0">
-            {user?.assistant_avatar ? (
+            {user?.profile_picture ? (
               <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-blue-600">
                 <img 
-                  src={user.assistant_avatar} 
+                  src={user.profile_picture} 
                   alt="Perfil"
                   className="w-full h-full object-cover"
                 />
