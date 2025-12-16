@@ -148,8 +148,29 @@ export default function FluxMap({ data, onChange, onImport }) {
             editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom));
 
     const { html, inputs, outputs } = createNodeHTML(name);
-    editor.addNode(name, inputs, outputs, pos_x, pos_y, name, {}, html);
-    
+    const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, {}, html);
+
+    // Add edit icon to the node
+    setTimeout(() => {
+      const nodeElement = document.getElementById(`node-${nodeId}`);
+      if (nodeElement) {
+        const editIcon = document.createElement('div');
+        editIcon.className = 'edit-icon';
+        editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+        editIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const nodeData = editor.getNodeFromId(nodeId);
+          setEditDialog({ 
+            open: true, 
+            nodeId: nodeId, 
+            data: nodeData.data || {},
+            nodeType: nodeData.name
+          });
+        });
+        nodeElement.appendChild(editIcon);
+      }
+    }, 10);
+
     if (onChange) {
       onChange(editor.export());
     }
@@ -179,6 +200,29 @@ export default function FluxMap({ data, onChange, onImport }) {
     if (data && data.drawflow) {
       try {
         editor.import(data);
+
+        // Add edit icons to all existing nodes
+        setTimeout(() => {
+          Object.keys(data.drawflow.Home.data).forEach(nodeId => {
+            const nodeElement = document.getElementById(`node-${nodeId}`);
+            if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
+              const editIcon = document.createElement('div');
+              editIcon.className = 'edit-icon';
+              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+              editIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const nodeData = editor.getNodeFromId(nodeId);
+                setEditDialog({ 
+                  open: true, 
+                  nodeId: nodeId, 
+                  data: nodeData.data || {},
+                  nodeType: nodeData.name
+                });
+              });
+              nodeElement.appendChild(editIcon);
+            }
+          });
+        }, 100);
       } catch (e) {
         console.error('Erro ao importar dados:', e);
       }
@@ -200,18 +244,6 @@ export default function FluxMap({ data, onChange, onImport }) {
     // Track selected node
     editor.on('nodeSelected', (id) => {
       setSelectedNodeId(id);
-      const nodeElement = document.getElementById(`node-${id}`);
-      if (nodeElement) {
-        nodeElement.addEventListener('dblclick', () => {
-          const nodeData = editor.getNodeFromId(id);
-          setEditDialog({ 
-            open: true, 
-            nodeId: id, 
-            data: nodeData.data || {},
-            nodeType: nodeData.name
-          });
-        });
-      }
     });
 
     editor.on('nodeUnselected', () => {
@@ -455,6 +487,39 @@ export default function FluxMap({ data, onChange, onImport }) {
         .drawflow .drawflow-node .output:hover {
           background: #3b82f6;
           border-color: #3b82f6;
+        }
+
+        .drawflow .drawflow-node .edit-icon {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          width: 24px;
+          height: 24px;
+          background: white;
+          border-radius: 4px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+          z-index: 15;
+          pointer-events: all;
+        }
+
+        .drawflow .drawflow-node:hover .edit-icon {
+          opacity: 1;
+        }
+
+        .drawflow .drawflow-node .edit-icon:hover {
+          background: #f3f4f6;
+        }
+
+        .drawflow .drawflow-node .edit-icon svg {
+          width: 14px;
+          height: 14px;
+          color: #64748b;
         }
         
         .drawflow .drawflow-node .inputs {
