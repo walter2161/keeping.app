@@ -257,44 +257,29 @@ export default function KanbanBoard({ data, onChange }) {
   );
 
   const CardForm = ({ cardData, setCardData }) => {
-    const [localData, setLocalData] = React.useState(cardData);
-
-    React.useEffect(() => {
-      setLocalData(cardData);
-    }, [cardData.id]);
-
-    const handleChange = (field, value) => {
-      const updated = { ...localData, [field]: value };
-      setLocalData(updated);
-      setCardData(updated);
-    };
-
     return (
       <div className="space-y-4">
         <Input
           placeholder="Título"
-          value={localData.title || ''}
-          onChange={(e) => handleChange('title', e.target.value)}
+          value={cardData.title || ''}
+          onChange={(e) => setCardData({ ...cardData, title: e.target.value })}
         />
         <Textarea
           placeholder="Descrição"
-          value={localData.description || ''}
-          onChange={(e) => handleChange('description', e.target.value)}
+          value={cardData.description || ''}
+          onChange={(e) => setCardData({ ...cardData, description: e.target.value })}
         />
         <select
           className="w-full p-2 border rounded-md"
-          value={localData.priority}
-          onChange={(e) => handleChange('priority', e.target.value)}
+          value={cardData.priority}
+          onChange={(e) => setCardData({ ...cardData, priority: e.target.value })}
         >
           <option value="low">Prioridade Baixa</option>
           <option value="medium">Prioridade Média</option>
           <option value="high">Prioridade Alta</option>
         </select>
 
-      <CardCoverSection cardData={localData} setCardData={(data) => {
-        setLocalData(data);
-        setCardData(data);
-      }} isDialog={true} />
+      <CardCoverSection cardData={cardData} setCardData={setCardData} isDialog={true} />
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Anexos:</label>
@@ -304,16 +289,13 @@ export default function KanbanBoard({ data, onChange }) {
           <input
             type="file"
             className="hidden"
-            onChange={(e) => handleFileUpload(e, localData, (data) => {
-              setLocalData(data);
-              setCardData(data);
-            })}
+            onChange={(e) => handleFileUpload(e, cardData, setCardData)}
             disabled={uploadingFile}
           />
         </label>
-        {localData.attachments && localData.attachments.length > 0 && (
+        {cardData.attachments && cardData.attachments.length > 0 && (
           <div className="space-y-1">
-            {localData.attachments.map(att => (
+            {cardData.attachments.map(att => (
               <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
                 <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1">
                   {att.name}
@@ -322,12 +304,7 @@ export default function KanbanBoard({ data, onChange }) {
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => {
-                    const updatedAttachments = localData.attachments.filter(a => a.id !== att.id);
-                    const updated = { ...localData, attachments: updatedAttachments };
-                    setLocalData(updated);
-                    setCardData(updated);
-                  }}
+                  onClick={() => removeAttachment(cardData, att.id)}
                 >
                   <X className="w-3 h-3" />
                 </Button>
@@ -409,7 +386,10 @@ export default function KanbanBoard({ data, onChange }) {
                                    </div>
                                    <div 
                                      className="flex-1 cursor-pointer"
-                                     onClick={() => setEditCardDialog({ open: true, card })}
+                                     onClick={() => {
+                                       setEditingCardData(card);
+                                       setEditCardDialog({ open: true, card });
+                                     }}
                                    >
                                      <p className="font-medium text-gray-800 text-sm">{card.title}</p>
                                      {card.description && (
