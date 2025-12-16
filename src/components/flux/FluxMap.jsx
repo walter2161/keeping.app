@@ -2,13 +2,23 @@ import React, { useEffect, useRef, useState } from 'react';
 import Drawflow from 'drawflow';
 import 'drawflow/dist/drawflow.min.css';
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Minus } from 'lucide-react';
+import { Trash2, Plus, Minus, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -17,6 +27,7 @@ export default function FluxMap({ data, onChange }) {
   const editorRef = useRef(null);
   const [zoom, setZoom] = useState(100);
   const [editDialog, setEditDialog] = useState({ open: false, nodeId: null, data: {} });
+  const [importDialog, setImportDialog] = useState({ open: false, data: null });
 
   const createNodeHTML = (name) => {
     let html = '';
@@ -220,9 +231,27 @@ export default function FluxMap({ data, onChange }) {
       ev.preventDefault();
     };
 
+    // Mouse wheel zoom
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          editor.zoom_in();
+        } else {
+          editor.zoom_out();
+        }
+        setZoom(Math.round(editor.zoom * 100));
+      }
+    };
+
+    drawflowRef.current.addEventListener('wheel', handleWheel, { passive: false });
+
     return () => {
       if (editorRef.current) {
         editorRef.current.clear();
+      }
+      if (drawflowRef.current) {
+        drawflowRef.current.removeEventListener('wheel', handleWheel);
       }
     };
   }, [data, onChange]);
@@ -267,6 +296,38 @@ export default function FluxMap({ data, onChange }) {
       }
     }
     setEditDialog({ open: false, nodeId: null, data: {} });
+  };
+
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        setImportDialog({ open: true, data: importedData });
+      } catch (error) {
+        alert('Erro ao ler o arquivo. Certifique-se de que é um JSON válido.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleConfirmImport = () => {
+    if (editorRef.current && importDialog.data) {
+      editorRef.current.clear();
+      try {
+        editorRef.current.import(importDialog.data);
+        if (onChange) {
+          onChange(importDialog.data);
+        }
+      } catch (error) {
+        alert('Erro ao importar o FluxMap');
+      }
+    }
+    setImportDialog({ open: false, data: null });
   };
 
   return (
@@ -324,31 +385,31 @@ export default function FluxMap({ data, onChange }) {
         }
         
         .drawflow .drawflow-node .outputs {
-          right: -5px;
+          right: 0;
         }
         
         .drawflow .drawflow-node .inputs {
-          left: -5px;
+          left: 0;
         }
 
         .sidebar-flux {
-          width: 280px;
+          width: 200px;
           background: white;
           border-right: 1px solid #e2e8f0;
-          padding: 20px;
+          padding: 12px;
           overflow-y: auto;
         }
 
         .drag-drawflow {
           cursor: grab;
           user-select: none;
-          margin-bottom: 10px;
-          padding: 14px 16px;
-          border-radius: 8px;
-          border: 2px solid;
+          margin-bottom: 6px;
+          padding: 8px 10px;
+          border-radius: 6px;
+          border: 1.5px solid;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           transition: all 0.2s;
           font-family: 'Montserrat', sans-serif;
         }
@@ -364,8 +425,8 @@ export default function FluxMap({ data, onChange }) {
       `}</style>
 
       <div className="sidebar-flux">
-        <div className="mb-6">
-          <h3 className="font-bold text-sm text-gray-700 mb-4 uppercase tracking-wide">Elementos</h3>
+        <div className="mb-4">
+          <h3 className="font-semibold text-xs text-gray-600 mb-2 uppercase tracking-wide">Elementos</h3>
           
           <div
             className="drag-drawflow"
@@ -374,8 +435,8 @@ export default function FluxMap({ data, onChange }) {
             onClick={() => handleClickToAdd('sticky-note')}
             style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
           >
-            <span style={{ fontSize: '22px' }}>📝</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#92400e' }}>Sticky Note</span>
+            <span style={{ fontSize: '18px' }}>📝</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Sticky Note</span>
           </div>
 
           <div
@@ -385,8 +446,8 @@ export default function FluxMap({ data, onChange }) {
             onClick={() => handleClickToAdd('card-kanban')}
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
           >
-            <span style={{ fontSize: '22px' }}>🎯</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>Card Kanban</span>
+            <span style={{ fontSize: '18px' }}>🎯</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Card Kanban</span>
           </div>
 
           <div
@@ -396,8 +457,8 @@ export default function FluxMap({ data, onChange }) {
             onClick={() => handleClickToAdd('rectangle-shape')}
             style={{ background: '#e0f2fe', borderColor: '#0284c7' }}
           >
-            <span style={{ fontSize: '22px' }}>▭</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#075985' }}>Retângulo</span>
+            <span style={{ fontSize: '18px' }}>▭</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#075985' }}>Retângulo</span>
           </div>
 
           <div
@@ -407,8 +468,8 @@ export default function FluxMap({ data, onChange }) {
             onClick={() => handleClickToAdd('circle-shape')}
             style={{ background: '#fef9c3', borderColor: '#eab308' }}
           >
-            <span style={{ fontSize: '22px' }}>●</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#713f12' }}>Círculo</span>
+            <span style={{ fontSize: '18px' }}>●</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#713f12' }}>Círculo</span>
           </div>
 
           <div
@@ -418,8 +479,8 @@ export default function FluxMap({ data, onChange }) {
             onClick={() => handleClickToAdd('name-bubble')}
             style={{ background: '#f3e8ff', borderColor: '#a855f7' }}
           >
-            <span style={{ fontSize: '22px' }}>👤</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
+            <span style={{ fontSize: '18px' }}>👤</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
           </div>
 
           <div
@@ -429,28 +490,46 @@ export default function FluxMap({ data, onChange }) {
             onClick={() => handleClickToAdd('text-box')}
             style={{ background: '#f1f5f9', borderColor: '#64748b' }}
           >
-            <span style={{ fontSize: '22px' }}>T</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Texto</span>
+            <span style={{ fontSize: '18px' }}>T</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#334155' }}>Texto</span>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-gray-200">
-          <h3 className="font-bold text-sm text-gray-700 mb-3 uppercase tracking-wide">Controles</h3>
+        <div className="pt-3 border-t border-gray-200">
+          <h3 className="font-semibold text-xs text-gray-600 mb-2 uppercase tracking-wide">Controles</h3>
           
-          <div className="flex items-center gap-2 mb-3">
-            <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1">
-              <Minus className="w-4 h-4" />
+          <div className="flex items-center gap-1 mb-2">
+            <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1 h-7 px-2">
+              <Minus className="w-3 h-3" />
             </Button>
-            <span className="text-sm font-medium w-16 text-center">{zoom}%</span>
-            <Button variant="outline" size="sm" onClick={handleZoomIn} className="flex-1">
-              <Plus className="w-4 h-4" />
+            <span className="text-xs font-medium w-12 text-center">{zoom}%</span>
+            <Button variant="outline" size="sm" onClick={handleZoomIn} className="flex-1 h-7 px-2">
+              <Plus className="w-3 h-3" />
             </Button>
           </div>
 
-          <Button variant="destructive" size="sm" onClick={handleDelete} className="w-full">
-            <Trash2 className="w-4 h-4 mr-2" />
+          <Button variant="destructive" size="sm" onClick={handleDelete} className="w-full h-7 text-xs mb-2">
+            <Trash2 className="w-3 h-3 mr-1" />
             Excluir
           </Button>
+
+          <div>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportFile}
+              className="hidden"
+              id="import-flux"
+            />
+            <label htmlFor="import-flux">
+              <Button variant="outline" size="sm" className="w-full h-7 text-xs" asChild>
+                <span className="cursor-pointer">
+                  <Upload className="w-3 h-3 mr-1" />
+                  Importar
+                </span>
+              </Button>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -497,6 +576,26 @@ export default function FluxMap({ data, onChange }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import Confirmation Dialog */}
+      <AlertDialog open={importDialog.open} onOpenChange={(open) => !open && setImportDialog({ open: false, data: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Importação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja importar este FluxMap? O mapa atual será substituído e não poderá ser recuperado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setImportDialog({ open: false, data: null })}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmImport}>
+              Sim, Importar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
