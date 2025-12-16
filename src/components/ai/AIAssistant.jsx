@@ -144,14 +144,25 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       const permissionsContext = `\n\nPermissões habilitadas:\n- Criar pastas: ${user?.assistant_can_create_folders !== false ? 'Sim' : 'Não'}\n- Criar arquivos: ${user?.assistant_can_create_files !== false ? 'Sim' : 'Não'}\n- Editar arquivos: ${user?.assistant_can_edit_files !== false ? 'Sim' : 'Não'}\n- Excluir itens: ${user?.assistant_can_delete_items !== false ? 'Sim' : 'Não'}`;
 
       const systemInstructions = `INSTRUÇÕES CRÍTICAS:
-1. Você DEVE executar ações automaticamente quando solicitado
-2. Quando criar/editar/excluir, retorne APENAS um objeto JSON válido no formato: {"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}
-3. NÃO adicione texto antes ou depois do JSON
-4. NÃO explique o JSON ou mostre ele ao usuário
-5. Se for apenas conversa (sem ações), responda normalmente em português
-6. Apenas fale sobre o app, pastas e arquivos - nada mais
-7. Use o contexto de localização para saber onde criar itens
-8. IMPORTANTE: Ao criar documentos (docx), SEMPRE formate o texto com quebras de linha usando \\n para separar parágrafos e seções. Use \\n\\n para criar espaços maiores entre capítulos/seções. Estruture o conteúdo de forma organizada e legível com títulos, subtítulos e parágrafos bem separados.`;
+1. Você DEVE executar ações automaticamente quando solicitado pelo usuário
+2. Quando o usuário pedir para criar/editar/excluir algo, retorne APENAS um objeto JSON válido, sem nenhum texto adicional
+3. Formato do JSON: {"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}
+4. NUNCA adicione texto explicativo antes ou depois do JSON
+5. NUNCA mostre ou explique o JSON ao usuário
+6. Para conversas normais (sem ações), responda em português de forma natural
+7. Você só pode falar sobre o aplicativo, pastas e arquivos do usuário
+8. Use o contexto de localização atual para saber onde criar itens (pasta atual: ${currentFolderId || 'raiz'})
+
+FORMATAÇÃO DE CONTEÚDO:
+- Documentos (docx): Use \\n\\n entre seções e \\n entre parágrafos
+- Planilhas (xlsx): Retorne dados em formato tabular organizado
+- Para criar planilha, use: {"action": "create_file", "data": {"name": "Nome", "type": "xlsx", "content": "dados aqui"}}
+
+EXEMPLOS DE AÇÕES:
+- "crie uma pasta X" → {"action": "create_folder", "data": {"name": "X"}}
+- "crie um documento" → {"action": "create_file", "data": {"name": "Nome", "type": "docx", "content": "texto..."}}
+- "crie uma planilha" → {"action": "create_file", "data": {"name": "Nome", "type": "xlsx", "content": "dados..."}}
+- "crie um kanban" → {"action": "create_file", "data": {"name": "Nome", "type": "kbn"}}`;
 
       const fullPrompt = `${getSystemPrompt()}\n\n${systemInstructions}${currentLocationContext}${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
 
@@ -173,42 +184,41 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       });
 
       const result = await mistralResponse.json();
-      const responseText = result.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação.';
+      let responseText = result.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação.';
 
       // Tentar detectar e extrair JSON da resposta
-      let actionExecuted = false;
       const jsonMatch = responseText.match(/\{[\s\S]*"action"[\s\S]*\}/);
       
       if (jsonMatch) {
         try {
           const actionData = JSON.parse(jsonMatch[0]);
           if (actionData.action) {
-            const result = await executeAction(actionData, folders, files);
+            const actionResult = await executeAction(actionData, folders, files);
             const successMessage = { 
               role: 'assistant', 
-              content: `Pronto! ${getActionSuccessMessage(actionData)}` 
+              content: `✓ ${getActionSuccessMessage(actionData)}` 
             };
             setMessages(prev => [...prev, successMessage]);
-            actionExecuted = true;
             
             // Navegar para o item criado
             setTimeout(() => {
-              if (actionData.action === 'create_file' && result?.id) {
-                window.location.href = `/file-viewer?id=${result.id}`;
-              } else if (actionData.action === 'create_folder' && result?.id) {
-                window.location.href = `/drive?folder=${result.id}`;
+              if (actionData.action === 'create_file' && actionResult?.id) {
+                window.location.href = `/file-viewer?id=${actionResult.id}`;
+              } else if (actionData.action === 'create_folder' && actionResult?.id) {
+                window.location.href = `/drive?folder=${actionResult.id}`;
               } else {
                 window.location.reload();
               }
             }, 800);
+            return; // Não mostrar o JSON
           }
         } catch (e) {
           console.error('Erro ao executar ação:', e);
+          // Se falhar, continuar e mostrar resposta normal
         }
       }
-      
-      if (actionExecuted) return;
 
+      // Apenas mostrar resposta se não foi uma ação
       const assistantMessage = { 
         role: 'assistant', 
         content: responseText 
