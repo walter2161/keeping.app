@@ -390,6 +390,189 @@ function keeping_delete_file($request) {
 }
 
 // ================================
+// PÁGINA DE ADMINISTRAÇÃO
+// ================================
+add_action('admin_menu', 'keeping_add_admin_menu');
+
+function keeping_add_admin_menu() {
+    add_menu_page(
+        'Keeping Database',
+        'Keeping DB',
+        'manage_options',
+        'keeping-database',
+        'keeping_admin_page',
+        'dashicons-database',
+        30
+    );
+}
+
+function keeping_admin_page() {
+    global $wpdb;
+    $folders_table = $wpdb->prefix . KEEPING_PREFIX . 'folders';
+    $files_table = $wpdb->prefix . KEEPING_PREFIX . 'files';
+    
+    // Get selected user
+    $selected_user = isset($_GET['user']) ? sanitize_email($_GET['user']) : null;
+    
+    // Get all unique users
+    $users = $wpdb->get_results("
+        SELECT DISTINCT user_email, 
+               COUNT(*) as total_items,
+               MAX(created_at) as last_activity
+        FROM (
+            SELECT user_email, created_at FROM $folders_table
+            UNION ALL
+            SELECT user_email, created_at FROM $files_table
+        ) as combined
+        GROUP BY user_email
+        ORDER BY last_activity DESC
+    ");
+    
+    ?>
+    <div class="wrap">
+        <h1>🗄️ Keeping Database Manager</h1>
+        <p>Visualize e gerencie os dados dos usuários do Keeping</p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h2>📊 Estatísticas Gerais</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 15px;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: bold; color: #1976d2;">
+                        <?php echo count($users); ?>
+                    </div>
+                    <div style="color: #555; margin-top: 5px;">Usuários Ativos</div>
+                </div>
+                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: bold; color: #7b1fa2;">
+                        <?php echo $wpdb->get_var("SELECT COUNT(*) FROM $folders_table"); ?>
+                    </div>
+                    <div style="color: #555; margin-top: 5px;">Total de Pastas</div>
+                </div>
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: bold; color: #388e3c;">
+                        <?php echo $wpdb->get_var("SELECT COUNT(*) FROM $files_table"); ?>
+                    </div>
+                    <div style="color: #555; margin-top: 5px;">Total de Arquivos</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h2>👥 Usuários do Keeping</h2>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Total de Itens</th>
+                        <th>Última Atividade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($users as $user): ?>
+                    <tr>
+                        <td><strong><?php echo esc_html($user->user_email); ?></strong></td>
+                        <td><?php echo $user->total_items; ?> itens</td>
+                        <td><?php echo date('d/m/Y H:i', strtotime($user->last_activity)); ?></td>
+                        <td>
+                            <a href="?page=keeping-database&user=<?php echo urlencode($user->user_email); ?>" class="button button-primary">
+                                Ver Dados
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        
+        <?php if ($selected_user): ?>
+        <div style="background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h2>📂 Dados de: <?php echo esc_html($selected_user); ?></h2>
+            
+            <h3 style="margin-top: 20px;">Pastas (<?php echo $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $folders_table WHERE user_email = %s", $selected_user)); ?>)</h3>
+            <?php
+            $folders = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $folders_table WHERE user_email = %s ORDER BY created_at DESC LIMIT 50",
+                $selected_user
+            ));
+            ?>
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Pasta Pai</th>
+                        <th>Cor</th>
+                        <th>Ordem</th>
+                        <th>Deletado</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($folders as $folder): ?>
+                    <tr>
+                        <td><code><?php echo esc_html(substr($folder->id, 0, 8)); ?>...</code></td>
+                        <td><strong><?php echo esc_html($folder->name); ?></strong></td>
+                        <td><?php echo $folder->parent_id ? esc_html(substr($folder->parent_id, 0, 8)) . '...' : '-'; ?></td>
+                        <td>
+                            <?php if ($folder->color): ?>
+                            <span style="display: inline-block; width: 20px; height: 20px; background: <?php echo esc_attr($folder->color); ?>; border-radius: 4px; vertical-align: middle;"></span>
+                            <?php else: ?>
+                            -
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo $folder->order; ?></td>
+                        <td><?php echo $folder->deleted ? '🗑️ Sim' : '✅ Não'; ?></td>
+                        <td><?php echo date('d/m/Y H:i', strtotime($folder->created_at)); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            
+            <h3 style="margin-top: 30px;">Arquivos (<?php echo $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $files_table WHERE user_email = %s", $selected_user)); ?>)</h3>
+            <?php
+            $files = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $files_table WHERE user_email = %s ORDER BY created_at DESC LIMIT 50",
+                $selected_user
+            ));
+            ?>
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Pasta</th>
+                        <th>Tamanho do Conteúdo</th>
+                        <th>Deletado</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($files as $file): ?>
+                    <tr>
+                        <td><code><?php echo esc_html(substr($file->id, 0, 8)); ?>...</code></td>
+                        <td><strong><?php echo esc_html($file->name); ?></strong></td>
+                        <td><span style="background: #e3f2fd; padding: 3px 8px; border-radius: 4px; font-size: 11px;"><?php echo strtoupper($file->type); ?></span></td>
+                        <td><?php echo $file->folder_id ? esc_html(substr($file->folder_id, 0, 8)) . '...' : 'Raiz'; ?></td>
+                        <td><?php echo $file->content ? number_format(strlen($file->content) / 1024, 2) . ' KB' : '0 KB'; ?></td>
+                        <td><?php echo $file->deleted ? '🗑️ Sim' : '✅ Não'; ?></td>
+                        <td><?php echo date('d/m/Y H:i', strtotime($file->created_at)); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            
+            <p style="margin-top: 15px;">
+                <a href="?page=keeping-database" class="button">← Voltar para lista de usuários</a>
+            </p>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
+// ================================
 // INFO DO PLUGIN
 // ================================
 add_action('rest_api_init', function() {
