@@ -134,7 +134,12 @@ export default function FileViewer() {
   const handleExport = () => {
     // Para docx e xlsx, exportar no formato de texto/csv
     if (file.type === 'docx') {
-      const blob = new Blob([localContent || ''], { type: 'text/plain' });
+      // Remover tags HTML e manter apenas o texto
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = localContent || '';
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      
+      const blob = new Blob([textContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
