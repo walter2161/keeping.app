@@ -3,11 +3,20 @@ import Drawflow from 'drawflow';
 import 'drawflow/dist/drawflow.min.css';
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Minus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function FluxMap({ data, onChange }) {
   const drawflowRef = useRef(null);
   const editorRef = useRef(null);
   const [zoom, setZoom] = useState(100);
+  const [editDialog, setEditDialog] = useState({ open: false, nodeId: null, data: {} });
 
   const createNodeHTML = (name) => {
     let html = '';
@@ -152,6 +161,21 @@ export default function FluxMap({ data, onChange }) {
     editor.on('nodeMoved', saveData);
     editor.on('connectionCreated', saveData);
     editor.on('connectionRemoved', saveData);
+    
+    // Double click to edit
+    editor.on('nodeSelected', (id) => {
+      const nodeElement = document.getElementById(`node-${id}`);
+      if (nodeElement) {
+        nodeElement.addEventListener('dblclick', () => {
+          const nodeData = editor.getNodeFromId(id);
+          setEditDialog({ 
+            open: true, 
+            nodeId: id, 
+            data: nodeData.data || {}
+          });
+        });
+      }
+    });
 
     const elements = document.getElementsByClassName('drag-drawflow');
     for (let i = 0; i < elements.length; i++) {
@@ -223,6 +247,28 @@ export default function FluxMap({ data, onChange }) {
     }
   };
 
+  const handleEditSave = () => {
+    if (editorRef.current && editDialog.nodeId) {
+      const node = editorRef.current.getNodeFromId(editDialog.nodeId);
+      if (node) {
+        node.data = editDialog.data;
+        
+        // Update the visual content
+        const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
+        if (nodeElement) {
+          const inputs = nodeElement.querySelectorAll('input, textarea');
+          if (editDialog.data.title && inputs[0]) inputs[0].value = editDialog.data.title;
+          if (editDialog.data.description && inputs[1]) inputs[1].value = editDialog.data.description;
+        }
+        
+        if (onChange) {
+          onChange(editorRef.current.export());
+        }
+      }
+    }
+    setEditDialog({ open: false, nodeId: null, data: {} });
+  };
+
   return (
     <div className="h-full flex">
       <style>{`
@@ -232,14 +278,25 @@ export default function FluxMap({ data, onChange }) {
         }
         
         .drawflow .drawflow-node {
-          border: none;
-          background: transparent;
-          box-shadow: none;
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
         }
         
         .drawflow .drawflow-node.selected {
-          outline: 2px solid #3b82f6;
-          outline-offset: 4px;
+          background: transparent !important;
+        }
+        
+        .drawflow .drawflow-node.selected::before {
+          content: '';
+          position: absolute;
+          top: -4px;
+          left: -4px;
+          right: -4px;
+          bottom: -4px;
+          border: 2px solid #3b82f6;
+          border-radius: 4px;
+          pointer-events: none;
         }
 
         .drawflow .connection .main-path {
@@ -254,16 +311,26 @@ export default function FluxMap({ data, onChange }) {
 
         .drawflow .drawflow-node .input,
         .drawflow .drawflow-node .output {
-          width: 12px;
-          height: 12px;
-          border: 2px solid #64748b;
+          width: 10px;
+          height: 10px;
+          border: 2px solid #94a3b8;
           background: white;
+          border-radius: 50%;
         }
 
         .drawflow .drawflow-node .input:hover,
         .drawflow .drawflow-node .output:hover {
           background: #3b82f6;
           border-color: #3b82f6;
+          transform: scale(1.2);
+        }
+        
+        .drawflow .drawflow-node .outputs {
+          right: -5px;
+        }
+        
+        .drawflow .drawflow-node .inputs {
+          left: -5px;
         }
 
         .sidebar-flux {
@@ -396,6 +463,42 @@ export default function FluxMap({ data, onChange }) {
         onDrop={(e) => e.preventDefault()}
         onDragOver={(e) => e.preventDefault()}
       />
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Elemento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Título</label>
+              <Input
+                value={editDialog.data.title || ''}
+                onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
+                placeholder="Digite o título"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Descrição</label>
+              <Textarea
+                value={editDialog.data.description || ''}
+                onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, description: e.target.value } })}
+                placeholder="Digite a descrição"
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {} })}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEditSave}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
