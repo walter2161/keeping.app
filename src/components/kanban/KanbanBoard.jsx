@@ -42,18 +42,8 @@ const coverColors = [
 export default function KanbanBoard({ data, onChange }) {
   const [columns, setColumns] = useState(data?.columns || defaultColumns);
   const [cards, setCards] = useState(data?.cards || []);
-  const [newCardDialog, setNewCardDialog] = useState({ open: false, columnId: null });
-  const [editCardDialog, setEditCardDialog] = useState({ open: false, card: null });
+  const [cardDialog, setCardDialog] = useState({ open: false, card: null, columnId: null });
   const [editColumnDialog, setEditColumnDialog] = useState({ open: false, column: null });
-  const [newCard, setNewCard] = useState({ 
-    title: '', 
-    description: '', 
-    priority: 'medium',
-    coverType: 'none',
-    coverColor: coverColors[0],
-    coverImage: '',
-    attachments: []
-  });
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [showNewColumn, setShowNewColumn] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -103,32 +93,24 @@ export default function KanbanBoard({ data, onChange }) {
     }
   };
 
-  const addCard = () => {
-    const card = {
-      id: `card-${Date.now()}`,
-      ...newCard,
-      columnId: newCardDialog.columnId,
-      order: cards.filter(c => c.columnId === newCardDialog.columnId).length,
-    };
-    saveChanges(columns, [...cards, card]);
-    setNewCard({ 
-      title: '', 
-      description: '', 
-      priority: 'medium',
-      coverType: 'none',
-      coverColor: coverColors[0],
-      coverImage: '',
-      attachments: []
-    });
-    setNewCardDialog({ open: false, columnId: null });
-  };
-
-  const handleEditCard = (updatedCard) => {
-    const updatedCards = cards.map(c => 
-      c.id === updatedCard.id ? updatedCard : c
-    );
-    saveChanges(columns, updatedCards);
-    setEditCardDialog({ open: false, card: null });
+  const handleSaveCard = (cardData) => {
+    if (cardData.id) {
+      // Editando card existente
+      const updatedCards = cards.map(c => 
+        c.id === cardData.id ? cardData : c
+      );
+      saveChanges(columns, updatedCards);
+    } else {
+      // Criando novo card
+      const newCard = {
+        ...cardData,
+        id: `card-${Date.now()}`,
+        columnId: cardDialog.columnId,
+        order: cards.filter(c => c.columnId === cardDialog.columnId).length,
+      };
+      saveChanges(columns, [...cards, newCard]);
+    }
+    setCardDialog({ open: false, card: null, columnId: null });
   };
 
   const deleteCard = (cardId) => {
@@ -162,12 +144,9 @@ export default function KanbanBoard({ data, onChange }) {
     );
   };
 
-  const removeAttachment = (card, attachmentId) => {
-    const updatedAttachments = card.attachments.filter(a => a.id !== attachmentId);
-    setNewCard({ ...newCard, attachments: updatedAttachments });
-  };
 
-  const CardCoverSection = ({ cardData, setCardData, isDialog = false }) => (
+
+  const CardCoverSection = ({ cardData, setCardData }) => (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <label className="text-sm font-medium">Capa do Cartão:</label>
@@ -273,7 +252,7 @@ export default function KanbanBoard({ data, onChange }) {
           <option value="high">Prioridade Alta</option>
         </select>
 
-      <CardCoverSection cardData={cardData} setCardData={setCardData} isDialog={true} />
+      <CardCoverSection cardData={cardData} setCardData={setCardData} />
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Anexos:</label>
@@ -379,8 +358,8 @@ export default function KanbanBoard({ data, onChange }) {
                                      <GripVertical className="w-4 h-4 text-gray-400" />
                                    </div>
                                    <div 
-                                     className="flex-1 cursor-pointer"
-                                     onClick={() => setEditCardDialog({ open: true, card })}
+                                    className="flex-1 cursor-pointer"
+                                    onClick={() => setCardDialog({ open: true, card, columnId: null })}
                                    >
                                      <p className="font-medium text-gray-800 text-sm">{card.title}</p>
                                      {card.description && (
@@ -405,7 +384,7 @@ export default function KanbanBoard({ data, onChange }) {
                                             </Button>
                                           </DropdownMenuTrigger>
                                           <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => setEditCardDialog({ open: true, card })}>
+                                            <DropdownMenuItem onClick={() => setCardDialog({ open: true, card, columnId: null })}>
                                               <Edit2 className="w-4 h-4 mr-2" />
                                               Editar
                                             </DropdownMenuItem>
@@ -432,7 +411,7 @@ export default function KanbanBoard({ data, onChange }) {
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-gray-500 hover:text-gray-700"
-                    onClick={() => setNewCardDialog({ open: true, columnId: column.id })}
+                    onClick={() => setCardDialog({ open: true, card: null, columnId: column.id })}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Cartão
@@ -468,28 +447,12 @@ export default function KanbanBoard({ data, onChange }) {
         </div>
       </DragDropContext>
 
-      {/* Dialog para novo cartão */}
-      <Dialog open={newCardDialog.open} onOpenChange={(open) => setNewCardDialog({ ...newCardDialog, open })}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Novo Cartão</DialogTitle>
-          </DialogHeader>
-          <CardForm cardData={newCard} setCardData={setNewCard} />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewCardDialog({ open: false, columnId: null })}>
-              Cancelar
-            </Button>
-            <Button onClick={addCard} disabled={!newCard.title}>Adicionar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para editar cartão */}
+      {/* Dialog para criar/editar cartão */}
       <CardEditDialog
-        open={editCardDialog.open}
-        onOpenChange={(open) => setEditCardDialog({ open, card: null })}
-        data={editCardDialog.card}
-        onSave={handleEditCard}
+        open={cardDialog.open}
+        onOpenChange={(open) => setCardDialog({ open, card: null, columnId: null })}
+        data={cardDialog.card}
+        onSave={handleSaveCard}
       />
 
       {/* Dialog para renomear coluna */}

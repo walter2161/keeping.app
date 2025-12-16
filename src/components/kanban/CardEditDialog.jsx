@@ -81,7 +81,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Cartão</DialogTitle>
+          <DialogTitle>{data?.id ? 'Editar Cartão' : 'Novo Cartão'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -227,7 +227,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={!editData.title}>
-            Salvar
+            {data?.id ? 'Salvar' : 'Adicionar'}
           </Button>
         </DialogFooter>
       </DialogContent>
