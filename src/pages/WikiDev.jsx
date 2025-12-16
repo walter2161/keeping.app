@@ -180,46 +180,6 @@ function keeping_activate() {
         INDEX idx_deleted (deleted)
     ) $charset;");
 
-    // Inserir dados de exemplo para admin@keeping.com
-    $demo_email = 'admin@keeping.com';
-    $folder_id = keeping_generate_uuid();
-    
-    // Pasta de exemplo
-    $wpdb->insert($prefix . 'folders', [
-        'id' => $folder_id,
-        'user_email' => $demo_email,
-        'name' => 'Projetos',
-        'parent_id' => null,
-        'color' => '#3b82f6',
-        'order' => 0,
-        'created_at' => current_time('mysql'),
-        'updated_at' => current_time('mysql'),
-    ]);
-    
-    // Arquivos de exemplo
-    $examples = [
-        ['name' => 'Quadro Kanban', 'type' => 'kbn', 'content' => json_encode(['columns' => [['id' => '1', 'name' => 'A Fazer', 'cards' => [['id' => '1', 'title' => 'Exemplo de tarefa', 'priority' => 'medium']]]]])],
-        ['name' => 'Cronograma Gantt', 'type' => 'gnt', 'content' => json_encode(['tasks' => [['id' => '1', 'name' => 'Fase 1', 'start' => date('Y-m-d'), 'end' => date('Y-m-d', strtotime('+7 days')), 'status' => 'pending', 'progress' => 0]]])],
-        ['name' => 'Timeline', 'type' => 'crn', 'content' => json_encode(['groups' => [['id' => '1', 'name' => 'Grupo 1', 'color' => 'blue']], 'items' => []])],
-        ['name' => 'Fluxograma', 'type' => 'flux', 'content' => json_encode(['drawflow' => ['Home' => ['data' => []]]])],
-        ['name' => 'Documento', 'type' => 'docx', 'content' => '<h1>Bem-vindo ao Keeping</h1><p>Este é um documento de exemplo.</p>'],
-        ['name' => 'Planilha', 'type' => 'xlsx', 'content' => ''],
-    ];
-    
-    foreach ($examples as $i => $example) {
-        $wpdb->insert($prefix . 'files', [
-            'id' => keeping_generate_uuid(),
-            'user_email' => $demo_email,
-            'name' => $example['name'],
-            'type' => $example['type'],
-            'folder_id' => $folder_id,
-            'content' => $example['content'],
-            'order' => $i,
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql'),
-        ]);
-    }
-
     update_option('keeping_version', KEEPING_VERSION);
 }
 
@@ -254,6 +214,140 @@ function keeping_generate_uuid() {
         mt_rand(0, 0x3fff) | 0x8000,
         mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
     );
+}
+
+// ================================
+// CRIAR DADOS DE EXEMPLO PARA NOVO USUÁRIO
+// ================================
+function keeping_ensure_user_has_data($user_email) {
+    global $wpdb;
+    $prefix = $wpdb->prefix . KEEPING_PREFIX;
+    
+    // Verificar se o usuário já tem dados
+    $has_data = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM (
+            SELECT id FROM {$prefix}folders WHERE user_email = %s
+            UNION ALL
+            SELECT id FROM {$prefix}files WHERE user_email = %s
+        ) as combined",
+        $user_email, $user_email
+    ));
+    
+    if ($has_data > 0) {
+        return; // Usuário já tem dados
+    }
+    
+    // Criar pasta de exemplo
+    $folder_id = keeping_generate_uuid();
+    $wpdb->insert($prefix . 'folders', [
+        'id' => $folder_id,
+        'user_email' => $user_email,
+        'name' => '📁 Bem-vindo ao Keeping',
+        'parent_id' => null,
+        'color' => '#3b82f6',
+        'order' => 0,
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+    ]);
+    
+    // Criar arquivos de exemplo
+    $examples = [
+        [
+            'name' => '📋 Quadro Kanban', 
+            'type' => 'kbn', 
+            'content' => json_encode([
+                'columns' => [
+                    [
+                        'id' => '1',
+                        'name' => '📝 A Fazer',
+                        'cards' => [
+                            [
+                                'id' => '1',
+                                'title' => 'Bem-vindo ao Keeping!',
+                                'description' => 'Explore as funcionalidades e crie seus próprios cards',
+                                'priority' => 'high'
+                            ]
+                        ]
+                    ],
+                    [
+                        'id' => '2',
+                        'name' => '⚡ Em Progresso',
+                        'cards' => []
+                    ],
+                    [
+                        'id' => '3',
+                        'name' => '✅ Concluído',
+                        'cards' => []
+                    ]
+                ]
+            ])
+        ],
+        [
+            'name' => '📊 Cronograma Gantt', 
+            'type' => 'gnt', 
+            'content' => json_encode([
+                'tasks' => [
+                    [
+                        'id' => '1',
+                        'name' => 'Fase 1: Planejamento',
+                        'start' => date('Y-m-d'),
+                        'end' => date('Y-m-d', strtotime('+7 days')),
+                        'status' => 'inProgress',
+                        'progress' => 30
+                    ]
+                ]
+            ])
+        ],
+        [
+            'name' => '📅 Timeline', 
+            'type' => 'crn', 
+            'content' => json_encode([
+                'groups' => [
+                    [
+                        'id' => '1',
+                        'name' => 'Projeto Exemplo',
+                        'color' => 'blue'
+                    ]
+                ],
+                'items' => []
+            ])
+        ],
+        [
+            'name' => '🗺️ Fluxograma', 
+            'type' => 'flux', 
+            'content' => json_encode([
+                'drawflow' => [
+                    'Home' => [
+                        'data' => []
+                    ]
+                ]
+            ])
+        ],
+        [
+            'name' => '📄 Documento de Boas-vindas', 
+            'type' => 'docx', 
+            'content' => '<h1>Bem-vindo ao Keeping! 🎉</h1><p>Este é um documento de exemplo. Você pode editá-lo livremente.</p><p><strong>Dica:</strong> Use a barra de ferramentas para formatar seu texto!</p>'
+        ],
+        [
+            'name' => '📊 Planilha de Exemplo', 
+            'type' => 'xlsx', 
+            'content' => ''
+        ]
+    ];
+    
+    foreach ($examples as $i => $example) {
+        $wpdb->insert($prefix . 'files', [
+            'id' => keeping_generate_uuid(),
+            'user_email' => $user_email,
+            'name' => $example['name'],
+            'type' => $example['type'],
+            'folder_id' => $folder_id,
+            'content' => $example['content'],
+            'order' => $i,
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ]);
+    }
 }
 
 // ================================
@@ -300,6 +394,9 @@ function keeping_get_folders($request) {
     if (!$user_email) {
         return new WP_Error('missing_param', 'user_email is required', ['status' => 400]);
     }
+
+    // Criar dados de exemplo se o usuário não tiver nenhum dado
+    keeping_ensure_user_has_data($user_email);
 
     $folders = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $table WHERE user_email = %s ORDER BY \`order\` ASC",
@@ -422,6 +519,9 @@ function keeping_get_files($request) {
     if (!$user_email) {
         return new WP_Error('missing_param', 'user_email is required', ['status' => 400]);
     }
+
+    // Criar dados de exemplo se o usuário não tiver nenhum dado
+    keeping_ensure_user_has_data($user_email);
 
     $files = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $table WHERE user_email = %s ORDER BY \`order\` ASC",
