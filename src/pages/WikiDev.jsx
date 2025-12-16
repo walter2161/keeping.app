@@ -496,6 +496,31 @@ function keeping_admin_page() {
         <h1>🗄️ Keeping Database Manager</h1>
         <p>Visualize e gerencie os dados dos usuários do Keeping</p>
         
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 8px;">
+            <h3 style="margin: 0 0 10px 0; color: #856404;">🔑 API Key do Plugin</h3>
+            <p style="margin: 0 0 10px 0; color: #856404;">
+                Copie esta chave e cole na aba <strong>Configuração</strong> do app:
+            </p>
+            <div style="background: white; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 16px; font-weight: bold; color: #d63384; border: 2px dashed #ffc107; display: flex; align-items: center; justify-content: space-between;">
+                <span id="api-key-value"><?php echo KEEPING_API_KEY; ?></span>
+                <button onclick="copyApiKey()" class="button button-secondary" style="margin-left: 10px;">
+                    📋 Copiar
+                </button>
+            </div>
+            <p style="margin: 10px 0 0 0; font-size: 12px; color: #856404;">
+                ⚠️ Mantenha esta chave em segredo. Para alterar, edite a linha 11 do arquivo PHP do plugin.
+            </p>
+        </div>
+        
+        <script>
+        function copyApiKey() {
+            const apiKey = document.getElementById('api-key-value').innerText;
+            navigator.clipboard.writeText(apiKey).then(function() {
+                alert('✓ API Key copiada para a área de transferência!');
+            });
+        }
+        </script>
+        
         <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h2>📊 Estatísticas Gerais</h2>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 15px;">
