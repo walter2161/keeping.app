@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
@@ -7,17 +8,23 @@ import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-re
 export default function AIAssistant({ fileContext = null, fileType = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+  
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
       content: fileContext 
-        ? `Olá! Sou sua secretária virtual especializada em ${getFileTypeLabel(fileType)}. Como posso ajudar?`
-        : 'Olá! Sou a assistente virtual do Keeping. Como posso ajudar você hoje?'
+        ? `Olá! Sou ${user?.assistant_name || 'sua secretária virtual'} especializada em ${getFileTypeLabel(fileType)}. Como posso ajudar?`
+        : `Olá! Sou ${user?.assistant_name || 'a assistente virtual'} do Keeping. Como posso ajudar você hoje?`
     }
   ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,55 +48,65 @@ export default function AIAssistant({ fileContext = null, fileType = null }) {
   }
 
   const getSystemPrompt = () => {
+    const assistantName = user?.assistant_name || 'Assistente Virtual';
+    const assistantRole = user?.assistant_role || 'Assistente Executiva';
+    const assistantExpertise = user?.assistant_expertise || 'Gestão de projetos, organização e produtividade';
+    const assistantGuidelines = user?.assistant_guidelines || 'Seja sempre prestativa, objetiva e profissional.';
+    
+    let basePrompt = `Você é ${assistantName}, uma ${assistantRole}. 
+Suas áreas de conhecimento incluem: ${assistantExpertise}
+
+Diretrizes de comportamento: ${assistantGuidelines}`;
+
     if (!fileContext || !fileType) {
-      return `Você é a assistente virtual global do Keeping, um sistema de organização empresarial.
+      return basePrompt + `\nVocê é a assistente virtual global do Keeping, um sistema de organização empresarial.
 Você pode ajudar com navegação, organização de arquivos, e responder perguntas estratégicas sobre projetos e tarefas.`;
     }
 
-    const prompts = {
-      docx: `Você é uma secretária virtual especializada em documentos. Pode ajudar a:
+    const contextPrompts = {
+      docx: `Você pode ajudar a:
 - Criar e revisar textos
 - Padronizar políticas
 - Gerar atas
 - Melhorar redação
 - Sugerir estruturas de documentos`,
       
-      xlsx: `Você é uma secretária virtual especializada em planilhas. Pode ajudar a:
+      xlsx: `Você pode ajudar a:
 - Criar fórmulas
 - Gerar KPIs
 - Analisar dados
 - Criar gráficos e resumos
 - Traduzir números em insights`,
       
-      kbn: `Você é uma secretária virtual especializada em Kanban. Pode ajudar a:
+      kbn: `Você pode ajudar a:
 - Organizar tarefas
 - Priorizar cards
 - Detectar gargalos
 - Sugerir melhorias no fluxo
 - Gerar resumos de progresso`,
       
-      gnt: `Você é uma secretária virtual especializada em Gantt. Pode ajudar a:
+      gnt: `Você pode ajudar a:
 - Criar cronogramas
 - Ajustar dependências
 - Simular atrasos
 - Otimizar prazos
 - Sugerir recursos`,
       
-      crn: `Você é uma secretária virtual especializada em cronogramas. Pode ajudar a:
+      crn: `Você pode ajudar a:
 - Balancear cargas de trabalho
 - Identificar conflitos
 - Gerar visão executiva
 - Coordenar equipes
 - Otimizar entregas`,
       
-      img: `Você é uma secretária virtual especializada em imagens. Pode ajudar a:
+      img: `Você pode ajudar a:
 - Organizar e categorizar imagens
 - Gerar descrições
 - Criar tags
 - Relacionar imagens a projetos
 - Sugerir usos estratégicos`,
       
-      video: `Você é uma secretária virtual especializada em vídeos. Pode ajudar a:
+      video: `Você pode ajudar a:
 - Gerar resumos
 - Criar capítulos
 - Extrair pontos-chave
@@ -97,7 +114,7 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
 - Sugerir organização`
     };
 
-    return prompts[fileType] || prompts.docx;
+    return basePrompt + '\n\n' + (contextPrompts[fileType] || contextPrompts.docx);
   };
 
   const handleSend = async () => {
@@ -144,9 +161,17 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 z-50"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 z-50 p-0 overflow-hidden"
       >
-        <MessageCircle className="w-6 h-6" />
+        {user?.assistant_avatar ? (
+          <img 
+            src={user.assistant_avatar} 
+            alt="Assistente"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <MessageCircle className="w-6 h-6" />
+        )}
       </Button>
     );
   }
@@ -159,11 +184,22 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="w-5 h-5" />
-          <span className="font-semibold">
-            {fileContext ? `Assistente ${getFileTypeLabel(fileType)}` : 'Assistente Virtual'}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+            {user?.assistant_avatar ? (
+              <img 
+                src={user.assistant_avatar} 
+                alt="Assistente"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <MessageCircle className="w-5 h-5" />
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold">{user?.assistant_name || 'Assistente Virtual'}</h3>
+            <p className="text-xs text-white/80">{user?.assistant_role || 'Online'}</p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <Button
