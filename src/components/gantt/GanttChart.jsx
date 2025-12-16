@@ -34,6 +34,12 @@ export default function GanttChart({ data, onChange }) {
     progress: 0,
   });
 
+  React.useEffect(() => {
+    if (data?.tasks) {
+      setTasks(data.tasks);
+    }
+  }, [data]);
+
   const days = useMemo(() => {
     return Array.from({ length: 28 }, (_, i) => addDays(viewStart, i));
   }, [viewStart]);
