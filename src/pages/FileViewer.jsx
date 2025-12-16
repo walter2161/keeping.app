@@ -56,31 +56,39 @@ export default function FileViewer() {
   });
 
   useEffect(() => {
-    if (file && !hasChanges) {
+    if (file) {
       setFileName(file.name);
-      if (file.content) {
-        try {
-          setLocalContent(JSON.parse(file.content));
-        } catch {
-          setLocalContent(file.content);
-        }
-      } else {
-        if (file.type === 'docx' || file.type === 'xlsx') {
-          setLocalContent('');
-        } else if (file.type === 'flux') {
-          setLocalContent(null);
+      
+      // Only update localContent if it's the initial load (localContent is null)
+      // or if we just saved (hasChanges is false and query was refetched)
+      const shouldUpdateContent = localContent === null || (!hasChanges && file.content);
+      
+      if (shouldUpdateContent) {
+        if (file.content) {
+          try {
+            const parsed = JSON.parse(file.content);
+            setLocalContent(parsed);
+          } catch {
+            setLocalContent(file.content);
+          }
         } else {
-          setLocalContent({});
+          if (file.type === 'docx' || file.type === 'xlsx') {
+            setLocalContent('');
+          } else if (file.type === 'flux') {
+            setLocalContent({ drawflow: { Home: { data: {} } } });
+          } else {
+            setLocalContent({});
+          }
         }
       }
     }
-  }, [file, hasChanges]);
+  }, [file]);
 
   const updateFileMutation = useMutation({
     mutationFn: (data) => base44.entities.File.update(fileId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['file', fileId] });
       setHasChanges(false);
+      queryClient.invalidateQueries({ queryKey: ['file', fileId] });
     },
   });
 
@@ -91,15 +99,23 @@ export default function FileViewer() {
 
   const handleSave = async () => {
     setSaving(true);
-    const contentToSave = typeof localContent === 'object' 
-      ? JSON.stringify(localContent) 
-      : localContent;
-    
-    await updateFileMutation.mutateAsync({ 
-      name: fileName,
-      content: contentToSave 
-    });
-    setSaving(false);
+    try {
+      const contentToSave = typeof localContent === 'object' && localContent !== null
+        ? JSON.stringify(localContent) 
+        : (localContent || '');
+      
+      console.log('Saving content:', contentToSave.substring(0, 200));
+      
+      await updateFileMutation.mutateAsync({ 
+        name: fileName,
+        content: contentToSave 
+      });
+    } catch (error) {
+      console.error('Error saving file:', error);
+      alert('Erro ao salvar o arquivo. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleExport = () => {
