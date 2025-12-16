@@ -159,9 +159,9 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
 
   if (!isOpen) {
     return (
-      <Button
+      <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 z-50 p-0 overflow-hidden"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0 overflow-hidden border-2 border-white hover:scale-110 transition-transform"
       >
         {user?.assistant_avatar ? (
           <img 
@@ -170,9 +170,11 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
             className="w-full h-full object-cover"
           />
         ) : (
-          <MessageCircle className="w-6 h-6" />
+          <div className="w-full h-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+            <MessageCircle className="w-6 h-6 text-white" />
+          </div>
         )}
-      </Button>
+      </button>
     );
   }
 

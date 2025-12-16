@@ -25,15 +25,6 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <div className="bg-white border-b px-4 py-2 flex items-center justify-end gap-2">
-        <Link to={createPageUrl('Profile')}>
-          <Button variant="ghost" size="icon">
-            <User className="w-5 h-5" />
-          </Button>
-        </Link>
-      </div>
-
       {/* Main Content */}
       <main>
         {children}
