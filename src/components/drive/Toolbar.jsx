@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bell, User, Settings, Trash2, PanelLeftOpen
+  Bot, User, Settings, Trash2, PanelLeftOpen
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +40,11 @@ export default function Toolbar({
   sidebarOpen,
   onToggleSidebar
 }) {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   return (
     <TooltipProvider>
       <div className="flex items-center justify-between gap-3 px-4 h-14 bg-white border-b sticky top-0 z-30">
@@ -191,29 +198,29 @@ export default function Toolbar({
           </Button>
         </Link>
 
-        <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
-          <Bell className="w-4 h-4" />
-        </Button>
+        <Link to={createPageUrl('AssistantSettings')}>
+          <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
+            <Bot className="w-4 h-4" />
+          </Button>
+        </Link>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <User className="w-3.5 h-3.5 text-white" />
+        <Link to={createPageUrl('Profile')}>
+          <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 p-0">
+            {user?.assistant_avatar ? (
+              <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-blue-600">
+                <img 
+                  src={user.assistant_avatar} 
+                  alt="Perfil"
+                  className="w-full h-full object-cover"
+                />
               </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <User className="w-4 h-4 mr-2" />
-              Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="w-4 h-4 mr-2" />
-              Configurações
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
+          </Button>
+        </Link>
       </div>
       </div>
     </TooltipProvider>
