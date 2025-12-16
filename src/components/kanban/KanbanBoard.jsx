@@ -315,7 +315,7 @@ export default function KanbanBoard({ data, onChange }) {
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-          <div className="flex gap-4 min-w-max" style={{ height: 'calc(100vh - 220px)' }}>
+          <div className="flex gap-4 min-w-max h-full">
             {columns.map((column) => (
               <div key={column.id} className="w-72 flex-shrink-0 flex flex-col bg-white rounded-xl shadow-sm border h-full">
                 <div className={`flex items-center justify-between p-3 rounded-t-xl ${column.color} bg-opacity-10`}>
