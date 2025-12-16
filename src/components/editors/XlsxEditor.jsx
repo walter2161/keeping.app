@@ -172,17 +172,21 @@ export default function XlsxEditor({ value, onChange }) {
       ],
       onchange: function(instance, cell, x, y, value) {
         if (worksheetRef.current && onChange) {
-          const data = worksheetRef.current.getData();
-          const meta = worksheetRef.current.getMeta();
-          const style = worksheetRef.current.getStyle();
-          const merged = worksheetRef.current.getMerge();
-          
-          onChange(JSON.stringify({
-            data,
-            meta,
-            style,
-            merged
-          }));
+          setTimeout(() => {
+            const data = worksheetRef.current.getData();
+            const meta = worksheetRef.current.getMeta();
+            const style = worksheetRef.current.getStyle();
+            const merged = worksheetRef.current.getMerge();
+            
+            console.log('Spreadsheet changed - saving data:', { data, meta, style, merged });
+            
+            onChange(JSON.stringify({
+              data,
+              meta,
+              style,
+              merged
+            }));
+          }, 0);
         }
       },
       onselection: function(instance, x1, y1, x2, y2) {
