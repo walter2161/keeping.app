@@ -132,6 +132,30 @@ export default function FileViewer() {
   };
 
   const handleExport = () => {
+    // Para docx e xlsx, exportar no formato de texto/csv
+    if (file.type === 'docx') {
+      const blob = new Blob([localContent || ''], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${file.name}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    
+    if (file.type === 'xlsx') {
+      const blob = new Blob([localContent || ''], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${file.name}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    
+    // Para outros tipos, exportar como JSON
     const exportData = {
       type: 'single_file',
       file: {
@@ -154,6 +178,33 @@ export default function FileViewer() {
     const importFile = e.target.files[0];
     if (!importFile) return;
 
+    const fileName = importFile.name.toLowerCase();
+    
+    // Para arquivos docx/txt
+    if (file.type === 'docx' && (fileName.endsWith('.txt') || fileName.endsWith('.doc') || fileName.endsWith('.docx'))) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLocalContent(event.target.result);
+        setHasChanges(true);
+      };
+      reader.readAsText(importFile);
+      e.target.value = '';
+      return;
+    }
+    
+    // Para arquivos xlsx/csv
+    if (file.type === 'xlsx' && (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls'))) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLocalContent(event.target.result);
+        setHasChanges(true);
+      };
+      reader.readAsText(importFile);
+      e.target.value = '';
+      return;
+    }
+
+    // Para outros tipos (JSON)
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -242,7 +293,7 @@ export default function FileViewer() {
           )}
           <input
             type="file"
-            accept=".json"
+            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : '.json'}
             onChange={handleImportFile}
             className="hidden"
             id="import-file"
