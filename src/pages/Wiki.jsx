@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { 
   BookOpen, FileText, Code, Folder, LayoutGrid, 
-  GanttChart, Calendar, ArrowRight, Settings, Trash2
+  GanttChart, Calendar, ArrowRight, Settings, Trash2, ArrowLeft
 } from 'lucide-react';
 import {
   Accordion,
@@ -19,6 +19,12 @@ export default function Wiki() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+          <Link to={createPageUrl('Drive')}>
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar ao Drive
+            </Button>
+          </Link>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center">
               <BookOpen className="w-8 h-8 text-white" />
