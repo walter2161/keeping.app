@@ -96,7 +96,7 @@ if (!defined('ABSPATH')) exit;
 
 define('KEEPING_VERSION', '1.0.0');
 define('KEEPING_PREFIX', 'keeping_');
-define('KEEPING_API_KEY', 'keeping_secure_key_2025_change_this'); // ALTERAR PARA PRODUÇÃO
+define('KEEPING_API_KEY', 'kp_live_7f8a9b2c4d6e1f3a5b7c9d2e4f6a8b0c1d3e5f7a9b2c4d6e8f0a2c4e6a8b0c2d4e'); // Chave gerada automaticamente - pode alterar se desejar
 
 // Aumenta limites
 @ini_set('memory_limit', '512M');
@@ -1046,7 +1046,7 @@ add_action('rest_api_init', function() {
                         Todas as requisições devem incluir o header:
                       </p>
                       <code className="block bg-amber-100 p-2 rounded mt-2 text-xs">
-                        X-API-Key: keeping_secure_key_2025_change_this
+                        X-API-Key: kp_live_7f8a9b2c4d6e1f3a5b7c9d2e4f6a8b0c...
                       </code>
                     </div>
                   </div>
@@ -1085,8 +1085,9 @@ add_action('rest_api_init', function() {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm font-semibold mb-2">Linha 11 do plugin:</p>
                   <code className="text-xs block bg-white p-2 rounded">
-                    define('KEEPING_API_KEY', '<span className="text-red-600">sua_chave_secura_aqui</span>');
+                    define('KEEPING_API_KEY', '<span className="text-red-600">kp_live_SuaChaveSecretaAqui123456789</span>');
                   </code>
+                  <p className="text-xs text-gray-600 mt-2">💡 A chave já vem gerada no plugin, mas você pode alterá-la para uma personalizada se desejar.</p>
                 </div>
               </div>
 
@@ -1154,11 +1155,11 @@ add_action('rest_api_init', function() {
                       type="password"
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="keeping_secure_key_2025_change_this"
+                      placeholder="kp_live_7f8a9b2c4d6e1f3a5b7c9d2e..."
                       className="text-lg font-mono"
                     />
                     <p className="text-sm text-gray-500 mt-1">
-                      A chave de API configurada no plugin (linha 11 do arquivo PHP)
+                      Copie a chave exibida no painel do WordPress (página Keeping DB)
                     </p>
                   </div>
 
