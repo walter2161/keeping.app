@@ -9,7 +9,13 @@ export default function XlsxEditor({ value, onChange }) {
   const worksheetRef = useRef(null);
   
   useEffect(() => {
-    if (!jssRef.current || !jspreadsheet || worksheetRef.current) return;
+    if (!jssRef.current || !jspreadsheet) return;
+
+    // Destruir instância existente se houver
+    if (worksheetRef.current && worksheetRef.current.destroy) {
+      worksheetRef.current.destroy();
+      worksheetRef.current = null;
+    }
 
     let parsedData = null;
     try {
@@ -186,7 +192,7 @@ export default function XlsxEditor({ value, onChange }) {
       onchangestyle: function(instance, cell, x, y, k, v) {
         if (worksheetRef.current && onChange) {
           const data = worksheetRef.current.getData();
-          const meta = watersheetRef.current.getMeta();
+          const meta = worksheetRef.current.getMeta();
           const style = worksheetRef.current.getStyle();
           const merged = worksheetRef.current.getMerge();
           
@@ -289,7 +295,7 @@ export default function XlsxEditor({ value, onChange }) {
         worksheetRef.current = null;
       }
     };
-  }, []);
+  }, [value]);
 
   return (
     <div className="w-full h-full bg-white">
