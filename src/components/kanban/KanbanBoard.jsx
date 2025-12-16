@@ -56,6 +56,7 @@ export default function KanbanBoard({ data, onChange }) {
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [showNewColumn, setShowNewColumn] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [editingCardData, setEditingCardData] = useState(null);
 
   const saveChanges = (newColumns, newCards) => {
     setColumns(newColumns);
@@ -124,10 +125,11 @@ export default function KanbanBoard({ data, onChange }) {
 
   const updateCard = () => {
     const updatedCards = cards.map(c => 
-      c.id === editCardDialog.card.id ? editCardDialog.card : c
+      c.id === editingCardData.id ? editingCardData : c
     );
     saveChanges(columns, updatedCards);
     setEditCardDialog({ open: false, card: null });
+    setEditingCardData(null);
   };
 
   const deleteCard = (cardId) => {
@@ -163,11 +165,8 @@ export default function KanbanBoard({ data, onChange }) {
 
   const removeAttachment = (card, attachmentId) => {
     const updatedAttachments = card.attachments.filter(a => a.id !== attachmentId);
-    if (editCardDialog.open) {
-      setEditCardDialog({
-        ...editCardDialog,
-        card: { ...card, attachments: updatedAttachments }
-      });
+    if (editingCardData) {
+      setEditingCardData({ ...editingCardData, attachments: updatedAttachments });
     } else {
       setNewCard({ ...newCard, attachments: updatedAttachments });
     }
@@ -414,7 +413,10 @@ export default function KanbanBoard({ data, onChange }) {
                                             </Button>
                                           </DropdownMenuTrigger>
                                           <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => setEditCardDialog({ open: true, card })}>
+                                            <DropdownMenuItem onClick={() => {
+                                              setEditingCardData(card);
+                                              setEditCardDialog({ open: true, card });
+                                            }}>
                                               <Edit2 className="w-4 h-4 mr-2" />
                                               Editar
                                             </DropdownMenuItem>
@@ -494,19 +496,30 @@ export default function KanbanBoard({ data, onChange }) {
       </Dialog>
 
       {/* Dialog para editar cartão */}
-      <Dialog open={editCardDialog.open} onOpenChange={(open) => setEditCardDialog({ ...editCardDialog, open })}>
+      <Dialog 
+        open={editCardDialog.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditCardDialog({ open: false, card: null });
+            setEditingCardData(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Cartão</DialogTitle>
           </DialogHeader>
-          {editCardDialog.card && (
+          {editingCardData && (
             <CardForm 
-              cardData={editCardDialog.card} 
-              setCardData={(updated) => setEditCardDialog({ ...editCardDialog, card: updated })} 
+              cardData={editingCardData} 
+              setCardData={setEditingCardData} 
             />
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditCardDialog({ open: false, card: null })}>
+            <Button variant="outline" onClick={() => {
+              setEditCardDialog({ open: false, card: null });
+              setEditingCardData(null);
+            }}>
               Cancelar
             </Button>
             <Button onClick={updateCard}>Salvar</Button>
