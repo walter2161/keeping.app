@@ -49,7 +49,8 @@ export default function FileViewer() {
   const { data: file, isLoading, error } = useQuery({
     queryKey: ['file', fileId],
     queryFn: async () => {
-      const file = await wpClient.getFile(fileId);
+      const files = await base44.entities.File.list();
+      const file = files.find(f => f.id === fileId);
       console.log('Loaded file from DB:', file);
       console.log('Content length:', file?.content?.length || 0);
       return file;
@@ -99,7 +100,7 @@ export default function FileViewer() {
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
       console.log('Updating file with data:', data);
-      const result = await wpClient.updateFile(fileId, data);
+      const result = await base44.entities.File.update(fileId, data);
       console.log('Update result:', result);
       return result;
     },
@@ -143,7 +144,8 @@ export default function FileViewer() {
       queryClient.invalidateQueries({ queryKey: ['file', fileId] });
       
       // Verify the save by fetching again
-      const verifiedFile = await wpClient.getFile(fileId);
+      const files = await base44.entities.File.list();
+      const verifiedFile = files.find(f => f.id === fileId);
       console.log('=== VERIFICATION AFTER SAVE ===');
       console.log('Verified file:', verifiedFile);
       console.log('Verified content length:', verifiedFile?.content?.length || 0);
