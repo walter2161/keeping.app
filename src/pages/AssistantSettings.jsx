@@ -30,9 +30,11 @@ export default function AssistantSettings() {
 
   React.useEffect(() => {
     if (user) {
+      const defaultAvatar = user.assistant_avatar || 'https://image.pollinations.ai/prompt/professional%20female%20assistant%2C%20business%20suit%2C%20elegant%20glasses%2C%20long%20dark%20hair%2C%20friendly%20confident%20smile%2C%20shoulder%20portrait%2C%20modern%20office%20background%2C%20professional%20corporate%20photo%2C%20studio%20lighting?width=350&height=350&model=flux&nologo=true&enhance=true';
+      
       setFormData({
         assistant_name: user.assistant_name || 'Assistente Virtual',
-        assistant_avatar: user.assistant_avatar || '',
+        assistant_avatar: defaultAvatar,
         assistant_role: user.assistant_role || 'Assistente Executiva',
         assistant_expertise: user.assistant_expertise || 'Gestão de projetos, organização e produtividade',
         assistant_guidelines: user.assistant_guidelines || 'Seja sempre prestativa, objetiva e profissional. Ajude o usuário a organizar suas tarefas e projetos de forma eficiente.',
