@@ -35,12 +35,7 @@ export default function Wiki() {
             </div>
           </div>
           
-          <Link to={createPageUrl('WikiDev')}>
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              <Code className="w-4 h-4 mr-2" />
-              Documentação para Desenvolvedores
-            </Button>
-          </Link>
+
         </div>
 
         {/* Content */}
@@ -294,10 +289,7 @@ export default function Wiki() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-gray-600">
-            Precisa de mais ajuda? Entre em contato com o suporte ou acesse a{' '}
-            <Link to={createPageUrl('WikiDev')} className="text-indigo-600 font-semibold hover:underline">
-              documentação técnica
-            </Link>
+            Precisa de mais ajuda? Entre em contato com o suporte.
           </p>
         </div>
       </div>
