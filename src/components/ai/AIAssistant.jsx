@@ -150,7 +150,8 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
 4. NÃO explique o JSON ou mostre ele ao usuário
 5. Se for apenas conversa (sem ações), responda normalmente em português
 6. Apenas fale sobre o app, pastas e arquivos - nada mais
-7. Use o contexto de localização para saber onde criar itens`;
+7. Use o contexto de localização para saber onde criar itens
+8. IMPORTANTE: Ao criar documentos (docx), SEMPRE formate o texto com quebras de linha usando \\n para separar parágrafos e seções. Use \\n\\n para criar espaços maiores entre capítulos/seções. Estruture o conteúdo de forma organizada e legível com títulos, subtítulos e parágrafos bem separados.`;
 
       const fullPrompt = `${getSystemPrompt()}\n\n${systemInstructions}${currentLocationContext}${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
 
@@ -182,7 +183,7 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
         try {
           const actionData = JSON.parse(jsonMatch[0]);
           if (actionData.action) {
-            await executeAction(actionData, folders, files);
+            const result = await executeAction(actionData, folders, files);
             const successMessage = { 
               role: 'assistant', 
               content: `Pronto! ${getActionSuccessMessage(actionData)}` 
@@ -190,10 +191,16 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
             setMessages(prev => [...prev, successMessage]);
             actionExecuted = true;
             
-            // Recarregar dados após ação
+            // Navegar para o item criado
             setTimeout(() => {
-              window.location.reload();
-            }, 1000);
+              if (actionData.action === 'create_file' && result?.id) {
+                window.location.href = `/file-viewer?id=${result.id}`;
+              } else if (actionData.action === 'create_folder' && result?.id) {
+                window.location.href = `/drive?folder=${result.id}`;
+              } else {
+                window.location.reload();
+              }
+            }, 800);
           }
         } catch (e) {
           console.error('Erro ao executar ação:', e);
@@ -238,11 +245,12 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     const { action, data } = actionData;
 
     if (action === 'create_folder' && user?.assistant_can_create_folders !== false) {
-      await base44.entities.Folder.create({
+      const result = await base44.entities.Folder.create({
         name: data.name,
         parent_id: data.parent_id || currentFolderId || null,
         color: data.color || 'bg-blue-500',
       });
+      return result;
     } else if (action === 'create_file' && user?.assistant_can_create_files !== false) {
       const defaultContent = {
         kbn: JSON.stringify({ columns: [], cards: [] }),
@@ -252,21 +260,23 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
         docx: data.content || '',
         xlsx: data.content || '',
       };
-      await base44.entities.File.create({
+      const result = await base44.entities.File.create({
         name: data.name,
         type: data.type,
         folder_id: data.folder_id || currentFolderId || null,
         content: data.content || defaultContent[data.type] || '',
       });
+      return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
-      await base44.entities.File.update(data.file_id, {
+      const result = await base44.entities.File.update(data.file_id, {
         content: typeof data.content === 'object' ? JSON.stringify(data.content) : data.content,
       });
+      return result;
     } else if (action === 'delete_item' && user?.assistant_can_delete_items !== false) {
       if (data.type === 'folder') {
-        await base44.entities.Folder.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
+        return await base44.entities.Folder.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
       } else if (data.type === 'file') {
-        await base44.entities.File.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
+        return await base44.entities.File.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
       }
     } else {
       throw new Error('Permissão negada para esta ação');
