@@ -256,29 +256,45 @@ export default function KanbanBoard({ data, onChange }) {
     </div>
   );
 
-  const CardForm = ({ cardData, setCardData }) => (
-    <div className="space-y-4">
-      <Input
-        placeholder="Título"
-        value={cardData.title}
-        onChange={(e) => setCardData({ ...cardData, title: e.target.value })}
-      />
-      <Textarea
-        placeholder="Descrição"
-        value={cardData.description || ''}
-        onChange={(e) => setCardData({ ...cardData, description: e.target.value })}
-      />
-      <select
-        className="w-full p-2 border rounded-md"
-        value={cardData.priority}
-        onChange={(e) => setCardData({ ...cardData, priority: e.target.value })}
-      >
-        <option value="low">Prioridade Baixa</option>
-        <option value="medium">Prioridade Média</option>
-        <option value="high">Prioridade Alta</option>
-      </select>
+  const CardForm = ({ cardData, setCardData }) => {
+    const [localData, setLocalData] = React.useState(cardData);
 
-      <CardCoverSection cardData={cardData} setCardData={setCardData} isDialog={true} />
+    React.useEffect(() => {
+      setLocalData(cardData);
+    }, [cardData.id]);
+
+    const handleChange = (field, value) => {
+      const updated = { ...localData, [field]: value };
+      setLocalData(updated);
+      setCardData(updated);
+    };
+
+    return (
+      <div className="space-y-4">
+        <Input
+          placeholder="Título"
+          value={localData.title || ''}
+          onChange={(e) => handleChange('title', e.target.value)}
+        />
+        <Textarea
+          placeholder="Descrição"
+          value={localData.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
+        />
+        <select
+          className="w-full p-2 border rounded-md"
+          value={localData.priority}
+          onChange={(e) => handleChange('priority', e.target.value)}
+        >
+          <option value="low">Prioridade Baixa</option>
+          <option value="medium">Prioridade Média</option>
+          <option value="high">Prioridade Alta</option>
+        </select>
+
+      <CardCoverSection cardData={localData} setCardData={(data) => {
+        setLocalData(data);
+        setCardData(data);
+      }} isDialog={true} />
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Anexos:</label>
@@ -288,22 +304,30 @@ export default function KanbanBoard({ data, onChange }) {
           <input
             type="file"
             className="hidden"
-            onChange={(e) => handleFileUpload(e, cardData, setCardData)}
+            onChange={(e) => handleFileUpload(e, localData, (data) => {
+              setLocalData(data);
+              setCardData(data);
+            })}
             disabled={uploadingFile}
           />
         </label>
-        {cardData.attachments && cardData.attachments.length > 0 && (
+        {localData.attachments && localData.attachments.length > 0 && (
           <div className="space-y-1">
-            {cardData.attachments.map(att => (
+            {localData.attachments.map(att => (
               <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                <a href={att.url} target="_blank" className="text-blue-600 hover:underline truncate flex-1">
+                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1">
                   {att.name}
                 </a>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => removeAttachment(cardData, att.id)}
+                  onClick={() => {
+                    const updatedAttachments = localData.attachments.filter(a => a.id !== att.id);
+                    const updated = { ...localData, attachments: updatedAttachments };
+                    setLocalData(updated);
+                    setCardData(updated);
+                  }}
                 >
                   <X className="w-3 h-3" />
                 </Button>
@@ -313,7 +337,8 @@ export default function KanbanBoard({ data, onChange }) {
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
