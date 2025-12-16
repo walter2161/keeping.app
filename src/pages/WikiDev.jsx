@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Code, Download, ArrowLeft, Database, Server, 
-  Key, FileCode, Copy, Check
+  Key, FileCode, Copy, Check, Loader2, AlertCircle
 } from 'lucide-react';
 import {
   Tabs,
@@ -15,6 +18,66 @@ import {
 
 export default function WikiDev() {
   const [copied, setCopied] = useState(false);
+  const [wpUrl, setWpUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [testStatus, setTestStatus] = useState(null);
+  const [testing, setTesting] = useState(false);
+  
+  const queryClient = useQueryClient();
+  
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  useEffect(() => {
+    if (user) {
+      setWpUrl(user.wp_url || '');
+      setApiKey(user.wp_api_key || '');
+    }
+  }, [user]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data) => {
+      await base44.auth.updateMe(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
+    },
+  });
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestStatus(null);
+
+    try {
+      const cleanUrl = wpUrl.trim().replace(/\/$/, '');
+      const response = await fetch(`${cleanUrl}/wp-json/keeping/v1/info`, {
+        headers: {
+          'X-API-Key': apiKey.trim(),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTestStatus({ success: true, data });
+      } else {
+        setTestStatus({ success: false, error: 'Falha ao conectar. Verifique URL e API Key.' });
+      }
+    } catch (error) {
+      setTestStatus({ success: false, error: 'Erro de conexão. Verifique a URL.' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    await updateSettingsMutation.mutateAsync({
+      wp_url: wpUrl.trim(),
+      wp_api_key: apiKey.trim(),
+    });
+    alert('Configurações salvas com sucesso!');
+  };
 
   const phpPlugin = `<?php
 /**
@@ -633,11 +696,12 @@ add_action('rest_api_init', function() {
         {/* Content */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="plugin">Plugin PHP</TabsTrigger>
               <TabsTrigger value="api">API Reference</TabsTrigger>
-              <TabsTrigger value="setup">Configuração</TabsTrigger>
+              <TabsTrigger value="setup">Instalação</TabsTrigger>
+              <TabsTrigger value="config">Configuração</TabsTrigger>
             </TabsList>
 
             {/* Overview */}
@@ -859,6 +923,144 @@ add_action('rest_api_init', function() {
                   <li>MySQL 5.7 ou superior</li>
                   <li>Permissão para criar tabelas no banco</li>
                   <li>mod_rewrite habilitado (permalinks)</li>
+                </ul>
+              </div>
+            </TabsContent>
+
+            {/* Configuração */}
+            <TabsContent value="config" className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-4">⚙️ Configurar Conexão WordPress</h2>
+                <p className="text-gray-700 mb-6">
+                  Configure a URL do seu WordPress e a API Key para conectar o app ao banco de dados.
+                </p>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      URL do WordPress
+                    </label>
+                    <Input
+                      type="url"
+                      value={wpUrl}
+                      onChange={(e) => setWpUrl(e.target.value)}
+                      placeholder="https://toothsomeservant.s2-tastewp.com"
+                      className="text-lg"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Cole a URL completa do seu site WordPress (sem barra no final)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      API Key
+                    </label>
+                    <Input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="keeping_secure_key_2025_change_this"
+                      className="text-lg font-mono"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      A chave de API configurada no plugin (linha 11 do arquivo PHP)
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleTestConnection}
+                      disabled={!wpUrl || !apiKey || testing}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {testing ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Database className="w-4 h-4 mr-2" />
+                      )}
+                      Testar Conexão
+                    </Button>
+                    <Button
+                      onClick={handleSaveConfig}
+                      disabled={!wpUrl || !apiKey || updateSettingsMutation.isLoading}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    >
+                      {updateSettingsMutation.isLoading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4 mr-2" />
+                      )}
+                      Salvar Configurações
+                    </Button>
+                  </div>
+
+                  {testStatus && (
+                    <div className={`p-4 rounded-lg border-l-4 ${
+                      testStatus.success 
+                        ? 'bg-green-50 border-green-500' 
+                        : 'bg-red-50 border-red-500'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {testStatus.success ? (
+                          <Check className="w-5 h-5 text-green-600 mt-0.5" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <p className={`font-semibold ${
+                            testStatus.success ? 'text-green-900' : 'text-red-900'
+                          }`}>
+                            {testStatus.success ? '✓ Conexão bem-sucedida!' : '✗ Falha na conexão'}
+                          </p>
+                          {testStatus.success ? (
+                            <div className="mt-2 text-sm text-green-800 space-y-1">
+                              <p><strong>Plugin:</strong> {testStatus.data.plugin}</p>
+                              <p><strong>Versão:</strong> {testStatus.data.version}</p>
+                              <p><strong>WordPress:</strong> {testStatus.data.wordpress_version}</p>
+                              <p><strong>PHP:</strong> {testStatus.data.php_version}</p>
+                              <p className="mt-3 text-green-700 font-semibold">
+                                ✅ O app está pronto para salvar e editar dados no WordPress!
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-red-800 mt-1">{testStatus.error}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t">
+                <h3 className="text-lg font-semibold mb-3">📋 Checklist de Configuração</h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold">1.</span>
+                    <span>Instale o plugin PHP no WordPress</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold">2.</span>
+                    <span>Ative o plugin no painel administrativo</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold">3.</span>
+                    <span>Cole a URL do WordPress no campo acima</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold">4.</span>
+                    <span>Cole a API Key (mesma do plugin)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold">5.</span>
+                    <span>Clique em "Testar Conexão"</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold">6.</span>
+                    <span>Se OK, clique em "Salvar Configurações"</span>
+                  </li>
                 </ul>
               </div>
             </TabsContent>
