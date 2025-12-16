@@ -142,10 +142,10 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
             )}
 
             {editData.coverType === 'image' && (
-              <div>
+              <div className="space-y-3">
                 {editData.coverImage ? (
                   <div className="relative">
-                    <img src={editData.coverImage} className="w-full h-32 object-cover rounded" />
+                    <img src={editData.coverImage} className="w-full aspect-square object-cover rounded" />
                     <Button
                       variant="destructive"
                       size="icon"
@@ -167,6 +167,27 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                       disabled={uploadingFile}
                     />
                   </label>
+                )}
+                
+                {editData.attachments && editData.attachments.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Ou escolha um anexo como capa:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {editData.attachments
+                        .filter(att => att.url && (att.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)))
+                        .map(att => (
+                          <button
+                            key={att.id}
+                            className={`relative aspect-square border-2 rounded overflow-hidden hover:border-blue-500 transition-colors ${
+                              editData.coverImage === att.url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
+                            }`}
+                            onClick={() => setEditData({ ...editData, coverImage: att.url })}
+                          >
+                            <img src={att.url} className="w-full h-full object-cover" alt={att.name} />
+                          </button>
+                        ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}

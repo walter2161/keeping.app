@@ -77,7 +77,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         const showPriorityBadge = title || coverType !== 'none' || attachments.length > 0;
         
         const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
-                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; height: 96px; object-fit: cover;" />` : '';
+                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;" />` : '';
         
         html = `
           <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
@@ -492,7 +492,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         .drawflow .drawflow-node .edit-icon {
           position: absolute;
           top: 8px;
-          left: 8px;
+          right: 8px;
           width: 24px;
           height: 24px;
           background: white;
