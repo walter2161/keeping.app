@@ -667,6 +667,9 @@ add_action('rest_api_init', function() {
     register_rest_route('keeping/v1', '/info', [
         'methods' => 'GET',
         'callback' => function() {
+            $auth = keeping_verify_api_key();
+            if (is_wp_error($auth)) return $auth;
+            
             return rest_ensure_response([
                 'plugin' => 'Keeping Database API',
                 'version' => KEEPING_VERSION,

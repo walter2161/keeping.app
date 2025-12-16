@@ -25,10 +25,12 @@ class WordPressClient {
     const config = await this.getConfig();
     
     if (!config.baseUrl || !config.apiKey) {
-      throw new Error('WordPress não configurado. Acesse Configurações para configurar.');
+      throw new Error('WordPress não configurado. Acesse a aba Wiki → Configuração para configurar a URL e API Key.');
     }
 
     const url = `${config.baseUrl}/wp-json/keeping/v1${endpoint}`;
+    
+    console.log('WordPress Request:', { url, method: options.method || 'GET', endpoint });
     
     const response = await fetch(url, {
       ...options,
@@ -40,10 +42,14 @@ class WordPressClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro na requisição: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('WordPress Error:', { status: response.status, statusText: response.statusText, body: errorText });
+      throw new Error(`Erro WordPress (${response.status}): ${response.statusText} - ${errorText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('WordPress Response:', data);
+    return data;
   }
 
   // Folders

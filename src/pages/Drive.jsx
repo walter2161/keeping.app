@@ -113,33 +113,44 @@ export default function Drive() {
   }, [files, currentFolderId, searchQuery]);
 
   // Handlers
-  const handleCreateFolder = (name, color) => {
-    createFolderMutation.mutate({
-      name,
-      parent_id: currentFolderId,
-      color,
-      order: currentFolders.length,
-    });
-    setCreateDialog({ open: false, type: null });
+  const handleCreateFolder = async (name, color) => {
+    try {
+      await createFolderMutation.mutateAsync({
+        name,
+        parent_id: currentFolderId,
+        color,
+        order: currentFolders.length,
+      });
+      setCreateDialog({ open: false, type: null });
+    } catch (error) {
+      console.error('Erro ao criar pasta:', error);
+      alert('Erro ao criar pasta: ' + error.message);
+    }
   };
 
-  const handleCreateFile = (name, type) => {
+  const handleCreateFile = async (name, type) => {
     const defaultContent = {
       kbn: JSON.stringify({ columns: [], cards: [] }),
       gnt: JSON.stringify({ tasks: [] }),
       crn: JSON.stringify({ groups: [], items: [] }),
+      flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
       docx: '',
       xlsx: '',
     };
 
-    createFileMutation.mutate({
-      name,
-      type,
-      folder_id: currentFolderId,
-      content: defaultContent[type] || '',
-      order: currentFiles.length,
-    });
-    setCreateDialog({ open: false, type: null });
+    try {
+      await createFileMutation.mutateAsync({
+        name,
+        type,
+        folder_id: currentFolderId,
+        content: defaultContent[type] || '',
+        order: currentFiles.length,
+      });
+      setCreateDialog({ open: false, type: null });
+    } catch (error) {
+      console.error('Erro ao criar arquivo:', error);
+      alert('Erro ao criar arquivo: ' + error.message);
+    }
   };
 
   const handleNewFile = (type) => {
