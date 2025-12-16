@@ -59,8 +59,6 @@ export default function FileViewer() {
     refetchOnWindowFocus: false,
   });
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
   useEffect(() => {
     if (file && isInitialLoad) {
       setFileName(file.name);
