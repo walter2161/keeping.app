@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import CardEditDialog from './CardEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,7 @@ export default function FluxMap({ data, onChange, onImport }) {
   const drawflowRef = useRef(null);
   const editorRef = useRef(null);
   const [zoom, setZoom] = useState(100);
-  const [editDialog, setEditDialog] = useState({ open: false, nodeId: null, data: {} });
+  const [editDialog, setEditDialog] = useState({ open: false, nodeId: null, data: {}, nodeType: null });
   const [importDialog, setImportDialog] = useState({ open: false, data: null });
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -178,7 +179,8 @@ export default function FluxMap({ data, onChange, onImport }) {
           setEditDialog({ 
             open: true, 
             nodeId: id, 
-            data: nodeData.data || {}
+            data: nodeData.data || {},
+            nodeType: nodeData.name
           });
         });
       }
@@ -284,27 +286,27 @@ export default function FluxMap({ data, onChange, onImport }) {
     setDeleteDialog(false);
   };
 
-  const handleEditSave = () => {
+  const handleEditSave = (newData) => {
     if (editorRef.current && editDialog.nodeId) {
       const node = editorRef.current.getNodeFromId(editDialog.nodeId);
       if (node) {
-        node.data = editDialog.data;
+        node.data = newData;
         
         // Update the visual content by updating the HTML
         const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
         if (nodeElement) {
           const inputs = nodeElement.querySelectorAll('input, textarea');
-          if (editDialog.data.title) {
+          if (newData.title) {
             inputs.forEach((input, index) => {
               if (index === 0 && input.tagName === 'INPUT') {
-                input.value = editDialog.data.title;
+                input.value = newData.title;
               }
             });
           }
-          if (editDialog.data.description) {
+          if (newData.description) {
             inputs.forEach((input, index) => {
               if (input.tagName === 'TEXTAREA' || (index === 1 && input.tagName === 'INPUT')) {
-                input.value = editDialog.data.description;
+                input.value = newData.description;
               }
             });
           }
@@ -318,7 +320,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         }
       }
     }
-    setEditDialog({ open: false, nodeId: null, data: {} });
+    setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null });
   };
 
   const handleImportFile = (e) => {
@@ -546,7 +548,7 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
           >
             <span style={{ fontSize: '18px' }}>🎯</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Card Kanban</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Card</span>
           </div>
 
           <div
@@ -634,40 +636,49 @@ export default function FluxMap({ data, onChange, onImport }) {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Elemento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Título</label>
-              <Input
-                value={editDialog.data.title || ''}
-                onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
-                placeholder="Digite o título"
-              />
+      {editDialog.nodeType === 'card-kanban' ? (
+        <CardEditDialog
+          open={editDialog.open}
+          onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
+          data={editDialog.data}
+          onSave={handleEditSave}
+        />
+      ) : (
+        <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Elemento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Título</label>
+                <Input
+                  value={editDialog.data.title || ''}
+                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
+                  placeholder="Digite o título"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Descrição</label>
+                <Textarea
+                  value={editDialog.data.description || ''}
+                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, description: e.target.value } })}
+                  placeholder="Digite a descrição"
+                  rows={4}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
+                  Cancelar
+                </Button>
+                <Button onClick={() => handleEditSave(editDialog.data)}>
+                  Salvar
+                </Button>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Descrição</label>
-              <Textarea
-                value={editDialog.data.description || ''}
-                onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, description: e.target.value } })}
-                placeholder="Digite a descrição"
-                rows={4}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {} })}>
-                Cancelar
-              </Button>
-              <Button onClick={handleEditSave}>
-                Salvar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Import Confirmation Dialog */}
       <AlertDialog open={importDialog.open} onOpenChange={(open) => !open && setImportDialog({ open: false, data: null })}>
