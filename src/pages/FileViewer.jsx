@@ -43,7 +43,6 @@ export default function FileViewer() {
   const [localContent, setLocalContent] = useState(null);
   const [fileName, setFileName] = useState('');
   const [mediaPopup, setMediaPopup] = useState({ open: false, url: '', type: '' });
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   const queryClient = useQueryClient();
 
@@ -57,10 +56,13 @@ export default function FileViewer() {
     },
     enabled: !!fileId,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   useEffect(() => {
-    if (file && isInitialLoad) {
+    if (file) {
       console.log('=== LOADING FILE ===');
       console.log('File ID:', file.id);
       console.log('File Name:', file.name);
@@ -68,9 +70,9 @@ export default function FileViewer() {
       console.log('Content exists:', !!file.content);
       console.log('Content length:', file.content?.length || 0);
       console.log('Content preview:', file.content?.substring(0, 300));
-      console.log('Full file object:', file);
       
       setFileName(file.name);
+      setHasChanges(false);
       
       if (file.content) {
         try {
@@ -91,9 +93,8 @@ export default function FileViewer() {
           setLocalContent({});
         }
       }
-      setIsInitialLoad(false);
     }
-  }, [file, isInitialLoad]);
+  }, [file]);
 
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
@@ -138,6 +139,9 @@ export default function FileViewer() {
       console.log('✓ Save completed successfully');
       console.log('Result:', result);
       
+      // Invalidate query to force refetch on next load
+      queryClient.invalidateQueries({ queryKey: ['file', fileId] });
+      
       // Verify the save by fetching again
       const verifyFiles = await base44.entities.File.filter({ id: fileId });
       console.log('=== VERIFICATION AFTER SAVE ===');
@@ -145,7 +149,7 @@ export default function FileViewer() {
       console.log('Verified content length:', verifyFiles[0]?.content?.length || 0);
       console.log('Verified content preview:', verifyFiles[0]?.content?.substring(0, 300));
       
-      alert('Arquivo salvo com sucesso! Confira o console para detalhes.');
+      alert('Arquivo salvo com sucesso!');
     } catch (error) {
       console.error('❌ Error saving file:', error);
       alert('Erro ao salvar o arquivo: ' + error.message);
