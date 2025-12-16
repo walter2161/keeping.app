@@ -132,121 +132,119 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       const folders = await base44.entities.Folder.list();
       const files = await base44.entities.File.list();
       
-      const contextInfo = fileContext 
-        ? `\n\nContexto do arquivo atual (${fileType}):\n${JSON.stringify(fileContext, null, 2)}`
-        : '';
-
       const currentFolder = folders.find(f => f.id === currentFolderId);
-      const currentLocationContext = `\n\nLocalização atual do usuário:\n- Página: ${currentPage}\n- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz (Meu Drive)'}\n- ID da pasta: ${currentFolderId || 'null (raiz)'}`;
-
-      const driveContext = `\n\nEstrutura do Drive:\nPastas: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })))}\nArquivos: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type, folder_id: f.folder_id })))}`;
-
-      const permissionsContext = `\n\nPermissões habilitadas:\n- Criar pastas: ${user?.assistant_can_create_folders !== false ? 'Sim' : 'Não'}\n- Criar arquivos: ${user?.assistant_can_create_files !== false ? 'Sim' : 'Não'}\n- Editar arquivos: ${user?.assistant_can_edit_files !== false ? 'Sim' : 'Não'}\n- Excluir itens: ${user?.assistant_can_delete_items !== false ? 'Sim' : 'Não'}`;
-
-      const systemInstructions = `REGRAS ABSOLUTAS:
-1. Quando usuário pedir criar/editar/excluir: retorne SÓ o JSON puro, SEM markdown, SEM explicações
-2. NÃO use \`\`\`json ou \`\`\` - apenas o objeto JSON direto
-3. Formato: {"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}
-4. Para conversa normal: responda em português naturalmente
-5. Só fale sobre o app/arquivos do usuário
-
-CRIAR ARQUIVOS (sempre use "action": "create_file"):
-- Planilha: {"action": "create_file", "data": {"name": "Nome", "type": "xlsx", "content": ""}}
-- Documento: {"action": "create_file", "data": {"name": "Nome", "type": "docx", "content": "texto\\n\\nparagrafo"}}
-- Kanban: {"action": "create_file", "data": {"name": "Nome", "type": "kbn"}}
-- Gantt: {"action": "create_file", "data": {"name": "Nome", "type": "gnt"}}
-- Cronograma: {"action": "create_file", "data": {"name": "Nome", "type": "crn"}}
-
-IMPORTANTE: Planilha = xlsx, Documento/Texto = docx`;
-
-      const fullPrompt = `${getSystemPrompt()}\n\n${systemInstructions}${currentLocationContext}${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
-
-      // Usar API Mistral
-      const apiKey = user?.assistant_api_key || 'EYV4KepRDuEVj9YblJj5k3WXR07N100Y';
-      const mistralResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'mistral-large-latest',
-          messages: [
-            { role: 'system', content: fullPrompt },
-            { role: 'user', content: input }
-          ],
-        }),
-      });
-
-      const result = await mistralResponse.json();
-      let responseText = result.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação.';
-
-      // Remover markdown code blocks se existirem
-      responseText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-
-      // Tentar detectar e extrair JSON da resposta (mais robusto)
-      let jsonMatch = responseText.match(/\{\s*"action"\s*:\s*"[^"]+"\s*,[\s\S]*?\}/);
-      if (!jsonMatch) {
-        jsonMatch = responseText.match(/\{[\s\S]*"action"[\s\S]*\}/);
-      }
       
-      if (jsonMatch) {
-        try {
-          // Limpar o JSON extraído
-          let jsonStr = jsonMatch[0].trim();
-          
-          // Tentar encontrar o fechamento correto do JSON
-          let braceCount = 0;
-          let validJsonEnd = 0;
-          for (let i = 0; i < jsonStr.length; i++) {
-            if (jsonStr[i] === '{') braceCount++;
-            if (jsonStr[i] === '}') {
-              braceCount--;
-              if (braceCount === 0) {
-                validJsonEnd = i + 1;
-                break;
+      // Detectar se é uma ação ou conversa
+      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover'];
+      const isAction = actionKeywords.some(keyword => input.toLowerCase().includes(keyword));
+
+      if (isAction) {
+        // Usar InvokeLLM com JSON schema para forçar estrutura
+        const actionPrompt = `Você é uma assistente que executa comandos.
+
+Contexto:
+- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz'}
+- ID da pasta: ${currentFolderId || null}
+
+Pastas existentes: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name })))}
+Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type })))}
+
+Permissões:
+- Criar pastas: ${user?.assistant_can_create_folders !== false}
+- Criar arquivos: ${user?.assistant_can_create_files !== false}
+- Editar arquivos: ${user?.assistant_can_edit_files !== false}
+- Excluir itens: ${user?.assistant_can_delete_items !== false}
+
+Comando do usuário: "${input}"
+
+IMPORTANTE:
+- Planilha/Excel = type: "xlsx"
+- Documento/Word/Texto = type: "docx"
+- Kanban = type: "kbn"
+- Gantt = type: "gnt"
+- Cronograma = type: "crn"
+- Para documentos, use \\n\\n para separar parágrafos
+- Para planilhas, deixe content vazio ""
+
+Converta o comando em uma ação estruturada.`;
+
+        const actionSchema = {
+          type: "object",
+          properties: {
+            action: {
+              type: "string",
+              enum: ["create_folder", "create_file", "edit_file", "delete_item"]
+            },
+            data: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                type: { type: "string", enum: ["docx", "xlsx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
+                content: { type: "string" },
+                folder_id: { type: "string" },
+                parent_id: { type: "string" },
+                color: { type: "string" },
+                file_id: { type: "string" },
+                id: { type: "string" }
               }
             }
-          }
-          
-          if (validJsonEnd > 0) {
-            jsonStr = jsonStr.substring(0, validJsonEnd);
-          }
-          
-          const actionData = JSON.parse(jsonStr);
-          if (actionData.action) {
-            const actionResult = await executeAction(actionData, folders, files);
-            const successMessage = { 
-              role: 'assistant', 
-              content: `✓ ${getActionSuccessMessage(actionData)}` 
-            };
-            setMessages(prev => [...prev, successMessage]);
-            
-            // Navegar para o item criado
-            setTimeout(() => {
-              if (actionData.action === 'create_file' && actionResult?.id) {
-                window.location.href = `/file-viewer?id=${actionResult.id}`;
-              } else if (actionData.action === 'create_folder' && actionResult?.id) {
-                window.location.href = `/drive?folder=${actionResult.id}`;
-              } else {
-                window.location.reload();
-              }
-            }, 800);
-            return; // Não mostrar o JSON
-          }
-        } catch (e) {
-          console.error('Erro ao executar ação:', e);
-          // Se falhar, continuar e mostrar resposta normal
-        }
-      }
+          },
+          required: ["action", "data"]
+        };
 
-      // Apenas mostrar resposta se não foi uma ação
-      const assistantMessage = { 
-        role: 'assistant', 
-        content: responseText 
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+        const llmResult = await base44.integrations.Core.InvokeLLM({
+          prompt: actionPrompt,
+          response_json_schema: actionSchema
+        });
+
+        if (llmResult && llmResult.action) {
+          const actionResult = await executeAction(llmResult, folders, files);
+          const successMessage = { 
+            role: 'assistant', 
+            content: `✓ ${getActionSuccessMessage(llmResult)}` 
+          };
+          setMessages(prev => [...prev, successMessage]);
+          
+          // Navegar para o item criado
+          setTimeout(() => {
+            if (llmResult.action === 'create_file' && actionResult?.id) {
+              window.location.href = `/file-viewer?id=${actionResult.id}`;
+            } else if (llmResult.action === 'create_folder' && actionResult?.id) {
+              window.location.href = `/drive?folder=${actionResult.id}`;
+            } else {
+              window.location.reload();
+            }
+          }, 800);
+        }
+      } else {
+        // Conversa normal
+        const contextInfo = fileContext 
+          ? `\n\nArquivo aberto: ${fileType}`
+          : '';
+
+        const chatPrompt = `${getSystemPrompt()}
+
+Você está conversando com o usuário sobre o app Keeping.
+
+Localização atual: ${currentFolder ? currentFolder.name : 'Raiz'}
+${contextInfo}
+
+Responda de forma natural e amigável em português. Não execute ações, apenas converse.
+
+Usuário: ${input}`;
+
+        const chatResult = await base44.integrations.Core.InvokeLLM({
+          prompt: chatPrompt
+        });
+
+        const assistantMessage = { 
+          role: 'assistant', 
+          content: chatResult || 'Desculpe, não consegui processar sua mensagem.'
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      }
     } catch (error) {
+      console.error('Erro:', error);
       const errorMessage = { 
         role: 'assistant', 
         content: 'Desculpe, ocorreu um erro ao processar sua solicitação.' 
