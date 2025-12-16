@@ -178,8 +178,6 @@ export default function XlsxEditor({ value, onChange }) {
             const style = worksheetRef.current.getStyle();
             const merged = worksheetRef.current.getMerge();
             
-            console.log('Spreadsheet changed - saving data:', { data, meta, style, merged });
-            
             onChange(JSON.stringify({
               data,
               meta,
