@@ -47,6 +47,11 @@ export default function CronogramaBoard({ data, onChange }) {
   });
   const [newGroup, setNewGroup] = useState({ name: '', color: 0 });
 
+  React.useEffect(() => {
+    if (data?.groups) setGroups(data.groups);
+    if (data?.items) setItems(data.items);
+  }, [data]);
+
   const days = useMemo(() => {
     return Array.from({ length: 21 }, (_, i) => addDays(viewStart, i));
   }, [viewStart]);
