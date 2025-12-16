@@ -427,6 +427,8 @@ export default function FileViewer() {
       <AIAssistant 
         fileContext={localContent} 
         fileType={file.type}
+        currentFolderId={file.folder_id}
+        currentPage="FileViewer"
       />
     </div>
   );

@@ -720,7 +720,10 @@ export default function Drive() {
       />
 
       {/* AI Assistant */}
-      <AIAssistant />
+      <AIAssistant 
+        currentFolderId={currentFolderId}
+        currentPage="Drive"
+      />
 
       {/* Toast Container */}
       <Toaster />

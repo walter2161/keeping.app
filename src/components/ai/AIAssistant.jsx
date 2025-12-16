@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 
-export default function AIAssistant({ fileContext = null, fileType = null }) {
+export default function AIAssistant({ fileContext = null, fileType = null, currentFolderId = null, currentPage = 'Drive' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
@@ -136,11 +136,23 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
         ? `\n\nContexto do arquivo atual (${fileType}):\n${JSON.stringify(fileContext, null, 2)}`
         : '';
 
+      const currentFolder = folders.find(f => f.id === currentFolderId);
+      const currentLocationContext = `\n\nLocalização atual do usuário:\n- Página: ${currentPage}\n- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz (Meu Drive)'}\n- ID da pasta: ${currentFolderId || 'null (raiz)'}`;
+
       const driveContext = `\n\nEstrutura do Drive:\nPastas: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })))}\nArquivos: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type, folder_id: f.folder_id })))}`;
 
       const permissionsContext = `\n\nPermissões habilitadas:\n- Criar pastas: ${user?.assistant_can_create_folders !== false ? 'Sim' : 'Não'}\n- Criar arquivos: ${user?.assistant_can_create_files !== false ? 'Sim' : 'Não'}\n- Editar arquivos: ${user?.assistant_can_edit_files !== false ? 'Sim' : 'Não'}\n- Excluir itens: ${user?.assistant_can_delete_items !== false ? 'Sim' : 'Não'}`;
 
-      const fullPrompt = `${getSystemPrompt()}\n\nIMPORTANTE: Você só pode falar sobre tópicos relacionados ao aplicativo, às pastas e arquivos do usuário. Não responda perguntas sobre outros assuntos.\n\nSe precisar executar ações (criar/editar/excluir), retorne um JSON com a estrutura:\n{"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}\n\nSe for apenas uma resposta, retorne texto normal.${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
+      const systemInstructions = `INSTRUÇÕES CRÍTICAS:
+1. Você DEVE executar ações automaticamente quando solicitado
+2. Quando criar/editar/excluir, retorne APENAS um objeto JSON válido no formato: {"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}
+3. NÃO adicione texto antes ou depois do JSON
+4. NÃO explique o JSON ou mostre ele ao usuário
+5. Se for apenas conversa (sem ações), responda normalmente em português
+6. Apenas fale sobre o app, pastas e arquivos - nada mais
+7. Use o contexto de localização para saber onde criar itens`;
+
+      const fullPrompt = `${getSystemPrompt()}\n\n${systemInstructions}${currentLocationContext}${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
 
       // Usar API Mistral
       const apiKey = user?.assistant_api_key || 'EYV4KepRDuEVj9YblJj5k3WXR07N100Y';
@@ -162,21 +174,33 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       const result = await mistralResponse.json();
       const responseText = result.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação.';
 
-      // Tentar detectar se é uma ação
-      try {
-        const actionData = JSON.parse(responseText);
-        if (actionData.action) {
-          await executeAction(actionData, folders, files);
-          const successMessage = { 
-            role: 'assistant', 
-            content: 'Ação executada com sucesso! ✓' 
-          };
-          setMessages(prev => [...prev, successMessage]);
-          return;
+      // Tentar detectar e extrair JSON da resposta
+      let actionExecuted = false;
+      const jsonMatch = responseText.match(/\{[\s\S]*"action"[\s\S]*\}/);
+      
+      if (jsonMatch) {
+        try {
+          const actionData = JSON.parse(jsonMatch[0]);
+          if (actionData.action) {
+            await executeAction(actionData, folders, files);
+            const successMessage = { 
+              role: 'assistant', 
+              content: `Pronto! ${getActionSuccessMessage(actionData)}` 
+            };
+            setMessages(prev => [...prev, successMessage]);
+            actionExecuted = true;
+            
+            // Recarregar dados após ação
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        } catch (e) {
+          console.error('Erro ao executar ação:', e);
         }
-      } catch {
-        // Não é JSON, é uma resposta normal
       }
+      
+      if (actionExecuted) return;
 
       const assistantMessage = { 
         role: 'assistant', 
@@ -194,13 +218,29 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     }
   };
 
+  const getActionSuccessMessage = (actionData) => {
+    const { action, data } = actionData;
+    switch (action) {
+      case 'create_folder':
+        return `Pasta "${data.name}" criada com sucesso!`;
+      case 'create_file':
+        return `Arquivo "${data.name}" criado com sucesso!`;
+      case 'edit_file':
+        return `Arquivo atualizado com sucesso!`;
+      case 'delete_item':
+        return `Item excluído com sucesso!`;
+      default:
+        return 'Operação realizada com sucesso!';
+    }
+  };
+
   const executeAction = async (actionData, folders, files) => {
     const { action, data } = actionData;
 
     if (action === 'create_folder' && user?.assistant_can_create_folders !== false) {
       await base44.entities.Folder.create({
         name: data.name,
-        parent_id: data.parent_id || null,
+        parent_id: data.parent_id || currentFolderId || null,
         color: data.color || 'bg-blue-500',
       });
     } else if (action === 'create_file' && user?.assistant_can_create_files !== false) {
@@ -215,8 +255,8 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       await base44.entities.File.create({
         name: data.name,
         type: data.type,
-        folder_id: data.folder_id || null,
-        content: defaultContent[data.type] || '',
+        folder_id: data.folder_id || currentFolderId || null,
+        content: data.content || defaultContent[data.type] || '',
       });
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
       await base44.entities.File.update(data.file_id, {
