@@ -7,26 +7,24 @@ export default function XlsxEditor({ value, onChange }) {
   const jssRef = useRef(null);
   const tableRef = useRef(null);
   const worksheetRef = useRef(null);
+  
   useEffect(() => {
     if (!jssRef.current || !jspreadsheet || worksheetRef.current) return;
 
-    let initialData = [];
+    let parsedData = null;
     try {
-      if (value) {
-        const parsed = JSON.parse(value);
-        initialData = parsed.data || [];
+      if (value && value.trim()) {
+        parsedData = JSON.parse(value);
       }
     } catch (e) {
-      console.error('Error parsing spreadsheet data:', e);
-    }
-
-    // Se não há dados, criar planilha vazia
-    if (!initialData.length) {
-      initialData = Array(100).fill(null).map(() => Array(26).fill(''));
+      console.error('Error parsing spreadsheet value:', e);
     }
 
     const options = {
-      data: initialData,
+      data: parsedData?.data || Array(100).fill(null).map(() => Array(26).fill('')),
+      meta: parsedData?.meta || {},
+      style: parsedData?.style || {},
+      mergeCells: parsedData?.merged || {},
       minDimensions: [26, 100],
       defaultColWidth: 120,
       defaultRowHeight: 32,
@@ -172,19 +170,32 @@ export default function XlsxEditor({ value, onChange }) {
       ],
       onchange: function(instance, cell, x, y, value) {
         if (worksheetRef.current && onChange) {
-          setTimeout(() => {
-            const data = worksheetRef.current.getData();
-            const meta = worksheetRef.current.getMeta();
-            const style = worksheetRef.current.getStyle();
-            const merged = worksheetRef.current.getMerge();
-            
-            onChange(JSON.stringify({
-              data,
-              meta,
-              style,
-              merged
-            }));
-          }, 0);
+          const data = worksheetRef.current.getData();
+          const meta = worksheetRef.current.getMeta();
+          const style = worksheetRef.current.getStyle();
+          const merged = worksheetRef.current.getMerge();
+          
+          onChange(JSON.stringify({
+            data: data,
+            meta: meta,
+            style: style,
+            merged: merged
+          }));
+        }
+      },
+      onchangestyle: function(instance, cell, x, y, k, v) {
+        if (worksheetRef.current && onChange) {
+          const data = worksheetRef.current.getData();
+          const meta = watersheetRef.current.getMeta();
+          const style = worksheetRef.current.getStyle();
+          const merged = worksheetRef.current.getMerge();
+          
+          onChange(JSON.stringify({
+            data: data,
+            meta: meta,
+            style: style,
+            merged: merged
+          }));
         }
       },
       onselection: function(instance, x1, y1, x2, y2) {
@@ -268,19 +279,6 @@ export default function XlsxEditor({ value, onChange }) {
         return items;
       }
     };
-
-    try {
-      // Restaurar dados salvos se existirem
-      if (value) {
-        const parsed = JSON.parse(value);
-        if (parsed.data) options.data = parsed.data;
-        if (parsed.meta) options.meta = parsed.meta;
-        if (parsed.style) options.style = parsed.style;
-        if (parsed.merged) options.mergeCells = parsed.merged;
-      }
-    } catch (e) {
-      console.error('Error restoring spreadsheet:', e);
-    }
 
     worksheetRef.current = jspreadsheet(jssRef.current, options);
     tableRef.current = jssRef.current.querySelector('.jexcel');
