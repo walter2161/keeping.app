@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Upload } from 'lucide-react';
+import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 export default function AssistantSettings() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState('');
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -57,18 +58,23 @@ export default function AssistantSettings() {
     updateSettingsMutation.mutate(formData);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) {
+      alert('Por favor, descreva como você quer que seja o assistente');
+      return;
+    }
 
-    setUploading(true);
+    setGenerating(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({ ...formData, assistant_avatar: file_url });
+      const prompt = encodeURIComponent(imagePrompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=350&height=350&model=flux&nologo=true&enhance=true`;
+      
+      setFormData({ ...formData, assistant_avatar: imageUrl });
+      setImagePrompt('');
     } catch (error) {
-      alert('Erro ao fazer upload da imagem: ' + error.message);
+      alert('Erro ao gerar imagem: ' + error.message);
     } finally {
-      setUploading(false);
+      setGenerating(false);
     }
   };
 
@@ -119,50 +125,48 @@ export default function AssistantSettings() {
               
               {formData.assistant_avatar ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-4">
                     <img 
                       src={formData.assistant_avatar} 
                       alt="Avatar"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-blue-100"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
                     />
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">Avatar atual</p>
-                      <label className="cursor-pointer">
-                        <Button variant="outline" size="sm" asChild disabled={uploading}>
-                          <span>
-                            <Upload className="w-4 h-4 mr-2" />
-                            {uploading ? 'Enviando...' : 'Trocar Foto'}
-                          </span>
-                        </Button>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageUpload}
-                          disabled={uploading}
-                        />
-                      </label>
-                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, assistant_avatar: '' })}
+                    >
+                      Gerar Nova Foto
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <label className="flex items-center justify-center gap-2 p-6 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
-                  <Image className="w-5 h-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    {uploading ? 'Enviando...' : 'Clique para adicionar uma foto'}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                    disabled={uploading}
-                  />
-                </label>
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Descreva o assistente (ex: mulher profissional, cabelo castanho, sorrindo)"
+                      value={imagePrompt}
+                      onChange={(e) => setImagePrompt(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleGenerateImage()}
+                      disabled={generating}
+                    />
+                    <Button 
+                      onClick={handleGenerateImage}
+                      disabled={generating || !imagePrompt.trim()}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {generating ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Gerado por <a href="https://pollinations.ai" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">pollinations.ai</a> - IA que gera imagens realistas
+                  </p>
+                </div>
               )}
-              <p className="text-xs text-gray-500 mt-2">
-                Sugestão: Use uma imagem do <a href="https://pollistations.ai" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">pollistations.ai</a>
-              </p>
             </div>
 
             <div>
