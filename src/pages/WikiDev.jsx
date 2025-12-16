@@ -661,21 +661,38 @@ function keeping_admin_page() {
 }
 
 // ================================
-// INFO DO PLUGIN
+// INFO DO PLUGIN (público - sem auth)
 // ================================
 add_action('rest_api_init', function() {
     register_rest_route('keeping/v1', '/info', [
         'methods' => 'GET',
         'callback' => function() {
-            $auth = keeping_verify_api_key();
-            if (is_wp_error($auth)) return $auth;
-            
             return rest_ensure_response([
                 'plugin' => 'Keeping Database API',
                 'version' => KEEPING_VERSION,
                 'wordpress_version' => get_bloginfo('version'),
                 'php_version' => phpversion(),
                 'status' => 'active'
+            ]);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+// ================================
+// TESTE DE CONEXÃO (com auth)
+// ================================
+add_action('rest_api_init', function() {
+    register_rest_route('keeping/v1', '/test', [
+        'methods' => 'GET',
+        'callback' => function() {
+            $auth = keeping_verify_api_key();
+            if (is_wp_error($auth)) return $auth;
+            
+            return rest_ensure_response([
+                'success' => true,
+                'message' => 'API Key válida! Conexão estabelecida com sucesso.',
+                'user_email' => $auth
             ]);
         },
         'permission_callback' => '__return_true',
