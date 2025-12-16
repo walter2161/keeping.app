@@ -204,10 +204,10 @@ export default function KanbanBoard({ data, onChange }) {
       )}
 
       {cardData.coverType === 'image' && (
-        <div>
+        <div className="space-y-3">
           {cardData.coverImage ? (
             <div className="relative">
-              <img src={cardData.coverImage} className="w-full h-32 object-cover rounded" />
+              <img src={cardData.coverImage} className="w-full aspect-square object-cover rounded" />
               <Button
                 variant="destructive"
                 size="icon"
@@ -229,6 +229,27 @@ export default function KanbanBoard({ data, onChange }) {
                 disabled={uploadingFile}
               />
             </label>
+          )}
+          
+          {cardData.attachments && cardData.attachments.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Ou escolha um anexo como capa:</p>
+              <div className="grid grid-cols-3 gap-2">
+                {cardData.attachments
+                  .filter(att => att.url && (att.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)))
+                  .map(att => (
+                    <button
+                      key={att.id}
+                      className={`relative aspect-square border-2 rounded overflow-hidden hover:border-blue-500 transition-colors ${
+                        cardData.coverImage === att.url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
+                      }`}
+                      onClick={() => setCardData({ ...cardData, coverImage: att.url })}
+                    >
+                      <img src={att.url} className="w-full h-full object-cover" alt={att.name} />
+                    </button>
+                  ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -354,7 +375,7 @@ export default function KanbanBoard({ data, onChange }) {
                                   <div className="h-10" style={{ backgroundColor: card.coverColor }} />
                                 )}
                                 {card.coverType === 'image' && card.coverImage && (
-                                  <img src={card.coverImage} className="w-full h-24 object-cover" />
+                                  <img src={card.coverImage} className="w-full aspect-square object-cover" />
                                 )}
                                 <div className="p-3">
                                   <div className="flex items-start gap-2">
