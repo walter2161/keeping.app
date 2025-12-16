@@ -4,7 +4,6 @@ import Trash from './pages/Trash';
 import Dashboard from './pages/Dashboard';
 import Wiki from './pages/Wiki';
 import WikiDev from './pages/WikiDev';
-import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -15,7 +14,6 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Wiki": Wiki,
     "WikiDev": WikiDev,
-    "Settings": Settings,
 }
 
 export const pagesConfig = {

@@ -52,7 +52,7 @@ export default function WikiDev() {
 
     try {
       const cleanUrl = wpUrl.trim().replace(/\/$/, '');
-      const response = await fetch(`${cleanUrl}/wp-json/keeping/v1/info`, {
+      const response = await fetch(`${cleanUrl}/wp-json/keeping/v1/test`, {
         headers: {
           'X-API-Key': apiKey.trim(),
         },
@@ -62,10 +62,14 @@ export default function WikiDev() {
         const data = await response.json();
         setTestStatus({ success: true, data });
       } else {
-        setTestStatus({ success: false, error: 'Falha ao conectar. Verifique URL e API Key.' });
+        const errorData = await response.json().catch(() => ({}));
+        setTestStatus({ 
+          success: false, 
+          error: errorData.message || 'API Key inválida ou incorreta. Verifique suas credenciais.' 
+        });
       }
     } catch (error) {
-      setTestStatus({ success: false, error: 'Erro de conexão. Verifique a URL.' });
+      setTestStatus({ success: false, error: 'Erro de conexão. Verifique se a URL do WordPress está correta e acessível.' });
     } finally {
       setTesting(false);
     }
@@ -176,6 +180,46 @@ function keeping_activate() {
         INDEX idx_deleted (deleted)
     ) $charset;");
 
+    // Inserir dados de exemplo para admin@keeping.com
+    $demo_email = 'admin@keeping.com';
+    $folder_id = keeping_generate_uuid();
+    
+    // Pasta de exemplo
+    $wpdb->insert($prefix . 'folders', [
+        'id' => $folder_id,
+        'user_email' => $demo_email,
+        'name' => 'Projetos',
+        'parent_id' => null,
+        'color' => '#3b82f6',
+        'order' => 0,
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+    ]);
+    
+    // Arquivos de exemplo
+    $examples = [
+        ['name' => 'Quadro Kanban', 'type' => 'kbn', 'content' => json_encode(['columns' => [['id' => '1', 'name' => 'A Fazer', 'cards' => [['id' => '1', 'title' => 'Exemplo de tarefa', 'priority' => 'medium']]]]])],
+        ['name' => 'Cronograma Gantt', 'type' => 'gnt', 'content' => json_encode(['tasks' => [['id' => '1', 'name' => 'Fase 1', 'start' => date('Y-m-d'), 'end' => date('Y-m-d', strtotime('+7 days')), 'status' => 'pending', 'progress' => 0]]])],
+        ['name' => 'Timeline', 'type' => 'crn', 'content' => json_encode(['groups' => [['id' => '1', 'name' => 'Grupo 1', 'color' => 'blue']], 'items' => []])],
+        ['name' => 'Fluxograma', 'type' => 'flux', 'content' => json_encode(['drawflow' => ['Home' => ['data' => []]]])],
+        ['name' => 'Documento', 'type' => 'docx', 'content' => '<h1>Bem-vindo ao Keeping</h1><p>Este é um documento de exemplo.</p>'],
+        ['name' => 'Planilha', 'type' => 'xlsx', 'content' => ''],
+    ];
+    
+    foreach ($examples as $i => $example) {
+        $wpdb->insert($prefix . 'files', [
+            'id' => keeping_generate_uuid(),
+            'user_email' => $demo_email,
+            'name' => $example['name'],
+            'type' => $example['type'],
+            'folder_id' => $folder_id,
+            'content' => $example['content'],
+            'order' => $i,
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ]);
+    }
+
     update_option('keeping_version', KEEPING_VERSION);
 }
 
@@ -191,7 +235,12 @@ function keeping_verify_api_key() {
         return new WP_Error('unauthorized', 'Invalid API Key', ['status' => 401]);
     }
     
-    return true;
+    // Retorna o user_email do request se disponível
+    $request_body = json_decode(file_get_contents('php://input'), true);
+    $user_email = isset($request_body['user_email']) ? $request_body['user_email'] : 
+                  (isset($_GET['user_email']) ? $_GET['user_email'] : null);
+    
+    return $user_email;
 }
 
 // ================================
@@ -1060,17 +1109,14 @@ add_action('rest_api_init', function() {
                             {testStatus.success ? '✓ Conexão bem-sucedida!' : '✗ Falha na conexão'}
                           </p>
                           {testStatus.success ? (
-                            <div className="mt-2 text-sm text-green-800 space-y-1">
-                              <p><strong>Plugin:</strong> {testStatus.data.plugin}</p>
-                              <p><strong>Versão:</strong> {testStatus.data.version}</p>
-                              <p><strong>WordPress:</strong> {testStatus.data.wordpress_version}</p>
-                              <p><strong>PHP:</strong> {testStatus.data.php_version}</p>
-                              <p className="mt-3 text-green-700 font-semibold">
-                                ✅ O app está pronto para salvar e editar dados no WordPress!
-                              </p>
-                            </div>
+                           <div className="mt-2 text-sm text-green-800 space-y-1">
+                             <p>{testStatus.data.message}</p>
+                             <p className="mt-3 text-green-700 font-semibold">
+                               ✅ O app está pronto para salvar e editar dados no WordPress!
+                             </p>
+                           </div>
                           ) : (
-                            <p className="text-sm text-red-800 mt-1">{testStatus.error}</p>
+                           <p className="text-sm text-red-800 mt-1">{testStatus.error}</p>
                           )}
                         </div>
                       </div>

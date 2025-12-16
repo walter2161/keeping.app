@@ -32,11 +32,6 @@ export default function Layout({ children, currentPageName }) {
             <BookOpen className="w-5 h-5" />
           </Button>
         </Link>
-        <Link to={createPageUrl('Settings')}>
-          <Button variant="ghost" size="icon">
-            <Settings className="w-5 h-5" />
-          </Button>
-        </Link>
         <Button variant="ghost" size="icon">
           <Bell className="w-5 h-5" />
         </Button>
