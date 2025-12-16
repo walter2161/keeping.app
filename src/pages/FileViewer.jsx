@@ -6,10 +6,10 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  ArrowLeft, Save, Download, FileText, FileSpreadsheet,
-  LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
-  Image as ImageIcon, Video, ArrowRight
-} from 'lucide-react';
+        ArrowLeft, Save, Download, FileText, FileSpreadsheet,
+        LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
+        Image as ImageIcon, Video, ArrowRight, Upload
+      } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -121,6 +121,37 @@ export default function FileViewer() {
     URL.revokeObjectURL(url);
   };
 
+  const handleImportFile = (e) => {
+    const importFile = e.target.files[0];
+    if (!importFile) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        if (importedData.type === 'single_file' && importedData.file) {
+          if (importedData.file.type === file.type) {
+            const content = importedData.file.content;
+            try {
+              setLocalContent(JSON.parse(content));
+            } catch {
+              setLocalContent(content);
+            }
+            setHasChanges(true);
+          } else {
+            alert('Tipo de arquivo incompatível!');
+          }
+        } else {
+          alert('Formato de arquivo inválido!');
+        }
+      } catch (error) {
+        alert('Erro ao ler o arquivo. Certifique-se de que é um JSON válido.');
+      }
+    };
+    reader.readAsText(importFile);
+    e.target.value = '';
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -180,6 +211,21 @@ export default function FileViewer() {
               Alterações não salvas
             </span>
           )}
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleImportFile}
+            className="hidden"
+            id="import-file"
+          />
+          <label htmlFor="import-file">
+            <Button variant="outline" asChild>
+              <span className="cursor-pointer">
+                <Upload className="w-4 h-4 mr-2" />
+                Importar
+              </span>
+            </Button>
+          </label>
           <Button variant="outline" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
@@ -228,6 +274,10 @@ export default function FileViewer() {
           <FluxMap 
             data={localContent} 
             onChange={handleContentChange}
+            onImport={(importedData) => {
+              setLocalContent(importedData);
+              setHasChanges(true);
+            }}
           />
         )}
         

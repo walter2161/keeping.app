@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function FluxMap({ data, onChange }) {
+export default function FluxMap({ data, onChange, onImport }) {
   const drawflowRef = useRef(null);
   const editorRef = useRef(null);
   const [zoom, setZoom] = useState(100);
@@ -282,13 +282,28 @@ export default function FluxMap({ data, onChange }) {
       if (node) {
         node.data = editDialog.data;
         
-        // Update the visual content
+        // Update the visual content by updating the HTML
         const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
         if (nodeElement) {
           const inputs = nodeElement.querySelectorAll('input, textarea');
-          if (editDialog.data.title && inputs[0]) inputs[0].value = editDialog.data.title;
-          if (editDialog.data.description && inputs[1]) inputs[1].value = editDialog.data.description;
+          if (editDialog.data.title) {
+            inputs.forEach((input, index) => {
+              if (index === 0 && input.tagName === 'INPUT') {
+                input.value = editDialog.data.title;
+              }
+            });
+          }
+          if (editDialog.data.description) {
+            inputs.forEach((input, index) => {
+              if (input.tagName === 'TEXTAREA' || (index === 1 && input.tagName === 'INPUT')) {
+                input.value = editDialog.data.description;
+              }
+            });
+          }
         }
+        
+        // Force a re-render by updating the node HTML
+        editorRef.current.updateNodeDataFromId(editDialog.nodeId, node.data);
         
         if (onChange) {
           onChange(editorRef.current.export());
@@ -316,15 +331,19 @@ export default function FluxMap({ data, onChange }) {
   };
 
   const handleConfirmImport = () => {
-    if (editorRef.current && importDialog.data) {
-      editorRef.current.clear();
-      try {
-        editorRef.current.import(importDialog.data);
-        if (onChange) {
-          onChange(importDialog.data);
+    if (importDialog.data) {
+      if (onImport) {
+        onImport(importDialog.data);
+      } else if (editorRef.current) {
+        editorRef.current.clear();
+        try {
+          editorRef.current.import(importDialog.data);
+          if (onChange) {
+            onChange(importDialog.data);
+          }
+        } catch (error) {
+          alert('Erro ao importar o FluxMap');
         }
-      } catch (error) {
-        alert('Erro ao importar o FluxMap');
       }
     }
     setImportDialog({ open: false, data: null });
@@ -375,21 +394,24 @@ export default function FluxMap({ data, onChange }) {
           border: 2px solid #94a3b8;
           background: white;
           border-radius: 50%;
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
         }
 
         .drawflow .drawflow-node .input:hover,
         .drawflow .drawflow-node .output:hover {
           background: #3b82f6;
           border-color: #3b82f6;
-          transform: scale(1.2);
+          transform: translateY(-50%) scale(1.2);
         }
         
-        .drawflow .drawflow-node .outputs {
-          right: 0;
+        .drawflow .drawflow-node .outputs .output {
+          right: -5px;
         }
         
-        .drawflow .drawflow-node .inputs {
-          left: 0;
+        .drawflow .drawflow-node .inputs .input {
+          left: -5px;
         }
 
         .sidebar-flux {
@@ -508,28 +530,10 @@ export default function FluxMap({ data, onChange }) {
             </Button>
           </div>
 
-          <Button variant="destructive" size="sm" onClick={handleDelete} className="w-full h-7 text-xs mb-2">
+          <Button variant="destructive" size="sm" onClick={handleDelete} className="w-full h-7 text-xs">
             <Trash2 className="w-3 h-3 mr-1" />
             Excluir
           </Button>
-
-          <div>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportFile}
-              className="hidden"
-              id="import-flux"
-            />
-            <label htmlFor="import-flux">
-              <Button variant="outline" size="sm" className="w-full h-7 text-xs" asChild>
-                <span className="cursor-pointer">
-                  <Upload className="w-3 h-3 mr-1" />
-                  Importar
-                </span>
-              </Button>
-            </label>
-          </div>
         </div>
       </div>
 
