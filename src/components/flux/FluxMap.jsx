@@ -47,10 +47,10 @@ export default function FluxMap({ data, onChange, onImport }) {
         break;
 
       case 'card-kanban':
-        const title = nodeData.title || 'Nome da tarefa';
-        const labels = nodeData.labels || [{ name: 'Feature', color: 'bg-green-500' }];
-        const members = nodeData.members || ['John'];
-        const dueDate = nodeData.dueDate ? new Date(nodeData.dueDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : 'Dec 16';
+        const title = nodeData.title || '';
+        const labels = nodeData.labels || [];
+        const members = nodeData.members || [];
+        const dueDate = nodeData.dueDate ? new Date(nodeData.dueDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : '';
         
         const labelColorMap = {
           'bg-green-500': '#22c55e',
@@ -63,29 +63,27 @@ export default function FluxMap({ data, onChange, onImport }) {
           'bg-indigo-500': '#6366f1'
         };
         
-        const labelsHTML = labels.map(label => {
+        const labelsHTML = labels.length > 0 ? labels.map(label => {
           const color = labelColorMap[label.color] || '#3b82f6';
           return `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">${label.name}</span>`;
-        }).join('');
+        }).join('') : '';
         
-        const membersHTML = members.slice(0, 3).map(member => `<span>${member}</span>`).join(', ');
+        const membersHTML = members.length > 0 ? members.slice(0, 3).join(', ') : '';
+        
+        const showFooter = membersHTML || dueDate;
         
         html = `
           <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
             <div style="padding: 12px;">
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 12px;">
-                <input type="text" value="${title}" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
+              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${labelsHTML || showFooter ? '12px' : '0'};">
+                <input type="text" value="${title}" placeholder="Título do card" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
               </div>
-              <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
-                ${labelsHTML}
-              </div>
+              ${labelsHTML ? `<div style="display: flex; gap: 6px; margin-bottom: ${showFooter ? '12px' : '0'}; flex-wrap: wrap;">${labelsHTML}</div>` : ''}
+              ${showFooter ? `
               <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span>👤</span>
-                  <span>${membersHTML}</span>
-                </div>
-                <span>📅 ${dueDate}</span>
-              </div>
+                ${membersHTML ? `<div style="display: flex; align-items: center; gap: 8px;"><span>👤</span><span>${membersHTML}</span></div>` : '<div></div>'}
+                ${dueDate ? `<span>📅 ${dueDate}</span>` : ''}
+              </div>` : ''}
             </div>
           </div>
         `;
