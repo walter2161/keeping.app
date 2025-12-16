@@ -36,6 +36,12 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
   
   const [uploadingFile, setUploadingFile] = useState(false);
 
+  React.useEffect(() => {
+    if (data) {
+      setEditData(data);
+    }
+  }, [data]);
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
