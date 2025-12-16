@@ -14,6 +14,27 @@ Quill.register(Font, true);
 export default function DocxEditor({ value, onChange }) {
   const quillRef = useRef(null);
 
+  const imageHandler = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const quill = quillRef.current.getEditor();
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, 'image', e.target.result);
+          quill.setSelection(range.index + 1);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+  };
+
   const modules = useMemo(() => ({
     toolbar: {
       container: [
@@ -44,27 +65,6 @@ export default function DocxEditor({ value, onChange }) {
       userOnly: true
     },
   }), []);
-
-  const imageHandler = () => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.click();
-
-    input.onchange = async () => {
-      const file = input.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const quill = quillRef.current.getEditor();
-          const range = quill.getSelection(true);
-          quill.insertEmbed(range.index, 'image', e.target.result);
-          quill.setSelection(range.index + 1);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  };
 
   const formats = [
     'header', 'font', 'size',
