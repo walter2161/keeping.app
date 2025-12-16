@@ -33,8 +33,8 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const createNodeHTML = (name) => {
     let html = '';
-    let inputs = 1;
-    let outputs = 1;
+    let inputs = 2;
+    let outputs = 2;
 
     switch (name) {
       case 'sticky-note':
@@ -43,8 +43,6 @@ export default function FluxMap({ data, onChange, onImport }) {
             <textarea style="width: 100%; height: 140px; border: none; background: transparent; resize: none; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif;" placeholder="Escreva aqui...">Nota</textarea>
           </div>
         `;
-        inputs = 0;
-        outputs = 0;
         break;
 
       case 'card-kanban':
@@ -83,7 +81,6 @@ export default function FluxMap({ data, onChange, onImport }) {
             <input type="text" value="Círculo" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #854d0e; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
-        outputs = 2;
         break;
 
       case 'name-bubble':
@@ -92,8 +89,6 @@ export default function FluxMap({ data, onChange, onImport }) {
             <input type="text" value="Nome" style="border: none; background: transparent; text-align: center; font-size: 15px; font-weight: 600; color: #6b21a8; width: 100px; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
-        inputs = 0;
-        outputs = 0;
         break;
 
       case 'text-box':
@@ -102,8 +97,6 @@ export default function FluxMap({ data, onChange, onImport }) {
             <input type="text" value="Texto" style="border: none; background: transparent; font-size: 16px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; min-width: 120px;" />
           </div>
         `;
-        inputs = 0;
-        outputs = 0;
         break;
 
       default:
@@ -365,7 +358,7 @@ export default function FluxMap({ data, onChange, onImport }) {
   };
 
   return (
-    <div className="h-full flex">
+    <div className="h-screen flex">
       <style>{`
         #drawflow {
           background: #f8fafc;
@@ -410,23 +403,60 @@ export default function FluxMap({ data, onChange, onImport }) {
           background: white;
           border-radius: 50%;
           position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+
+        .drawflow .drawflow-node:hover .input,
+        .drawflow .drawflow-node:hover .output {
+          opacity: 1;
         }
 
         .drawflow .drawflow-node .input:hover,
         .drawflow .drawflow-node .output:hover {
           background: #3b82f6;
           border-color: #3b82f6;
+          transform: scale(1.2);
+        }
+        
+        .drawflow .drawflow-node .inputs .input_1 {
+          left: -5px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .drawflow .drawflow-node .inputs .input_2 {
+          left: 50%;
+          top: -5px;
+          transform: translateX(-50%);
+        }
+        
+        .drawflow .drawflow-node .outputs .output_1 {
+          right: -5px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .drawflow .drawflow-node .outputs .output_2 {
+          left: 50%;
+          bottom: -5px;
+          transform: translateX(-50%);
+        }
+
+        .drawflow .drawflow-node .input:hover {
           transform: translateY(-50%) scale(1.2);
         }
-        
-        .drawflow .drawflow-node .outputs .output {
-          right: -5px;
+
+        .drawflow .drawflow-node .input_2:hover {
+          transform: translateX(-50%) scale(1.2);
         }
-        
-        .drawflow .drawflow-node .inputs .input {
-          left: -5px;
+
+        .drawflow .drawflow-node .output:hover {
+          transform: translateY(-50%) scale(1.2);
+        }
+
+        .drawflow .drawflow-node .output_2:hover {
+          transform: translateX(-50%) scale(1.2);
         }
 
         .sidebar-flux {
