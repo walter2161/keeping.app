@@ -222,6 +222,74 @@ export default function AssistantSettings() {
               </p>
             </div>
 
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-2">
+                <Key className="w-4 h-4" />
+                Chave de API
+              </label>
+              <Input
+                type="password"
+                value={formData.assistant_api_key}
+                onChange={(e) => setFormData({ ...formData, assistant_api_key: e.target.value })}
+                placeholder="Chave de API do assistente"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Chave necessária para o funcionamento do assistente
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-3 block flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Permissões do Assistente
+              </label>
+              <div className="space-y-3 pl-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="create_folders"
+                    checked={formData.assistant_can_create_folders}
+                    onCheckedChange={(checked) => setFormData({ ...formData, assistant_can_create_folders: checked })}
+                  />
+                  <label htmlFor="create_folders" className="text-sm cursor-pointer">
+                    Criar pastas
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="create_files"
+                    checked={formData.assistant_can_create_files}
+                    onCheckedChange={(checked) => setFormData({ ...formData, assistant_can_create_files: checked })}
+                  />
+                  <label htmlFor="create_files" className="text-sm cursor-pointer">
+                    Criar arquivos (Kanban, Gantt, Documentos, etc)
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit_files"
+                    checked={formData.assistant_can_edit_files}
+                    onCheckedChange={(checked) => setFormData({ ...formData, assistant_can_edit_files: checked })}
+                  />
+                  <label htmlFor="edit_files" className="text-sm cursor-pointer">
+                    Editar e modificar arquivos existentes
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="delete_items"
+                    checked={formData.assistant_can_delete_items}
+                    onCheckedChange={(checked) => setFormData({ ...formData, assistant_can_delete_items: checked })}
+                  />
+                  <label htmlFor="delete_items" className="text-sm cursor-pointer">
+                    Excluir pastas e arquivos
+                  </label>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Selecione quais ações o assistente pode realizar automaticamente
+              </p>
+            </div>
+
             <Button 
               onClick={handleSave} 
               disabled={saving}
