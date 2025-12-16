@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Save, Loader2 } from 'lucide-react';
+import { User, Mail, Shield, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -60,9 +60,10 @@ export default function Profile() {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Meu Perfil</h1>
-          <Link to={createPageUrl('AssistantSettings')}>
+          <Link to={createPageUrl('Drive')}>
             <Button variant="outline">
-              Configurar Assistente Virtual
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar ao Drive
             </Button>
           </Link>
         </div>

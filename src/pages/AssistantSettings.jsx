@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles } from 'lucide-react';
+import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -93,9 +93,10 @@ export default function AssistantSettings() {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Configurações do Assistente Virtual</h1>
-          <Link to={createPageUrl('Profile')}>
+          <Link to={createPageUrl('Drive')}>
             <Button variant="outline">
-              Voltar ao Perfil
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar ao Drive
             </Button>
           </Link>
         </div>
