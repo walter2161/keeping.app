@@ -32,7 +32,7 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
 
-  const createNodeHTML = (name) => {
+  const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
     let inputs = 2;
     let outputs = 2;
@@ -47,21 +47,44 @@ export default function FluxMap({ data, onChange, onImport }) {
         break;
 
       case 'card-kanban':
+        const title = nodeData.title || 'Nome da tarefa';
+        const labels = nodeData.labels || [{ name: 'Feature', color: 'bg-green-500' }];
+        const members = nodeData.members || ['John'];
+        const dueDate = nodeData.dueDate ? new Date(nodeData.dueDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : 'Dec 16';
+        
+        const labelColorMap = {
+          'bg-green-500': '#22c55e',
+          'bg-yellow-500': '#eab308',
+          'bg-orange-500': '#f97316',
+          'bg-red-500': '#ef4444',
+          'bg-purple-500': '#a855f7',
+          'bg-blue-500': '#3b82f6',
+          'bg-pink-500': '#ec4899',
+          'bg-indigo-500': '#6366f1'
+        };
+        
+        const labelsHTML = labels.map(label => {
+          const color = labelColorMap[label.color] || '#3b82f6';
+          return `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">${label.name}</span>`;
+        }).join('');
+        
+        const membersHTML = members.slice(0, 3).map(member => `<span>${member}</span>`).join(', ');
+        
         html = `
           <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
             <div style="padding: 12px;">
               <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 12px;">
-                <input type="text" value="Nome da tarefa" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
+                <input type="text" value="${title}" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
               </div>
-              <div style="display: flex; gap: 6px; margin-bottom: 12px;">
-                <span style="background: #22c55e; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">Feature</span>
+              <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                ${labelsHTML}
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span>👤</span>
-                  <span>John</span>
+                  <span>${membersHTML}</span>
                 </div>
-                <span>📅 Dec 16</span>
+                <span>📅 ${dueDate}</span>
               </div>
             </div>
           </div>
@@ -292,23 +315,32 @@ export default function FluxMap({ data, onChange, onImport }) {
       if (node) {
         node.data = newData;
         
-        // Update the visual content by updating the HTML
-        const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
-        if (nodeElement) {
-          const inputs = nodeElement.querySelectorAll('input, textarea');
-          if (newData.title) {
-            inputs.forEach((input, index) => {
-              if (index === 0 && input.tagName === 'INPUT') {
-                input.value = newData.title;
-              }
-            });
+        // For card-kanban, regenerate the entire HTML with new data
+        if (editDialog.nodeType === 'card-kanban') {
+          const { html } = createNodeHTML('card-kanban', newData);
+          const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
+          if (nodeElement) {
+            nodeElement.innerHTML = html.trim();
           }
-          if (newData.description) {
-            inputs.forEach((input, index) => {
-              if (input.tagName === 'TEXTAREA' || (index === 1 && input.tagName === 'INPUT')) {
-                input.value = newData.description;
-              }
-            });
+        } else {
+          // For other nodes, update inputs/textareas
+          const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
+          if (nodeElement) {
+            const inputs = nodeElement.querySelectorAll('input, textarea');
+            if (newData.title) {
+              inputs.forEach((input, index) => {
+                if (index === 0 && input.tagName === 'INPUT') {
+                  input.value = newData.title;
+                }
+              });
+            }
+            if (newData.description) {
+              inputs.forEach((input, index) => {
+                if (input.tagName === 'TEXTAREA' || (index === 1 && input.tagName === 'INPUT')) {
+                  input.value = newData.description;
+                }
+              });
+            }
           }
         }
         
