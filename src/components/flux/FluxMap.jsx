@@ -1,572 +1,588 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import Drawflow from 'drawflow';
 import { 
-  Square, Circle, Diamond, ArrowRight, Trash2, 
-  Hand, MousePointer, Type, StickyNote,
-  Frame as FrameIcon, Plus, Minus, Move
+  Trello, GripVertical, Diamond, Lightbulb, UserCog,
+  Trash2, Plus, Minus
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-
-const COLORS = ['#fef08a', '#fed7aa', '#fecaca', '#ddd6fe', '#bfdbfe', '#bbf7d0', '#e9d5ff', '#ffffff'];
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import 'drawflow/dist/drawflow.min.css';
 
 export default function FluxMap({ data, onChange }) {
-  const [elements, setElements] = useState(data?.elements || []);
-  const [connections, setConnections] = useState(data?.connections || []);
-  const [selectedId, setSelectedId] = useState(null);
-  const [tool, setTool] = useState('select');
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [dragState, setDragState] = useState({ active: false, type: null, startX: 0, startY: 0, elementStart: null });
-  const [connectingFrom, setConnectingFrom] = useState(null);
-  const [tempLine, setTempLine] = useState(null);
-  
-  const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const editorRef = useRef(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentNodeId, setCurrentNodeId] = useState(null);
+  const [nodeTitle, setNodeTitle] = useState('');
+  const [zoom, setZoom] = useState(100);
 
-  const updateData = useCallback((newElements, newConnections) => {
-    setElements(newElements);
-    setConnections(newConnections);
-    if (onChange) {
-      onChange({ elements: newElements, connections: newConnections });
+  useEffect(() => {
+    if (!containerRef.current || editorRef.current) return;
+
+    const editor = new Drawflow(containerRef.current);
+    editor.reroute = true;
+    editor.start();
+    
+    editorRef.current = editor;
+
+    // Carregar dados salvos
+    if (data && data.drawflow) {
+      editor.import(data);
     }
-  }, [onChange]);
 
-  const addElement = (type) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    const centerX = (rect.width / 2 - pan.x) / zoom;
-    const centerY = (rect.height / 2 - pan.y) / zoom;
-
-    const configs = {
-      sticky: { width: 200, height: 200, color: COLORS[0], text: 'Nova nota' },
-      rect: { width: 180, height: 100, color: '#3b82f6', text: 'Processo' },
-      circle: { width: 120, height: 120, color: '#10b981', text: 'Início/Fim' },
-      diamond: { width: 160, height: 120, color: '#f59e0b', text: 'Decisão?' },
-      text: { width: 300, height: 150, color: '#ffffff', text: 'Texto livre...' },
-      frame: { width: 600, height: 400, color: '#f3f4f6', text: 'Área / Seção' }
-    };
-
-    const config = configs[type] || configs.sticky;
-    const newElement = {
-      id: Date.now().toString(),
-      type,
-      x: centerX - config.width / 2,
-      y: centerY - config.height / 2,
-      width: config.width,
-      height: config.height,
-      color: config.color,
-      text: config.text,
-      zIndex: elements.length
-    };
-    
-    updateData([...elements, newElement], connections);
-  };
-
-  const getElementsInFrame = useCallback((frameId) => {
-    const frame = elements.find(el => el.id === frameId);
-    if (!frame || frame.type !== 'frame') return [];
-    
-    return elements.filter(el => {
-      if (el.id === frameId || el.type === 'frame') return false;
-      const centerX = el.x + el.width / 2;
-      const centerY = el.y + el.height / 2;
-      return centerX >= frame.x && centerX <= frame.x + frame.width &&
-             centerY >= frame.y && centerY <= frame.y + frame.height;
-    });
-  }, [elements]);
-
-  const updateElement = (id, updates) => {
-    const newElements = elements.map(el => el.id === id ? { ...el, ...updates } : el);
-    
-    // Se moveu um frame, mover elementos dentro dele
-    const element = elements.find(el => el.id === id);
-    if (element && element.type === 'frame' && (updates.x !== undefined || updates.y !== undefined)) {
-      const dx = (updates.x || element.x) - element.x;
-      const dy = (updates.y || element.y) - element.y;
-      
-      const childElements = getElementsInFrame(id);
-      childElements.forEach(child => {
-        const childIndex = newElements.findIndex(el => el.id === child.id);
-        if (childIndex !== -1) {
-          newElements[childIndex] = {
-            ...newElements[childIndex],
-            x: newElements[childIndex].x + dx,
-            y: newElements[childIndex].y + dy
-          };
-        }
-      });
-    }
-    
-    updateData(newElements, connections);
-  };
-
-  const deleteElement = () => {
-    if (!selectedId) return;
-    const newElements = elements.filter(el => el.id !== selectedId);
-    const newConnections = connections.filter(conn => conn.from !== selectedId && conn.to !== selectedId);
-    updateData(newElements, newConnections);
-    setSelectedId(null);
-  };
-
-  const handleElementMouseDown = (e, element) => {
-    e.stopPropagation();
-    
-    setSelectedId(element.id);
-    
-    if (tool === 'connect') {
-      if (!connectingFrom) {
-        setConnectingFrom(element.id);
-        setTempLine({
-          fromX: element.x + element.width / 2,
-          fromY: element.y + element.height / 2,
-          toX: element.x + element.width / 2,
-          toY: element.y + element.height / 2
-        });
-      } else {
-        if (connectingFrom !== element.id) {
-          const newConn = {
-            id: Date.now().toString(),
-            from: connectingFrom,
-            to: element.id,
-            label: ''
-          };
-          updateData(elements, [...connections, newConn]);
-        }
-        setConnectingFrom(null);
-        setTempLine(null);
-        setTool('select');
+    // Salvar alterações
+    const saveData = () => {
+      if (onChange) {
+        onChange(editor.export());
       }
-    } else if (tool === 'select') {
-      setDragState({
-        active: true,
-        type: 'element',
-        startX: e.clientX,
-        startY: e.clientY,
-        elementStart: { x: element.x, y: element.y },
-        elementId: element.id
-      });
-    }
-  };
-
-  const handleMouseDown = (e) => {
-    if (e.target !== containerRef.current && e.target !== canvasRef.current) return;
-    
-    if (tool === 'pan') {
-      setDragState({
-        active: true,
-        type: 'pan',
-        startX: e.clientX,
-        startY: e.clientY,
-        panStart: { ...pan }
-      });
-      return;
-    }
-
-    setSelectedId(null);
-    if (connectingFrom) {
-      setConnectingFrom(null);
-      setTempLine(null);
-    }
-  };
-
-  const handleMouseMove = (e) => {
-    if (dragState.active) {
-      const dx = e.clientX - dragState.startX;
-      const dy = e.clientY - dragState.startY;
-
-      if (dragState.type === 'pan') {
-        setPan({
-          x: dragState.panStart.x + dx,
-          y: dragState.panStart.y + dy
-        });
-      } else if (dragState.type === 'element') {
-        const newX = dragState.elementStart.x + dx / zoom;
-        const newY = dragState.elementStart.y + dy / zoom;
-        updateElement(dragState.elementId, { x: newX, y: newY });
-      }
-    } else if (tempLine) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const canvasX = (e.clientX - rect.left - pan.x) / zoom;
-      const canvasY = (e.clientY - rect.top - pan.y) / zoom;
-      setTempLine({ ...tempLine, toX: canvasX, toY: canvasY });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setDragState({ active: false, type: null, startX: 0, startY: 0, elementStart: null });
-  };
-
-  const handleWheel = (e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      const newZoom = Math.min(Math.max(0.1, zoom * delta), 3);
-      setZoom(newZoom);
-    }
-  };
-
-  const renderElement = (element) => {
-    const isSelected = selectedId === element.id;
-    const style = {
-      position: 'absolute',
-      left: element.x,
-      top: element.y,
-      width: element.width,
-      height: element.height,
-      cursor: tool === 'select' ? 'move' : tool === 'connect' ? 'crosshair' : 'default',
-      zIndex: element.zIndex || 0,
-      pointerEvents: 'auto'
     };
 
-    if (element.type === 'sticky') {
-      return (
-        <div
-          key={element.id}
-          style={{ ...style, backgroundColor: element.color }}
-          className={`shadow-md p-3 rounded border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'}`}
-          onMouseDown={(e) => handleElementMouseDown(e, element)}
-        >
-          <textarea
-            value={element.text}
-            onChange={(e) => updateElement(element.id, { text: e.target.value })}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="w-full h-full bg-transparent border-none outline-none resize-none text-sm text-gray-800"
-            style={{ pointerEvents: 'auto' }}
-          />
-        </div>
-      );
-    }
+    editor.on('nodeCreated', saveData);
+    editor.on('nodeRemoved', saveData);
+    editor.on('nodeMoved', saveData);
+    editor.on('connectionCreated', saveData);
+    editor.on('connectionRemoved', saveData);
 
-    if (element.type === 'text') {
-      return (
-        <div
-          key={element.id}
-          style={{ ...style, backgroundColor: element.color }}
-          className={`p-3 rounded border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'}`}
-          onMouseDown={(e) => handleElementMouseDown(e, element)}
-        >
-          <textarea
-            value={element.text}
-            onChange={(e) => updateElement(element.id, { text: e.target.value })}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="w-full h-full bg-transparent border-none outline-none resize-none text-sm"
-            style={{ pointerEvents: 'auto' }}
-          />
-        </div>
-      );
-    }
+    // Expor funções globais para callbacks HTML
+    window.openFluxModal = (nodeId) => {
+      setCurrentNodeId(nodeId);
+      const titleEl = document.getElementById(`title-${nodeId}`);
+      if (titleEl) {
+        setNodeTitle(titleEl.textContent.trim());
+      }
+      setModalOpen(true);
+    };
 
-    if (element.type === 'frame') {
-      const childrenCount = getElementsInFrame(element.id).length;
-      return (
-        <div
-          key={element.id}
-          style={{ ...style, backgroundColor: element.color }}
-          className={`rounded-lg border-2 border-dashed ${isSelected ? 'border-blue-500 border-4' : 'border-gray-400'} transition-all`}
-          onMouseDown={(e) => handleElementMouseDown(e, element)}
-        >
-          <div className="m-2 flex items-center justify-between" onMouseDown={(e) => e.stopPropagation()}>
-            <input
-              value={element.text}
-              onChange={(e) => updateElement(element.id, { text: e.target.value })}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="bg-transparent border-none outline-none font-semibold text-gray-700 flex-1"
-              style={{ pointerEvents: 'auto' }}
-            />
-            {childrenCount > 0 && (
-              <span className="text-xs bg-gray-200 px-2 py-1 rounded-full text-gray-600 font-medium">
-                {childrenCount} {childrenCount === 1 ? 'item' : 'itens'}
-              </span>
-            )}
+    window.toggleFluxIcon = (nodeId, iconType) => {
+      const iconEl = document.getElementById(`${iconType}-${nodeId}`);
+      if (iconEl) {
+        iconEl.classList.toggle('has-data');
+      }
+    };
+
+    window.addFluxLabel = (nodeId, color) => {
+      const labelsContainer = document.getElementById(`labels-${nodeId}`);
+      if (labelsContainer) {
+        const label = document.createElement('div');
+        label.className = 'card-label';
+        label.style.background = color;
+        labelsContainer.appendChild(label);
+      }
+    };
+
+    window.clearFluxLabels = (nodeId) => {
+      const labelsContainer = document.getElementById(`labels-${nodeId}`);
+      if (labelsContainer) {
+        labelsContainer.innerHTML = '';
+      }
+    };
+
+    window.setFluxCover = (nodeId, color) => {
+      const coverEl = document.getElementById(`cover-${nodeId}`);
+      if (coverEl) {
+        coverEl.style.height = '60px';
+        coverEl.style.background = color;
+      }
+    };
+
+    window.clearFluxCover = (nodeId) => {
+      const coverEl = document.getElementById(`cover-${nodeId}`);
+      if (coverEl) {
+        coverEl.style.height = '0';
+        coverEl.style.background = 'none';
+      }
+    };
+
+    return () => {
+      if (editorRef.current) {
+        editorRef.current.clear();
+      }
+    };
+  }, []);
+
+  const handleDragStart = (e, nodeType) => {
+    e.dataTransfer.setData('node', nodeType);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const nodeType = e.dataTransfer.getData('node');
+    if (!nodeType || !editorRef.current) return;
+
+    const editor = editorRef.current;
+    const rect = containerRef.current.getBoundingClientRect();
+    
+    let pos_x = (e.clientX - rect.x) * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom));
+    let pos_y = (e.clientY - rect.y) * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom));
+
+    addNode(nodeType, pos_x, pos_y);
+  };
+
+  const addNode = (type, x, y) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    let html, inputs = 1, outputs = 1, className = type;
+    const tempId = Date.now();
+
+    const templates = {
+      'card-trello': () => ({
+        html: `
+          <button class="edit-btn" onclick="openFluxModal('${tempId}')">✏️</button>
+          <div class="card-cover" id="cover-${tempId}" style="height:0;"></div>
+          <div class="card-content">
+            <div class="card-labels" id="labels-${tempId}"></div>
+            <div class="card-title-trello" id="title-${tempId}" contenteditable="true">Nova Tarefa</div>
+            <div class="card-icons">
+              <span id="check-${tempId}">✔️ 0</span>
+              <span id="comment-${tempId}">💬 0</span>
+              <span id="attach-${tempId}">📎 0</span>
+              <span id="date-${tempId}">📅</span>
+            </div>
           </div>
-        </div>
-      );
+        `,
+        className: 'card-trello',
+        inputs: 1,
+        outputs: 1
+      }),
+      'card-fluxograma': () => ({
+        html: `
+          <div>
+            <div class="node-title-simple" contenteditable="true">Passo do Fluxo</div>
+            <div class="node-body-simple" contenteditable="true">Detalhe da ação</div>
+          </div>
+        `,
+        className: 'card-fluxograma',
+        inputs: 1,
+        outputs: 1
+      }),
+      'decisao': () => ({
+        html: `<div class="node-content"><div class="node-body-simple" contenteditable="true">É aprovado?</div></div>`,
+        className: 'decisao',
+        inputs: 1,
+        outputs: 2
+      }),
+      'ideia': () => ({
+        html: `<div class="node-content"><div class="node-body-simple" contenteditable="true">Ideia Central</div></div>`,
+        className: 'ideia',
+        inputs: 1,
+        outputs: 3
+      }),
+      'cargo': () => ({
+        html: `
+          <div class="cargo-content">
+            <div class="cargo-icon">👤</div>
+            <div class="cargo-info">
+              <div class="cargo-title" contenteditable="true">Gerente</div>
+              <div class="cargo-subtitle" contenteditable="true">Coordenador</div>
+            </div>
+          </div>
+        `,
+        className: 'cargo',
+        inputs: 1,
+        outputs: 2
+      })
+    };
+
+    const config = templates[type] ? templates[type]() : templates['card-fluxograma']();
+    
+    const nodeId = editor.addNode(
+      type,
+      config.inputs,
+      config.outputs,
+      x,
+      y,
+      config.className,
+      {},
+      config.html
+    );
+
+    // Inicializar card trello
+    if (type === 'card-trello') {
+      setTimeout(() => {
+        window.addFluxLabel(nodeId, '#61bd4f');
+        window.setFluxCover(nodeId, '#0079bf');
+        window.toggleFluxIcon(nodeId, 'check');
+      }, 10);
     }
 
-    // SVG shapes
-    return (
-      <svg
-        key={element.id}
-        style={style}
-        viewBox={`0 0 ${element.width} ${element.height}`}
-        onMouseDown={(e) => handleElementMouseDown(e, element)}
-      >
-        {element.type === 'rect' && (
-          <rect
-            width={element.width}
-            height={element.height}
-            fill={element.color}
-            stroke={isSelected ? '#3b82f6' : '#fff'}
-            strokeWidth={isSelected ? 3 : 2}
-            rx={8}
-          />
-        )}
-        
-        {element.type === 'circle' && (
-          <circle
-            cx={element.width / 2}
-            cy={element.height / 2}
-            r={Math.min(element.width, element.height) / 2 - 5}
-            fill={element.color}
-            stroke={isSelected ? '#3b82f6' : '#fff'}
-            strokeWidth={isSelected ? 3 : 2}
-          />
-        )}
-        
-        {element.type === 'diamond' && (
-          <path
-            d={`M ${element.width / 2} 5 L ${element.width - 5} ${element.height / 2} L ${element.width / 2} ${element.height - 5} L 5 ${element.height / 2} Z`}
-            fill={element.color}
-            stroke={isSelected ? '#3b82f6' : '#fff'}
-            strokeWidth={isSelected ? 3 : 2}
-          />
-        )}
-        
-        <text
-          x={element.width / 2}
-          y={element.height / 2}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="white"
-          fontSize="13"
-          fontWeight="600"
-          pointerEvents="none"
-        >
-          {element.text}
-        </text>
-      </svg>
-    );
+    if (onChange) {
+      onChange(editor.export());
+    }
   };
 
-  const renderConnection = (conn) => {
-    const fromEl = elements.find(el => el.id === conn.from);
-    const toEl = elements.find(el => el.id === conn.to);
-    if (!fromEl || !toEl) return null;
+  const saveModalChanges = () => {
+    if (currentNodeId && nodeTitle) {
+      const titleEl = document.getElementById(`title-${currentNodeId}`);
+      if (titleEl) {
+        titleEl.textContent = nodeTitle;
+      }
+      if (onChange && editorRef.current) {
+        onChange(editorRef.current.export());
+      }
+    }
+    setModalOpen(false);
+  };
 
-    const fromX = fromEl.x + fromEl.width / 2;
-    const fromY = fromEl.y + fromEl.height / 2;
-    const toX = toEl.x + toEl.width / 2;
-    const toY = toEl.y + toEl.height / 2;
+  const handleZoomIn = () => {
+    if (editorRef.current) {
+      editorRef.current.zoom_in();
+      setZoom(Math.round(editorRef.current.zoom * 100));
+    }
+  };
 
-    return (
-      <g key={conn.id}>
-        <defs>
-          <marker
-            id={`arrow-${conn.id}`}
-            markerWidth="10"
-            markerHeight="10"
-            refX="8"
-            refY="3"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
-          </marker>
-        </defs>
-        <line
-          x1={fromX}
-          y1={fromY}
-          x2={toX}
-          y2={toY}
-          stroke="#64748b"
-          strokeWidth="2"
-          markerEnd={`url(#arrow-${conn.id})`}
-        />
-        {conn.label && (
-          <text
-            x={(fromX + toX) / 2}
-            y={(fromY + toY) / 2}
-            textAnchor="middle"
-            fill="#374151"
-            fontSize="12"
-            fontWeight="600"
-          >
-            {conn.label}
-          </text>
-        )}
-      </g>
-    );
+  const handleZoomOut = () => {
+    if (editorRef.current) {
+      editorRef.current.zoom_out();
+      setZoom(Math.round(editorRef.current.zoom * 100));
+    }
+  };
+
+  const deleteSelected = () => {
+    if (editorRef.current && editorRef.current.node_selected) {
+      editorRef.current.removeNodeId(`node-${editorRef.current.node_selected}`);
+      if (onChange) {
+        onChange(editorRef.current.export());
+      }
+    }
   };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      {/* Toolbar */}
-      <div className="bg-white border-b px-4 py-2 flex items-center justify-between gap-3 flex-wrap shadow-sm">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={tool === 'select' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setTool('select'); setConnectingFrom(null); setTempLine(null); }}
-          >
-            <MousePointer className="w-4 h-4 mr-1" />
-            Selecionar
-          </Button>
-          
-          <Button
-            variant={tool === 'pan' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setTool('pan'); setConnectingFrom(null); setTempLine(null); }}
-          >
-            <Hand className="w-4 h-4 mr-1" />
-            Mover
-          </Button>
-          
-          <Button
-            variant={tool === 'connect' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setTool('connect'); setConnectingFrom(null); setTempLine(null); }}
-          >
-            <ArrowRight className="w-4 h-4 mr-1" />
-            Conectar
-          </Button>
-          
-          <div className="h-6 w-px bg-gray-300" />
-          
-          <Button variant="outline" size="sm" onClick={() => addElement('sticky')}>
-            <StickyNote className="w-4 h-4 mr-1" />
-            Nota
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={() => addElement('rect')}>
-            <Square className="w-4 h-4 mr-1" />
-            Retângulo
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={() => addElement('circle')}>
-            <Circle className="w-4 h-4 mr-1" />
-            Círculo
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={() => addElement('diamond')}>
-            <Diamond className="w-4 h-4 mr-1" />
-            Decisão
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={() => addElement('text')}>
-            <Type className="w-4 h-4 mr-1" />
-            Texto
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={() => addElement('frame')}>
-            <FrameIcon className="w-4 h-4 mr-1" />
-            Frame
-          </Button>
-          
-          {selectedId && (
-            <>
-              <div className="h-6 w-px bg-gray-300" />
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={deleteElement}
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Excluir
-              </Button>
-            </>
-          )}
-        </div>
+      <style>{`
+        .drawflow {
+          width: 100%;
+          height: 100%;
+          background: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+          background-size: 20px 20px;
+        }
         
+        .drawflow-node {
+          background: white;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          min-width: 200px;
+          max-width: 280px;
+          box-shadow: 0 4px 12px rgba(0,0,0,.08);
+          padding: 0;
+        }
+        
+        .drawflow-node.selected {
+          outline: 3px solid #4b5563;
+          border: 1px solid #4b5563;
+        }
+        
+        .node-title-simple {
+          padding: 10px 12px;
+          font-size: 14px;
+          font-weight: 600;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .node-body-simple {
+          padding: 12px;
+          font-size: 13px;
+          color: #374151;
+        }
+        
+        [contenteditable="true"]:focus {
+          outline: none;
+          background: #eef2ff;
+          border-radius: 4px;
+        }
+        
+        .card-fluxograma {
+          border-left: 6px solid #6b7280;
+        }
+        
+        .decisao {
+          min-width: 120px;
+          height: 120px;
+          background-color: #d1fae5;
+          border-radius: 4px;
+          transform: rotate(45deg);
+          border: 1px solid #34d399;
+        }
+        
+        .decisao .node-content {
+          transform: rotate(-45deg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+        }
+        
+        .ideia {
+          background: #fef3c7;
+          border: 2px solid #f59e0b;
+          border-radius: 50%;
+          min-width: 140px;
+          height: 140px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .cargo {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+        
+        .cargo-content {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+        }
+        
+        .cargo-icon {
+          font-size: 24px;
+        }
+        
+        .cargo-title {
+          font-weight: 600;
+          font-size: 14px;
+        }
+        
+        .cargo-subtitle {
+          font-size: 12px;
+          opacity: 0.9;
+        }
+        
+        .card-trello {
+          min-width: 260px;
+        }
+        
+        .edit-btn {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          background: #f4f5f7;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+          z-index: 10;
+        }
+        
+        .card-cover {
+          height: 0;
+          background-size: cover;
+          background-position: center;
+          border-radius: 8px 8px 0 0;
+          transition: height 0.2s;
+        }
+        
+        .card-content {
+          padding: 10px;
+        }
+        
+        .card-labels {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 6px;
+          flex-wrap: wrap;
+        }
+        
+        .card-label {
+          height: 8px;
+          width: 40px;
+          border-radius: 4px;
+        }
+        
+        .card-title-trello {
+          font-size: 14px;
+          font-weight: 500;
+          margin-bottom: 8px;
+        }
+        
+        .card-icons {
+          display: flex;
+          gap: 12px;
+          font-size: 12px;
+          color: #5e6c84;
+        }
+        
+        .card-icons span {
+          display: none;
+        }
+        
+        .card-icons span.has-data {
+          display: inline-block;
+        }
+      `}</style>
+
+      <div className="bg-white border-b px-4 py-2 flex items-center justify-between gap-3 flex-wrap shadow-sm">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'card-trello')}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-grab hover:bg-blue-50 transition-colors"
+          >
+            <Trello className="w-4 h-4" />
+            <span className="text-sm font-medium">Card Trello</span>
+          </div>
+          
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'card-fluxograma')}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-grab hover:bg-blue-50 transition-colors"
+          >
+            <GripVertical className="w-4 h-4" />
+            <span className="text-sm font-medium">Fluxo</span>
+          </div>
+          
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'decisao')}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-grab hover:bg-blue-50 transition-colors"
+          >
+            <Diamond className="w-4 h-4" />
+            <span className="text-sm font-medium">Decisão</span>
+          </div>
+          
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'ideia')}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-grab hover:bg-blue-50 transition-colors"
+          >
+            <Lightbulb className="w-4 h-4" />
+            <span className="text-sm font-medium">Ideia</span>
+          </div>
+          
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'cargo')}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-grab hover:bg-blue-50 transition-colors"
+          >
+            <UserCog className="w-4 h-4" />
+            <span className="text-sm font-medium">Cargo</span>
+          </div>
+
+          <Button variant="destructive" size="sm" onClick={deleteSelected}>
+            <Trash2 className="w-4 h-4 mr-1" />
+            Excluir
+          </Button>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}>
+          <Button variant="outline" size="sm" onClick={handleZoomOut}>
             <Minus className="w-4 h-4" />
           </Button>
-          <span className="text-sm font-medium w-16 text-center">{Math.round(zoom * 100)}%</span>
-          <Button variant="outline" size="sm" onClick={() => setZoom(Math.min(3, zoom + 0.2))}>
+          <span className="text-sm font-medium w-16 text-center">{zoom}%</span>
+          <Button variant="outline" size="sm" onClick={handleZoomIn}>
             <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden relative"
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        style={{ 
-          cursor: dragState.active && dragState.type === 'pan' ? 'grabbing' : tool === 'pan' ? 'grab' : 'default',
-          touchAction: 'none'
-        }}
-      >
-        <div
-          ref={canvasRef}
-          className="absolute"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: '0 0',
-            width: '5000px',
-            height: '5000px',
-            backgroundImage: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-            backgroundPosition: '0 0',
-            pointerEvents: 'none'
-          }}
-        >
-          {/* Connections layer */}
-          <svg
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none'
-            }}
-          >
-            {connections.map(renderConnection)}
-            {tempLine && (
-              <line
-                x1={tempLine.fromX}
-                y1={tempLine.fromY}
-                x2={tempLine.toX}
-                y2={tempLine.toY}
-                stroke="#3b82f6"
-                strokeWidth="2"
-                strokeDasharray="5,5"
-              />
-            )}
-          </svg>
-          
-          {/* Elements layer */}
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {elements
-              .sort((a, b) => {
-                // Frames sempre atrás
-                if (a.type === 'frame' && b.type !== 'frame') return -1;
-                if (b.type === 'frame' && a.type !== 'frame') return 1;
-                return (a.zIndex || 0) - (b.zIndex || 0);
-              })
-              .map(renderElement)}
-          </div>
-        </div>
-      </div>
+        className="flex-1"
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+      />
 
-      {/* Properties Panel */}
-      {selectedId && (
-        <div className="bg-white border-t p-3 shadow-lg">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">Cor:</span>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Card</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Título</label>
+              <Input
+                value={nodeTitle}
+                onChange={(e) => setNodeTitle(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Checklist</label>
+              <Button onClick={() => window.toggleFluxIcon(currentNodeId, 'check')}>
+                Toggle Checklist
+              </Button>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Etiquetas</label>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  className="w-16 h-8 rounded"
+                  style={{ background: '#61bd4f' }}
+                  onClick={() => window.addFluxLabel(currentNodeId, '#61bd4f')}
+                />
+                <button
+                  className="w-16 h-8 rounded"
+                  style={{ background: '#f2d600' }}
+                  onClick={() => window.addFluxLabel(currentNodeId, '#f2d600')}
+                />
+                <button
+                  className="w-16 h-8 rounded"
+                  style={{ background: '#eb5a46' }}
+                  onClick={() => window.addFluxLabel(currentNodeId, '#eb5a46')}
+                />
+                <Button variant="outline" onClick={() => window.clearFluxLabels(currentNodeId)}>
+                  Limpar
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Capa</label>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  className="w-20 h-12 rounded"
+                  style={{ background: '#0079bf' }}
+                  onClick={() => window.setFluxCover(currentNodeId, '#0079bf')}
+                />
+                <button
+                  className="w-20 h-12 rounded"
+                  style={{ background: '#61bd4f' }}
+                  onClick={() => window.setFluxCover(currentNodeId, '#61bd4f')}
+                />
+                <button
+                  className="w-20 h-12 rounded"
+                  style={{ background: '#eb5a46' }}
+                  onClick={() => window.setFluxCover(currentNodeId, '#eb5a46')}
+                />
+                <Button variant="outline" onClick={() => window.clearFluxCover(currentNodeId)}>
+                  Remover
+                </Button>
+              </div>
+            </div>
+
             <div className="flex gap-2">
-              {COLORS.map(color => {
-                const el = elements.find(e => e.id === selectedId);
-                return (
-                  <button
-                    key={color}
-                    className="w-8 h-8 rounded border-2 hover:scale-110 transition-transform"
-                    style={{ 
-                      backgroundColor: color,
-                      borderColor: el?.color === color ? '#3b82f6' : '#d1d5db'
-                    }}
-                    onClick={() => updateElement(selectedId, { color })}
-                  />
-                );
-              })}
+              <Button onClick={() => window.toggleFluxIcon(currentNodeId, 'attach')}>
+                Toggle Anexo
+              </Button>
+              <Button onClick={() => window.toggleFluxIcon(currentNodeId, 'comment')}>
+                Toggle Comentário
+              </Button>
+              <Button onClick={() => window.toggleFluxIcon(currentNodeId, 'date')}>
+                Toggle Data
+              </Button>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveModalChanges}>
+                Salvar
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
