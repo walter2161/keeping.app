@@ -6,8 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 
 export default function AIAssistant({ fileContext = null, fileType = null, currentFolderId = null, currentPage = 'Drive' }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => {
+    const saved = localStorage.getItem('aiAssistant_isOpen');
+    return saved === 'true';
+  });
+  const [isMinimized, setIsMinimized] = useState(() => {
+    const saved = localStorage.getItem('aiAssistant_isMinimized');
+    return saved === 'true';
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -19,14 +25,24 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
     cacheTime: 0,
   });
 
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: fileContext 
-        ? `Olá! Sou ${user?.assistant_name || 'sua secretária virtual'} especializada em ${getFileTypeLabel(fileType)}. Como posso ajudar?`
-        : `Olá! Sou ${user?.assistant_name || 'a assistente virtual'} do Keeping. Como posso ajudar você hoje?`
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('aiAssistant_messages');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Erro ao carregar histórico:', e);
+      }
     }
-  ]);
+    return [
+      {
+        role: 'assistant',
+        content: fileContext 
+          ? `Olá! Sou ${user?.assistant_name || 'sua secretária virtual'} especializada em ${getFileTypeLabel(fileType)}. Como posso ajudar?`
+          : `Olá! Sou ${user?.assistant_name || 'a assistente virtual'} do Keeping. Como posso ajudar você hoje?`
+      }
+    ];
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,6 +50,21 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // Salvar estado do chat
+  useEffect(() => {
+    localStorage.setItem('aiAssistant_isOpen', isOpen);
+  }, [isOpen]);
+
+  useEffect(() => {
+    localStorage.setItem('aiAssistant_isMinimized', isMinimized);
+  }, [isMinimized]);
+
+  // Salvar últimas 10 mensagens
+  useEffect(() => {
+    const last10 = messages.slice(-10);
+    localStorage.setItem('aiAssistant_messages', JSON.stringify(last10));
   }, [messages]);
 
   function getFileTypeLabel(type) {
@@ -138,9 +169,16 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover'];
       const isAction = actionKeywords.some(keyword => input.toLowerCase().includes(keyword));
 
+      // Histórico das últimas mensagens para contexto
+      const recentMessages = messages.slice(-9); // Últimas 9 + a atual = 10
+      const conversationHistory = recentMessages.map(m => `${m.role === 'user' ? 'Usuário' : 'Assistente'}: ${m.content}`).join('\n');
+
       if (isAction) {
         // Usar InvokeLLM com JSON schema para forçar estrutura
         const actionPrompt = `Você é uma assistente que executa comandos.
+
+Histórico da conversa:
+${conversationHistory}
 
 Contexto:
 - Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz'}
@@ -225,6 +263,9 @@ Converta o comando em uma ação estruturada.`;
         const chatPrompt = `${getSystemPrompt()}
 
 Você está conversando com o usuário sobre o app Keeping.
+
+Histórico da conversa:
+${conversationHistory}
 
 Localização atual: ${currentFolder ? currentFolder.name : 'Raiz'}
 ${contextInfo}
