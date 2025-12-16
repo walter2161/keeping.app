@@ -106,11 +106,49 @@ export default function FluxMap({ data, onChange }) {
     setSelectedId(null);
   };
 
-  const handleMouseDown = (e) => {
-    const rect = containerRef.current.getBoundingClientRect();
-    const canvasX = (e.clientX - rect.left - pan.x) / zoom;
-    const canvasY = (e.clientY - rect.top - pan.y) / zoom;
+  const handleElementMouseDown = (e, element) => {
+    e.stopPropagation();
+    
+    setSelectedId(element.id);
+    
+    if (tool === 'connect') {
+      if (!connectingFrom) {
+        setConnectingFrom(element.id);
+        setTempLine({
+          fromX: element.x + element.width / 2,
+          fromY: element.y + element.height / 2,
+          toX: element.x + element.width / 2,
+          toY: element.y + element.height / 2
+        });
+      } else {
+        if (connectingFrom !== element.id) {
+          const newConn = {
+            id: Date.now().toString(),
+            from: connectingFrom,
+            to: element.id,
+            label: ''
+          };
+          updateData(elements, [...connections, newConn]);
+        }
+        setConnectingFrom(null);
+        setTempLine(null);
+        setTool('select');
+      }
+    } else if (tool === 'select') {
+      setDragState({
+        active: true,
+        type: 'element',
+        startX: e.clientX,
+        startY: e.clientY,
+        elementStart: { x: element.x, y: element.y },
+        elementId: element.id
+      });
+    }
+  };
 
+  const handleMouseDown = (e) => {
+    if (e.target !== containerRef.current && e.target !== canvasRef.current) return;
+    
     if (tool === 'pan') {
       setDragState({
         active: true,
@@ -122,60 +160,10 @@ export default function FluxMap({ data, onChange }) {
       return;
     }
 
-    // Check if clicking on an element
-    let clickedElement = null;
-    for (let i = elements.length - 1; i >= 0; i--) {
-      const el = elements[i];
-      if (canvasX >= el.x && canvasX <= el.x + el.width &&
-          canvasY >= el.y && canvasY <= el.y + el.height) {
-        clickedElement = el;
-        break;
-      }
-    }
-
-    if (clickedElement) {
-      setSelectedId(clickedElement.id);
-      
-      if (tool === 'connect') {
-        if (!connectingFrom) {
-          setConnectingFrom(clickedElement.id);
-          setTempLine({
-            fromX: clickedElement.x + clickedElement.width / 2,
-            fromY: clickedElement.y + clickedElement.height / 2,
-            toX: canvasX,
-            toY: canvasY
-          });
-        } else {
-          // Create connection
-          if (connectingFrom !== clickedElement.id) {
-            const newConn = {
-              id: Date.now().toString(),
-              from: connectingFrom,
-              to: clickedElement.id,
-              label: ''
-            };
-            updateData(elements, [...connections, newConn]);
-          }
-          setConnectingFrom(null);
-          setTempLine(null);
-          setTool('select');
-        }
-      } else if (tool === 'select') {
-        setDragState({
-          active: true,
-          type: 'element',
-          startX: e.clientX,
-          startY: e.clientY,
-          elementStart: { x: clickedElement.x, y: clickedElement.y },
-          elementId: clickedElement.id
-        });
-      }
-    } else {
-      setSelectedId(null);
-      if (connectingFrom) {
-        setConnectingFrom(null);
-        setTempLine(null);
-      }
+    setSelectedId(null);
+    if (connectingFrom) {
+      setConnectingFrom(null);
+      setTempLine(null);
     }
   };
 
@@ -234,6 +222,7 @@ export default function FluxMap({ data, onChange }) {
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
           className={`shadow-md p-3 rounded border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'}`}
+          onMouseDown={(e) => handleElementMouseDown(e, element)}
         >
           <textarea
             value={element.text}
@@ -252,6 +241,7 @@ export default function FluxMap({ data, onChange }) {
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
           className={`p-3 rounded border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'}`}
+          onMouseDown={(e) => handleElementMouseDown(e, element)}
         >
           <textarea
             value={element.text}
@@ -271,8 +261,9 @@ export default function FluxMap({ data, onChange }) {
           key={element.id}
           style={{ ...style, backgroundColor: element.color }}
           className={`rounded-lg border-2 border-dashed ${isSelected ? 'border-blue-500 border-4' : 'border-gray-400'} transition-all`}
+          onMouseDown={(e) => handleElementMouseDown(e, element)}
         >
-          <div className="m-2 flex items-center justify-between">
+          <div className="m-2 flex items-center justify-between" onMouseDown={(e) => e.stopPropagation()}>
             <input
               value={element.text}
               onChange={(e) => updateElement(element.id, { text: e.target.value })}
@@ -296,6 +287,7 @@ export default function FluxMap({ data, onChange }) {
         key={element.id}
         style={style}
         viewBox={`0 0 ${element.width} ${element.height}`}
+        onMouseDown={(e) => handleElementMouseDown(e, element)}
       >
         {element.type === 'rect' && (
           <rect
