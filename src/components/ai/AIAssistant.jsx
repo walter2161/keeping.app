@@ -157,23 +157,19 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     }
   };
 
+  const avatarUrl = user?.assistant_avatar || 'https://image.pollinations.ai/prompt/professional%20female%20assistant%2C%20business%20suit%2C%20elegant%20glasses%2C%20long%20dark%20hair%2C%20friendly%20confident%20smile%2C%20shoulder%20portrait%2C%20modern%20office%20background%2C%20professional%20corporate%20photo%2C%20studio%20lighting?width=350&height=350&model=flux&nologo=true&enhance=true';
+
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0 overflow-hidden border-2 border-white hover:scale-110 transition-transform"
       >
-        {user?.assistant_avatar ? (
-          <img 
-            src={user.assistant_avatar} 
-            alt="Assistente"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-            <MessageCircle className="w-6 h-6 text-white" />
-          </div>
-        )}
+        <img 
+          src={avatarUrl} 
+          alt="Assistente"
+          className="w-full h-full object-cover"
+        />
       </button>
     );
   }
@@ -187,16 +183,12 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
-            {user?.assistant_avatar ? (
-              <img 
-                src={user.assistant_avatar} 
-                alt="Assistente"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <MessageCircle className="w-5 h-5" />
-            )}
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30">
+            <img 
+              src={avatarUrl} 
+              alt="Assistente"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h3 className="font-semibold">{user?.assistant_name || 'Assistente Virtual'}</h3>
