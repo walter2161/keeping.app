@@ -402,9 +402,9 @@ export default function FluxMap({ data, onChange, onImport }) {
           border: 2px solid #94a3b8;
           background: white;
           border-radius: 50%;
-          position: absolute;
           opacity: 0;
           transition: opacity 0.2s;
+          z-index: 10;
         }
 
         .drawflow .drawflow-node:hover .input,
@@ -416,47 +416,79 @@ export default function FluxMap({ data, onChange, onImport }) {
         .drawflow .drawflow-node .output:hover {
           background: #3b82f6;
           border-color: #3b82f6;
-          transform: scale(1.2);
         }
         
-        .drawflow .drawflow-node .input_1 {
+        .drawflow .drawflow-node .inputs {
+          width: 100%;
+          height: 100%;
+          position: absolute;
+          top: 0;
+          left: 0;
+          pointer-events: none;
+        }
+
+        .drawflow .drawflow-node .outputs {
+          width: 100%;
+          height: 100%;
+          position: absolute;
+          top: 0;
+          left: 0;
+          pointer-events: none;
+        }
+
+        .drawflow .drawflow-node .inputs .input,
+        .drawflow .drawflow-node .outputs .output {
+          pointer-events: all;
+        }
+
+        .drawflow .drawflow-node .inputs .input_1 {
+          position: absolute !important;
           left: -5px !important;
           top: 50% !important;
-          transform: translateY(-50%) !important;
+          margin-top: -5px !important;
+          transform: none !important;
         }
 
-        .drawflow .drawflow-node .input_2 {
+        .drawflow .drawflow-node .inputs .input_2 {
+          position: absolute !important;
           left: 50% !important;
           top: -5px !important;
-          transform: translateX(-50%) !important;
+          margin-left: -5px !important;
+          transform: none !important;
         }
         
-        .drawflow .drawflow-node .output_1 {
+        .drawflow .drawflow-node .outputs .output_1 {
+          position: absolute !important;
           right: -5px !important;
+          left: auto !important;
           top: 50% !important;
-          transform: translateY(-50%) !important;
+          margin-top: -5px !important;
+          transform: none !important;
         }
 
-        .drawflow .drawflow-node .output_2 {
+        .drawflow .drawflow-node .outputs .output_2 {
+          position: absolute !important;
           left: 50% !important;
           bottom: -5px !important;
-          transform: translateX(-50%) !important;
+          top: auto !important;
+          margin-left: -5px !important;
+          transform: none !important;
         }
 
-        .drawflow .drawflow-node .input_1:hover {
-          transform: translateY(-50%) scale(1.2) !important;
+        .drawflow .drawflow-node .inputs .input_1:hover {
+          transform: scale(1.2) !important;
         }
 
-        .drawflow .drawflow-node .input_2:hover {
-          transform: translateX(-50%) scale(1.2) !important;
+        .drawflow .drawflow-node .inputs .input_2:hover {
+          transform: scale(1.2) !important;
         }
 
-        .drawflow .drawflow-node .output_1:hover {
-          transform: translateY(-50%) scale(1.2) !important;
+        .drawflow .drawflow-node .outputs .output_1:hover {
+          transform: scale(1.2) !important;
         }
 
-        .drawflow .drawflow-node .output_2:hover {
-          transform: translateX(-50%) scale(1.2) !important;
+        .drawflow .drawflow-node .outputs .output_2:hover {
+          transform: scale(1.2) !important;
         }
 
         .sidebar-flux {
