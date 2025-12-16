@@ -28,6 +28,8 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [zoom, setZoom] = useState(100);
   const [editDialog, setEditDialog] = useState({ open: false, nodeId: null, data: {} });
   const [importDialog, setImportDialog] = useState({ open: false, data: null });
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState(false);
 
   const createNodeHTML = (name) => {
     let html = '';
@@ -173,8 +175,9 @@ export default function FluxMap({ data, onChange, onImport }) {
     editor.on('connectionCreated', saveData);
     editor.on('connectionRemoved', saveData);
     
-    // Double click to edit
+    // Track selected node
     editor.on('nodeSelected', (id) => {
+      setSelectedNodeId(id);
       const nodeElement = document.getElementById(`node-${id}`);
       if (nodeElement) {
         nodeElement.addEventListener('dblclick', () => {
@@ -186,6 +189,10 @@ export default function FluxMap({ data, onChange, onImport }) {
           });
         });
       }
+    });
+
+    editor.on('nodeUnselected', () => {
+      setSelectedNodeId(null);
     });
 
     const elements = document.getElementsByClassName('drag-drawflow');
@@ -270,10 +277,18 @@ export default function FluxMap({ data, onChange, onImport }) {
     }
   };
 
-  const handleDelete = () => {
-    if (editorRef.current && editorRef.current.node_selected) {
-      editorRef.current.removeNodeId(`node-${editorRef.current.node_selected}`);
+  const handleDeleteClick = () => {
+    if (selectedNodeId) {
+      setDeleteDialog(true);
     }
+  };
+
+  const handleConfirmDelete = () => {
+    if (editorRef.current && selectedNodeId) {
+      editorRef.current.removeNodeId(`node-${selectedNodeId}`);
+      setSelectedNodeId(null);
+    }
+    setDeleteDialog(false);
   };
 
   const handleEditSave = () => {
@@ -530,20 +545,31 @@ export default function FluxMap({ data, onChange, onImport }) {
             </Button>
           </div>
 
-          <Button variant="destructive" size="sm" onClick={handleDelete} className="w-full h-7 text-xs">
-            <Trash2 className="w-3 h-3 mr-1" />
-            Excluir
-          </Button>
+
         </div>
       </div>
 
       <div
         id="drawflow"
         ref={drawflowRef}
-        className="flex-1"
+        className="flex-1 relative"
         onDrop={(e) => e.preventDefault()}
         onDragOver={(e) => e.preventDefault()}
-      />
+      >
+        {selectedNodeId && (
+          <div className="absolute top-4 right-4 z-50">
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleDeleteClick}
+              className="shadow-lg"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Item
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
@@ -596,6 +622,26 @@ export default function FluxMap({ data, onChange, onImport }) {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmImport}>
               Sim, Importar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialog(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+              Sim, Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
