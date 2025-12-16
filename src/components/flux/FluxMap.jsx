@@ -48,41 +48,48 @@ export default function FluxMap({ data, onChange, onImport }) {
 
       case 'card-kanban':
         const title = nodeData.title || '';
-        const labels = nodeData.labels || [];
-        const members = nodeData.members || [];
-        const dueDate = nodeData.dueDate ? new Date(nodeData.dueDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : '';
+        const priority = nodeData.priority || 'medium';
+        const coverType = nodeData.coverType || 'none';
+        const coverColor = nodeData.coverColor || '#3b82f6';
+        const coverImage = nodeData.coverImage || '';
+        const attachments = nodeData.attachments || [];
         
-        const labelColorMap = {
-          'bg-green-500': '#22c55e',
-          'bg-yellow-500': '#eab308',
-          'bg-orange-500': '#f97316',
-          'bg-red-500': '#ef4444',
-          'bg-purple-500': '#a855f7',
-          'bg-blue-500': '#3b82f6',
-          'bg-pink-500': '#ec4899',
-          'bg-indigo-500': '#6366f1'
+        const priorityColorMap = {
+          low: 'bg-gray-100 text-gray-700',
+          medium: 'bg-yellow-100 text-yellow-700',
+          high: 'bg-red-100 text-red-700',
         };
         
-        const labelsHTML = labels.length > 0 ? labels.map(label => {
-          const color = labelColorMap[label.color] || '#3b82f6';
-          return `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">${label.name}</span>`;
-        }).join('') : '';
+        const priorityBgMap = {
+          low: '#f3f4f6',
+          medium: '#fef3c7',
+          high: '#fee2e2',
+        };
         
-        const membersHTML = members.length > 0 ? members.slice(0, 3).join(', ') : '';
+        const priorityTextMap = {
+          low: '#374151',
+          medium: '#854d0e',
+          high: '#991b1b',
+        };
         
-        const showFooter = membersHTML || dueDate;
+        const priorityLabel = priority === 'high' ? 'Alta' : priority === 'medium' ? 'Média' : 'Baixa';
+        
+        const showPriorityBadge = title || coverType !== 'none' || attachments.length > 0;
+        
+        const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
+                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; height: 96px; object-fit: cover;" />` : '';
         
         html = `
           <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
+            ${coverHTML}
             <div style="padding: 12px;">
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${labelsHTML || showFooter ? '12px' : '0'};">
+              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${showPriorityBadge ? '8px' : '0'};">
                 <input type="text" value="${title}" placeholder="Título do card" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
               </div>
-              ${labelsHTML ? `<div style="display: flex; gap: 6px; margin-bottom: ${showFooter ? '12px' : '0'}; flex-wrap: wrap;">${labelsHTML}</div>` : ''}
-              ${showFooter ? `
-              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b;">
-                ${membersHTML ? `<div style="display: flex; align-items: center; gap: 8px;"><span>👤</span><span>${membersHTML}</span></div>` : '<div></div>'}
-                ${dueDate ? `<span>📅 ${dueDate}</span>` : ''}
+              ${showPriorityBadge ? `
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="background: ${priorityBgMap[priority]}; color: ${priorityTextMap[priority]}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${priorityLabel}</span>
+                ${attachments.length > 0 ? `<span style="border: 1px solid #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px;">📎 ${attachments.length}</span>` : ''}
               </div>` : ''}
             </div>
           </div>
