@@ -48,6 +48,11 @@ export default function KanbanBoard({ data, onChange }) {
   const [showNewColumn, setShowNewColumn] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
 
+  React.useEffect(() => {
+    if (data?.columns) setColumns(data.columns);
+    if (data?.cards) setCards(data.cards);
+  }, [data]);
+
   const saveChanges = (newColumns, newCards) => {
     setColumns(newColumns);
     setCards(newCards);
