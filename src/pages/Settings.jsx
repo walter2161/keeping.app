@@ -41,7 +41,7 @@ export default function Settings() {
 
     try {
       const cleanUrl = wpUrl.trim().replace(/\/$/, '');
-      const response = await fetch(`${cleanUrl}/wp-json/keeping/v1/info`, {
+      const response = await fetch(`${cleanUrl}/wp-json/keeping/v1/test`, {
         headers: {
           'X-API-Key': apiKey.trim(),
         },
@@ -51,10 +51,14 @@ export default function Settings() {
         const data = await response.json();
         setTestStatus({ success: true, data });
       } else {
-        setTestStatus({ success: false, error: 'Falha ao conectar. Verifique URL e API Key.' });
+        const errorData = await response.json().catch(() => ({}));
+        setTestStatus({ 
+          success: false, 
+          error: errorData.message || 'API Key inválida. Verifique suas credenciais.' 
+        });
       }
     } catch (error) {
-      setTestStatus({ success: false, error: 'Erro de conexão. Verifique a URL.' });
+      setTestStatus({ success: false, error: 'Erro de conexão. Verifique a URL do WordPress.' });
     } finally {
       setTesting(false);
     }
@@ -163,10 +167,8 @@ export default function Settings() {
                     </p>
                     {testStatus.success ? (
                       <div className="mt-2 text-sm text-green-800">
-                        <p><strong>Plugin:</strong> {testStatus.data.plugin}</p>
-                        <p><strong>Versão:</strong> {testStatus.data.version}</p>
-                        <p><strong>WordPress:</strong> {testStatus.data.wordpress_version}</p>
-                        <p><strong>PHP:</strong> {testStatus.data.php_version}</p>
+                        <p>{testStatus.data.message}</p>
+                        <p className="mt-1"><strong>Usuário:</strong> {testStatus.data.user_email}</p>
                       </div>
                     ) : (
                       <p className="text-sm text-red-800 mt-1">{testStatus.error}</p>
