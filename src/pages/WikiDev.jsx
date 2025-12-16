@@ -1,0 +1,687 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { Button } from "@/components/ui/button";
+import { 
+  Code, Download, ArrowLeft, Database, Server, 
+  Key, FileCode, Copy, Check
+} from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+
+export default function WikiDev() {
+  const [copied, setCopied] = useState(false);
+
+  const phpPlugin = `<?php
+/**
+ * Plugin Name: Keeping Database API
+ * Description: API REST para integração Keeping - Banco de dados isolado por usuário
+ * Version: 1.0.0
+ * Author: Keeping Team
+ * Text Domain: keeping
+ */
+
+if (!defined('ABSPATH')) exit;
+
+define('KEEPING_VERSION', '1.0.0');
+define('KEEPING_PREFIX', 'keeping_');
+define('KEEPING_API_KEY', 'keeping_secure_key_2025_change_this'); // ALTERAR PARA PRODUÇÃO
+
+// Aumenta limites
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '300');
+@ini_set('post_max_size', '100M');
+@ini_set('upload_max_filesize', '100M');
+
+// ================================
+// CORS HEADERS
+// ================================
+add_action('init', function() {
+    if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, X-API-Key, Authorization');
+        header('Access-Control-Max-Age: 86400');
+        status_header(200);
+        exit();
+    }
+});
+
+add_action('rest_api_init', function() {
+    remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
+    add_filter('rest_pre_serve_request', function($value) {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, X-API-Key, Authorization');
+        return $value;
+    });
+});
+
+// ================================
+// ATIVAÇÃO - CRIAÇÃO DAS TABELAS
+// ================================
+register_activation_hook(__FILE__, 'keeping_activate');
+
+function keeping_activate() {
+    global $wpdb;
+    $charset = $wpdb->get_charset_collate();
+    $prefix = $wpdb->prefix . KEEPING_PREFIX;
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+    // Tabela de Pastas
+    dbDelta("CREATE TABLE {$prefix}folders (
+        id VARCHAR(36) NOT NULL PRIMARY KEY,
+        user_email VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        parent_id VARCHAR(36),
+        icon VARCHAR(100),
+        color VARCHAR(50),
+        \`order\` INT DEFAULT 0,
+        deleted TINYINT(1) DEFAULT 0,
+        deleted_at DATETIME,
+        original_parent_id VARCHAR(36),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user_email (user_email),
+        INDEX idx_parent_id (parent_id),
+        INDEX idx_deleted (deleted)
+    ) $charset;");
+
+    // Tabela de Arquivos
+    dbDelta("CREATE TABLE {$prefix}files (
+        id VARCHAR(36) NOT NULL PRIMARY KEY,
+        user_email VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        folder_id VARCHAR(36),
+        type VARCHAR(50) NOT NULL,
+        content LONGTEXT,
+        file_url VARCHAR(500),
+        \`order\` INT DEFAULT 0,
+        deleted TINYINT(1) DEFAULT 0,
+        deleted_at DATETIME,
+        original_folder_id VARCHAR(36),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user_email (user_email),
+        INDEX idx_folder_id (folder_id),
+        INDEX idx_type (type),
+        INDEX idx_deleted (deleted)
+    ) $charset;");
+
+    update_option('keeping_version', KEEPING_VERSION);
+}
+
+// ================================
+// VERIFICAÇÃO DE API KEY
+// ================================
+function keeping_verify_api_key() {
+    $headers = getallheaders();
+    $api_key = isset($headers['X-API-Key']) ? $headers['X-API-Key'] : 
+               (isset($headers['x-api-key']) ? $headers['x-api-key'] : null);
+    
+    if ($api_key !== KEEPING_API_KEY) {
+        return new WP_Error('unauthorized', 'Invalid API Key', ['status' => 401]);
+    }
+    
+    return true;
+}
+
+// ================================
+// HELPER: GERAR UUID
+// ================================
+function keeping_generate_uuid() {
+    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000,
+        mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+}
+
+// ================================
+// ROTAS DA API - FOLDERS
+// ================================
+add_action('rest_api_init', function() {
+    // Listar pastas
+    register_rest_route('keeping/v1', '/folders', [
+        'methods' => 'GET',
+        'callback' => 'keeping_get_folders',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Criar pasta
+    register_rest_route('keeping/v1', '/folders', [
+        'methods' => 'POST',
+        'callback' => 'keeping_create_folder',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Atualizar pasta
+    register_rest_route('keeping/v1', '/folders/(?P<id>[a-zA-Z0-9-]+)', [
+        'methods' => 'PUT',
+        'callback' => 'keeping_update_folder',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Deletar pasta
+    register_rest_route('keeping/v1', '/folders/(?P<id>[a-zA-Z0-9-]+)', [
+        'methods' => 'DELETE',
+        'callback' => 'keeping_delete_folder',
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+function keeping_get_folders($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'folders';
+    $user_email = $request->get_param('user_email');
+    
+    if (!$user_email) {
+        return new WP_Error('missing_param', 'user_email is required', ['status' => 400]);
+    }
+
+    $folders = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table WHERE user_email = %s ORDER BY \`order\` ASC",
+        $user_email
+    ), ARRAY_A);
+
+    return rest_ensure_response($folders);
+}
+
+function keeping_create_folder($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'folders';
+    $data = $request->get_json_params();
+
+    if (!isset($data['user_email']) || !isset($data['name'])) {
+        return new WP_Error('missing_param', 'user_email and name are required', ['status' => 400]);
+    }
+
+    $folder = [
+        'id' => keeping_generate_uuid(),
+        'user_email' => $data['user_email'],
+        'name' => $data['name'],
+        'parent_id' => isset($data['parent_id']) ? $data['parent_id'] : null,
+        'icon' => isset($data['icon']) ? $data['icon'] : null,
+        'color' => isset($data['color']) ? $data['color'] : null,
+        'order' => isset($data['order']) ? intval($data['order']) : 0,
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+    ];
+
+    $wpdb->insert($table, $folder);
+    
+    return rest_ensure_response($folder);
+}
+
+function keeping_update_folder($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'folders';
+    $id = $request->get_param('id');
+    $data = $request->get_json_params();
+
+    $update_data = ['updated_at' => current_time('mysql')];
+    
+    if (isset($data['name'])) $update_data['name'] = $data['name'];
+    if (isset($data['parent_id'])) $update_data['parent_id'] = $data['parent_id'];
+    if (isset($data['icon'])) $update_data['icon'] = $data['icon'];
+    if (isset($data['color'])) $update_data['color'] = $data['color'];
+    if (isset($data['order'])) $update_data['order'] = intval($data['order']);
+    if (isset($data['deleted'])) $update_data['deleted'] = $data['deleted'] ? 1 : 0;
+    if (isset($data['deleted_at'])) $update_data['deleted_at'] = $data['deleted_at'];
+    if (isset($data['original_parent_id'])) $update_data['original_parent_id'] = $data['original_parent_id'];
+
+    $wpdb->update($table, $update_data, ['id' => $id]);
+    
+    $folder = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %s", $id), ARRAY_A);
+    
+    return rest_ensure_response($folder);
+}
+
+function keeping_delete_folder($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'folders';
+    $id = $request->get_param('id');
+
+    $wpdb->delete($table, ['id' => $id]);
+    
+    return rest_ensure_response(['success' => true]);
+}
+
+// ================================
+// ROTAS DA API - FILES
+// ================================
+add_action('rest_api_init', function() {
+    // Listar arquivos
+    register_rest_route('keeping/v1', '/files', [
+        'methods' => 'GET',
+        'callback' => 'keeping_get_files',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Criar arquivo
+    register_rest_route('keeping/v1', '/files', [
+        'methods' => 'POST',
+        'callback' => 'keeping_create_file',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Atualizar arquivo
+    register_rest_route('keeping/v1', '/files/(?P<id>[a-zA-Z0-9-]+)', [
+        'methods' => 'PUT',
+        'callback' => 'keeping_update_file',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Deletar arquivo
+    register_rest_route('keeping/v1', '/files/(?P<id>[a-zA-Z0-9-]+)', [
+        'methods' => 'DELETE',
+        'callback' => 'keeping_delete_file',
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+function keeping_get_files($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'files';
+    $user_email = $request->get_param('user_email');
+    
+    if (!$user_email) {
+        return new WP_Error('missing_param', 'user_email is required', ['status' => 400]);
+    }
+
+    $files = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table WHERE user_email = %s ORDER BY \`order\` ASC",
+        $user_email
+    ), ARRAY_A);
+
+    return rest_ensure_response($files);
+}
+
+function keeping_create_file($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'files';
+    $data = $request->get_json_params();
+
+    if (!isset($data['user_email']) || !isset($data['name']) || !isset($data['type'])) {
+        return new WP_Error('missing_param', 'user_email, name and type are required', ['status' => 400]);
+    }
+
+    $file = [
+        'id' => keeping_generate_uuid(),
+        'user_email' => $data['user_email'],
+        'name' => $data['name'],
+        'type' => $data['type'],
+        'folder_id' => isset($data['folder_id']) ? $data['folder_id'] : null,
+        'content' => isset($data['content']) ? $data['content'] : null,
+        'file_url' => isset($data['file_url']) ? $data['file_url'] : null,
+        'order' => isset($data['order']) ? intval($data['order']) : 0,
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+    ];
+
+    $wpdb->insert($table, $file);
+    
+    return rest_ensure_response($file);
+}
+
+function keeping_update_file($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'files';
+    $id = $request->get_param('id');
+    $data = $request->get_json_params();
+
+    $update_data = ['updated_at' => current_time('mysql')];
+    
+    if (isset($data['name'])) $update_data['name'] = $data['name'];
+    if (isset($data['folder_id'])) $update_data['folder_id'] = $data['folder_id'];
+    if (isset($data['content'])) $update_data['content'] = $data['content'];
+    if (isset($data['file_url'])) $update_data['file_url'] = $data['file_url'];
+    if (isset($data['order'])) $update_data['order'] = intval($data['order']);
+    if (isset($data['deleted'])) $update_data['deleted'] = $data['deleted'] ? 1 : 0;
+    if (isset($data['deleted_at'])) $update_data['deleted_at'] = $data['deleted_at'];
+    if (isset($data['original_folder_id'])) $update_data['original_folder_id'] = $data['original_folder_id'];
+
+    $wpdb->update($table, $update_data, ['id' => $id]);
+    
+    $file = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %s", $id), ARRAY_A);
+    
+    return rest_ensure_response($file);
+}
+
+function keeping_delete_file($request) {
+    $auth = keeping_verify_api_key();
+    if (is_wp_error($auth)) return $auth;
+
+    global $wpdb;
+    $table = $wpdb->prefix . KEEPING_PREFIX . 'files';
+    $id = $request->get_param('id');
+
+    $wpdb->delete($table, ['id' => $id]);
+    
+    return rest_ensure_response(['success' => true]);
+}
+
+// ================================
+// INFO DO PLUGIN
+// ================================
+add_action('rest_api_init', function() {
+    register_rest_route('keeping/v1', '/info', [
+        'methods' => 'GET',
+        'callback' => function() {
+            return rest_ensure_response([
+                'plugin' => 'Keeping Database API',
+                'version' => KEEPING_VERSION,
+                'wordpress_version' => get_bloginfo('version'),
+                'php_version' => phpversion(),
+                'status' => 'active'
+            ]);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(phpPlugin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([phpPlugin], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'keeping-database-api.php';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+          <Link to={createPageUrl('Wiki')}>
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar para Wiki
+            </Button>
+          </Link>
+          
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center">
+              <Code className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">Documentação para Desenvolvedores</h1>
+              <p className="text-gray-600">Integração WordPress e informações técnicas</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="plugin">Plugin PHP</TabsTrigger>
+              <TabsTrigger value="api">API Reference</TabsTrigger>
+              <TabsTrigger value="setup">Configuração</TabsTrigger>
+            </TabsList>
+
+            {/* Overview */}
+            <TabsContent value="overview" className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Arquitetura do Sistema</h2>
+                <p className="text-gray-700 mb-4">
+                  O Keeping utiliza uma arquitetura híbrida com banco de dados distribuído:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <Database className="w-8 h-8 text-blue-600 mb-2" />
+                    <h3 className="font-semibold mb-2">Base44 Database</h3>
+                    <p className="text-sm text-gray-600">
+                      Gerencia autenticação de usuários e configurações do sistema
+                    </p>
+                  </div>
+                  <div className="border rounded-lg p-4">
+                    <Server className="w-8 h-8 text-purple-600 mb-2" />
+                    <h3 className="font-semibold mb-2">WordPress Database</h3>
+                    <p className="text-sm text-gray-600">
+                      Armazena dados de arquivos e pastas isolados por usuário
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Tecnologias Utilizadas</h2>
+                <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                  <li><strong>Frontend:</strong> React, Tailwind CSS, TypeScript</li>
+                  <li><strong>Backend:</strong> Base44 BaaS + WordPress REST API</li>
+                  <li><strong>Autenticação:</strong> Base44 Auth System</li>
+                  <li><strong>Storage:</strong> Base44 + Supabase Storage</li>
+                  <li><strong>API:</strong> REST API com autenticação por API Key</li>
+                </ul>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Fluxo de Dados</h2>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <ol className="list-decimal list-inside space-y-3 text-gray-700">
+                    <li>Usuário faz login via Base44 Auth</li>
+                    <li>Frontend recebe email do usuário autenticado</li>
+                    <li>Todas as requisições ao WordPress incluem user_email e API Key</li>
+                    <li>Plugin WordPress filtra dados por user_email</li>
+                    <li>Dados isolados garantem privacidade e segurança</li>
+                  </ol>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Plugin PHP */}
+            <TabsContent value="plugin" className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Plugin WordPress</h2>
+                <div className="flex gap-2">
+                  <Button onClick={handleCopy} variant="outline">
+                    {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                    {copied ? 'Copiado!' : 'Copiar'}
+                  </Button>
+                  <Button onClick={handleDownload} className="bg-purple-600 hover:bg-purple-700">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PHP
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-gray-900 rounded-lg p-6 overflow-x-auto">
+                <pre className="text-sm text-green-400 font-mono whitespace-pre">
+                  <code>{phpPlugin}</code>
+                </pre>
+              </div>
+            </TabsContent>
+
+            {/* API Reference */}
+            <TabsContent value="api" className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-4">API Endpoints</h2>
+                
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">GET</span>
+                      <code className="text-sm">/wp-json/keeping/v1/folders</code>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">Lista todas as pastas do usuário</p>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <p className="text-xs font-semibold mb-1">Query Params:</p>
+                      <code className="text-xs">?user_email=user@example.com</code>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">POST</span>
+                      <code className="text-sm">/wp-json/keeping/v1/folders</code>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">Cria uma nova pasta</p>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <p className="text-xs font-semibold mb-1">Body (JSON):</p>
+                      <pre className="text-xs">{JSON.stringify({
+                        user_email: "user@example.com",
+                        name: "Minha Pasta",
+                        parent_id: null,
+                        color: "#3b82f6"
+                      }, null, 2)}</pre>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">PUT</span>
+                      <code className="text-sm">/wp-json/keeping/v1/folders/:id</code>
+                    </div>
+                    <p className="text-sm text-gray-600">Atualiza uma pasta existente</p>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">DELETE</span>
+                      <code className="text-sm">/wp-json/keeping/v1/folders/:id</code>
+                    </div>
+                    <p className="text-sm text-gray-600">Deleta uma pasta</p>
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold mb-3">Files API</h3>
+                  <p className="text-gray-600 mb-3">Os mesmos endpoints existem para /files com estrutura similar</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 ml-4">
+                    <li>GET /wp-json/keeping/v1/files</li>
+                    <li>POST /wp-json/keeping/v1/files</li>
+                    <li>PUT /wp-json/keeping/v1/files/:id</li>
+                    <li>DELETE /wp-json/keeping/v1/files/:id</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold mb-3">Autenticação</h3>
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-4">
+                  <div className="flex items-start gap-2">
+                    <Key className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-amber-900">API Key Obrigatória</p>
+                      <p className="text-sm text-amber-800 mt-1">
+                        Todas as requisições devem incluir o header:
+                      </p>
+                      <code className="block bg-amber-100 p-2 rounded mt-2 text-xs">
+                        X-API-Key: keeping_secure_key_2025_change_this
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Setup */}
+            <TabsContent value="setup" className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Instalação do Plugin</h2>
+                <ol className="list-decimal list-inside space-y-3 text-gray-700 ml-4">
+                  <li>
+                    <strong>Download:</strong> Baixe o arquivo PHP usando o botão na aba "Plugin PHP"
+                  </li>
+                  <li>
+                    <strong>Upload:</strong> Acesse WordPress Admin → Plugins → Add New → Upload Plugin
+                  </li>
+                  <li>
+                    <strong>Ativar:</strong> Ative o plugin "Keeping Database API"
+                  </li>
+                  <li>
+                    <strong>Verificar:</strong> As tabelas serão criadas automaticamente
+                  </li>
+                </ol>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Configuração da API Key</h2>
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                  <p className="font-semibold text-red-900">⚠️ IMPORTANTE - Segurança</p>
+                  <p className="text-sm text-red-800 mt-1">
+                    Altere a API_KEY no arquivo PHP antes de usar em produção!
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-semibold mb-2">Linha 11 do plugin:</p>
+                  <code className="text-xs block bg-white p-2 rounded">
+                    define('KEEPING_API_KEY', '<span className="text-red-600">sua_chave_secura_aqui</span>');
+                  </code>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Testando a Instalação</h2>
+                <p className="text-gray-700 mb-3">Teste se o plugin está funcionando:</p>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-semibold mb-2">Acesse no navegador:</p>
+                  <code className="text-xs block bg-white p-2 rounded mb-3">
+                    https://seu-site.com/wp-json/keeping/v1/info
+                  </code>
+                  <p className="text-sm font-semibold mb-2">Resposta esperada:</p>
+                  <pre className="text-xs bg-white p-2 rounded">{JSON.stringify({
+                    "plugin": "Keeping Database API",
+                    "version": "1.0.0",
+                    "wordpress_version": "6.4",
+                    "php_version": "8.1",
+                    "status": "active"
+                  }, null, 2)}</pre>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Requisitos do Sistema</h2>
+                <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                  <li>WordPress 5.0 ou superior</li>
+                  <li>PHP 7.4 ou superior</li>
+                  <li>MySQL 5.7 ou superior</li>
+                  <li>Permissão para criar tabelas no banco</li>
+                  <li>mod_rewrite habilitado (permalinks)</li>
+                </ul>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
+  );
+}

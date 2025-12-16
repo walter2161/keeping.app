@@ -2,6 +2,8 @@ import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
 import Trash from './pages/Trash';
 import Dashboard from './pages/Dashboard';
+import Wiki from './pages/Wiki';
+import WikiDev from './pages/WikiDev';
 import __Layout from './Layout.jsx';
 
 
@@ -10,6 +12,8 @@ export const PAGES = {
     "FileViewer": FileViewer,
     "Trash": Trash,
     "Dashboard": Dashboard,
+    "Wiki": Wiki,
+    "WikiDev": WikiDev,
 }
 
 export const pagesConfig = {
