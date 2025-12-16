@@ -56,7 +56,7 @@ export default function FileViewer() {
   });
 
   useEffect(() => {
-    if (file) {
+    if (file && !hasChanges) {
       setFileName(file.name);
       if (file.content) {
         try {
@@ -74,7 +74,7 @@ export default function FileViewer() {
         }
       }
     }
-  }, [file]);
+  }, [file, hasChanges]);
 
   const updateFileMutation = useMutation({
     mutationFn: (data) => base44.entities.File.update(fileId, data),
