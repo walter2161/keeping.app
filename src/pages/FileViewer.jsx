@@ -111,6 +111,11 @@ export default function FileViewer() {
   });
 
   const handleContentChange = (newContent) => {
+    console.log('=== CONTENT CHANGED ===');
+    console.log('File Type:', file?.type);
+    console.log('New Content Type:', typeof newContent);
+    console.log('New Content Length:', typeof newContent === 'string' ? newContent.length : 'N/A');
+    console.log('New Content Preview:', typeof newContent === 'string' ? newContent.substring(0, 200) : JSON.stringify(newContent).substring(0, 200));
     setLocalContent(newContent);
     setHasChanges(true);
   };
@@ -350,7 +355,7 @@ export default function FileViewer() {
 
         {file.type === 'xlsx' && (
           <XlsxEditor
-            value={typeof localContent === 'string' ? localContent : ''}
+            value={typeof localContent === 'string' ? localContent : JSON.stringify(localContent)}
             onChange={handleContentChange}
           />
         )}
