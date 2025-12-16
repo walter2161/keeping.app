@@ -645,10 +645,23 @@ function keeping_admin_page() {
         <h1>🗄️ Keeping Database Manager</h1>
         <p>Visualize e gerencie os dados dos usuários do Keeping</p>
         
+        <div style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0; border-radius: 8px;">
+            <h3 style="margin: 0 0 10px 0; color: #0c5460;">🌐 URL do WordPress</h3>
+            <p style="margin: 0 0 10px 0; color: #0c5460;">
+                Copie esta URL e cole no campo <strong>URL do WordPress</strong> na aba de Configuração:
+            </p>
+            <div style="background: white; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 14px; font-weight: bold; color: #0056b3; border: 2px dashed #17a2b8; display: flex; align-items: center; justify-content: space-between;">
+                <span id="wp-url-value"><?php echo rtrim(get_site_url(), '/'); ?></span>
+                <button onclick="copyWpUrl()" class="button button-secondary" style="margin-left: 10px;">
+                    📋 Copiar
+                </button>
+            </div>
+        </div>
+
         <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 8px;">
             <h3 style="margin: 0 0 10px 0; color: #856404;">🔑 API Key do Plugin</h3>
             <p style="margin: 0 0 10px 0; color: #856404;">
-                Copie esta chave e cole na aba <strong>Configuração</strong> do app:
+                Copie esta chave e cole no campo <strong>API Key</strong> na aba de Configuração:
             </p>
             <div style="background: white; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 16px; font-weight: bold; color: #d63384; border: 2px dashed #ffc107; display: flex; align-items: center; justify-content: space-between;">
                 <span id="api-key-value"><?php echo KEEPING_API_KEY; ?></span>
@@ -660,8 +673,14 @@ function keeping_admin_page() {
                 ⚠️ Mantenha esta chave em segredo. Para alterar, edite a linha 11 do arquivo PHP do plugin.
             </p>
         </div>
-        
+
         <script>
+        function copyWpUrl() {
+            const wpUrl = document.getElementById('wp-url-value').innerText;
+            navigator.clipboard.writeText(wpUrl).then(function() {
+                alert('✓ URL copiada para a área de transferência!');
+            });
+        }
         function copyApiKey() {
             const apiKey = document.getElementById('api-key-value').innerText;
             navigator.clipboard.writeText(apiKey).then(function() {
