@@ -61,20 +61,28 @@ export default function FileViewer() {
 
   useEffect(() => {
     if (file && isInitialLoad) {
+      console.log('=== LOADING FILE ===');
+      console.log('File ID:', file.id);
+      console.log('File Name:', file.name);
+      console.log('File Type:', file.type);
+      console.log('Content exists:', !!file.content);
+      console.log('Content length:', file.content?.length || 0);
+      console.log('Content preview:', file.content?.substring(0, 300));
+      console.log('Full file object:', file);
+      
       setFileName(file.name);
-      console.log('Initial load - file content:', file.content?.substring(0, 100));
       
       if (file.content) {
         try {
           const parsed = JSON.parse(file.content);
-          console.log('Parsed content:', parsed);
+          console.log('✓ Successfully parsed JSON content');
           setLocalContent(parsed);
         } catch (e) {
-          console.log('Content is not JSON, using as string');
+          console.log('✓ Content is not JSON, using as string');
           setLocalContent(file.content);
         }
       } else {
-        console.log('No content, initializing empty');
+        console.log('⚠ WARNING: No content found, initializing empty for type:', file.type);
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent('');
         } else if (file.type === 'flux') {
@@ -112,21 +120,34 @@ export default function FileViewer() {
         ? JSON.stringify(localContent) 
         : (localContent || '');
       
-      console.log('=== SAVING FILE ===');
+      console.log('=== ATTEMPTING TO SAVE FILE ===');
       console.log('File ID:', fileId);
+      console.log('File Name:', fileName);
       console.log('File Type:', file.type);
-      console.log('Content length:', contentToSave.length);
-      console.log('Content preview:', contentToSave.substring(0, 200));
+      console.log('Local Content Type:', typeof localContent);
+      console.log('Local Content:', localContent);
+      console.log('Content to Save Length:', contentToSave.length);
+      console.log('Content to Save Preview:', contentToSave.substring(0, 500));
+      console.log('Full Content to Save:', contentToSave);
       
       const result = await updateFileMutation.mutateAsync({ 
         name: fileName,
         content: contentToSave 
       });
       
-      console.log('Save completed successfully');
-      alert('Arquivo salvo com sucesso!');
+      console.log('✓ Save completed successfully');
+      console.log('Result:', result);
+      
+      // Verify the save by fetching again
+      const verifyFiles = await base44.entities.File.filter({ id: fileId });
+      console.log('=== VERIFICATION AFTER SAVE ===');
+      console.log('Verified file:', verifyFiles[0]);
+      console.log('Verified content length:', verifyFiles[0]?.content?.length || 0);
+      console.log('Verified content preview:', verifyFiles[0]?.content?.substring(0, 300));
+      
+      alert('Arquivo salvo com sucesso! Confira o console para detalhes.');
     } catch (error) {
-      console.error('Error saving file:', error);
+      console.error('❌ Error saving file:', error);
       alert('Erro ao salvar o arquivo: ' + error.message);
     } finally {
       setSaving(false);
