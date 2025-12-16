@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft, Key, Settings } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -26,6 +27,11 @@ export default function AssistantSettings() {
     assistant_role: user?.assistant_role || 'Assistente Executiva',
     assistant_expertise: user?.assistant_expertise || 'Gestão de projetos, organização e produtividade',
     assistant_guidelines: user?.assistant_guidelines || 'Seja sempre prestativa, objetiva e profissional. Ajude o usuário a organizar suas tarefas e projetos de forma eficiente.',
+    assistant_api_key: user?.assistant_api_key || 'EYV4KepRDuEVj9YblJj5k3WXR07N100Y',
+    assistant_can_create_folders: user?.assistant_can_create_folders !== false,
+    assistant_can_create_files: user?.assistant_can_create_files !== false,
+    assistant_can_edit_files: user?.assistant_can_edit_files !== false,
+    assistant_can_delete_items: user?.assistant_can_delete_items !== false,
   });
 
   React.useEffect(() => {
@@ -38,6 +44,11 @@ export default function AssistantSettings() {
         assistant_role: user.assistant_role || 'Assistente Executiva',
         assistant_expertise: user.assistant_expertise || 'Gestão de projetos, organização e produtividade',
         assistant_guidelines: user.assistant_guidelines || 'Seja sempre prestativa, objetiva e profissional. Ajude o usuário a organizar suas tarefas e projetos de forma eficiente.',
+        assistant_api_key: user.assistant_api_key || 'EYV4KepRDuEVj9YblJj5k3WXR07N100Y',
+        assistant_can_create_folders: user.assistant_can_create_folders !== false,
+        assistant_can_create_files: user.assistant_can_create_files !== false,
+        assistant_can_edit_files: user.assistant_can_edit_files !== false,
+        assistant_can_delete_items: user.assistant_can_delete_items !== false,
       });
     }
   }, [user]);

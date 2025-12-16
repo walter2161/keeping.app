@@ -128,17 +128,59 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     setLoading(true);
 
     try {
+      // Buscar todas as pastas e arquivos para contexto
+      const folders = await base44.entities.Folder.list();
+      const files = await base44.entities.File.list();
+      
       const contextInfo = fileContext 
-        ? `\n\nContexto do arquivo (${fileType}):\n${JSON.stringify(fileContext, null, 2)}`
+        ? `\n\nContexto do arquivo atual (${fileType}):\n${JSON.stringify(fileContext, null, 2)}`
         : '';
 
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `${getSystemPrompt()}\n\nUsuário: ${input}${contextInfo}`,
+      const driveContext = `\n\nEstrutura do Drive:\nPastas: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })))}\nArquivos: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type, folder_id: f.folder_id })))}`;
+
+      const permissionsContext = `\n\nPermissões habilitadas:\n- Criar pastas: ${user?.assistant_can_create_folders !== false ? 'Sim' : 'Não'}\n- Criar arquivos: ${user?.assistant_can_create_files !== false ? 'Sim' : 'Não'}\n- Editar arquivos: ${user?.assistant_can_edit_files !== false ? 'Sim' : 'Não'}\n- Excluir itens: ${user?.assistant_can_delete_items !== false ? 'Sim' : 'Não'}`;
+
+      const fullPrompt = `${getSystemPrompt()}\n\nIMPORTANTE: Você só pode falar sobre tópicos relacionados ao aplicativo, às pastas e arquivos do usuário. Não responda perguntas sobre outros assuntos.\n\nSe precisar executar ações (criar/editar/excluir), retorne um JSON com a estrutura:\n{"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}\n\nSe for apenas uma resposta, retorne texto normal.${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
+
+      // Usar API Mistral
+      const apiKey = user?.assistant_api_key || 'EYV4KepRDuEVj9YblJj5k3WXR07N100Y';
+      const mistralResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'mistral-large-latest',
+          messages: [
+            { role: 'system', content: fullPrompt },
+            { role: 'user', content: input }
+          ],
+        }),
       });
+
+      const result = await mistralResponse.json();
+      const responseText = result.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação.';
+
+      // Tentar detectar se é uma ação
+      try {
+        const actionData = JSON.parse(responseText);
+        if (actionData.action) {
+          await executeAction(actionData, folders, files);
+          const successMessage = { 
+            role: 'assistant', 
+            content: 'Ação executada com sucesso! ✓' 
+          };
+          setMessages(prev => [...prev, successMessage]);
+          return;
+        }
+      } catch {
+        // Não é JSON, é uma resposta normal
+      }
 
       const assistantMessage = { 
         role: 'assistant', 
-        content: response 
+        content: responseText 
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
@@ -149,6 +191,45 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const executeAction = async (actionData, folders, files) => {
+    const { action, data } = actionData;
+
+    if (action === 'create_folder' && user?.assistant_can_create_folders !== false) {
+      await base44.entities.Folder.create({
+        name: data.name,
+        parent_id: data.parent_id || null,
+        color: data.color || 'bg-blue-500',
+      });
+    } else if (action === 'create_file' && user?.assistant_can_create_files !== false) {
+      const defaultContent = {
+        kbn: JSON.stringify({ columns: [], cards: [] }),
+        gnt: JSON.stringify({ tasks: [] }),
+        crn: JSON.stringify({ groups: [], items: [] }),
+        flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
+        docx: data.content || '',
+        xlsx: data.content || '',
+      };
+      await base44.entities.File.create({
+        name: data.name,
+        type: data.type,
+        folder_id: data.folder_id || null,
+        content: defaultContent[data.type] || '',
+      });
+    } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
+      await base44.entities.File.update(data.file_id, {
+        content: typeof data.content === 'object' ? JSON.stringify(data.content) : data.content,
+      });
+    } else if (action === 'delete_item' && user?.assistant_can_delete_items !== false) {
+      if (data.type === 'folder') {
+        await base44.entities.Folder.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
+      } else if (data.type === 'file') {
+        await base44.entities.File.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
+      }
+    } else {
+      throw new Error('Permissão negada para esta ação');
     }
   };
 
