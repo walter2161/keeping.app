@@ -43,6 +43,7 @@ export default function FileViewer() {
   const [localContent, setLocalContent] = useState(null);
   const [fileName, setFileName] = useState('');
   const [mediaPopup, setMediaPopup] = useState({ open: false, url: '', type: '' });
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   const queryClient = useQueryClient();
 
@@ -50,45 +51,54 @@ export default function FileViewer() {
     queryKey: ['file', fileId],
     queryFn: async () => {
       const files = await base44.entities.File.filter({ id: fileId });
+      console.log('Loaded file from DB:', files[0]);
+      console.log('Content length:', files[0]?.content?.length || 0);
       return files[0];
     },
     enabled: !!fileId,
+    refetchOnWindowFocus: false,
   });
 
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   useEffect(() => {
-    if (file) {
+    if (file && isInitialLoad) {
       setFileName(file.name);
+      console.log('Initial load - file content:', file.content?.substring(0, 100));
       
-      // Only update localContent if it's the initial load (localContent is null)
-      // or if we just saved (hasChanges is false and query was refetched)
-      const shouldUpdateContent = localContent === null || (!hasChanges && file.content);
-      
-      if (shouldUpdateContent) {
-        if (file.content) {
-          try {
-            const parsed = JSON.parse(file.content);
-            setLocalContent(parsed);
-          } catch {
-            setLocalContent(file.content);
-          }
+      if (file.content) {
+        try {
+          const parsed = JSON.parse(file.content);
+          console.log('Parsed content:', parsed);
+          setLocalContent(parsed);
+        } catch (e) {
+          console.log('Content is not JSON, using as string');
+          setLocalContent(file.content);
+        }
+      } else {
+        console.log('No content, initializing empty');
+        if (file.type === 'docx' || file.type === 'xlsx') {
+          setLocalContent('');
+        } else if (file.type === 'flux') {
+          setLocalContent({ drawflow: { Home: { data: {} } } });
         } else {
-          if (file.type === 'docx' || file.type === 'xlsx') {
-            setLocalContent('');
-          } else if (file.type === 'flux') {
-            setLocalContent({ drawflow: { Home: { data: {} } } });
-          } else {
-            setLocalContent({});
-          }
+          setLocalContent({});
         }
       }
+      setIsInitialLoad(false);
     }
-  }, [file]);
+  }, [file, isInitialLoad]);
 
   const updateFileMutation = useMutation({
-    mutationFn: (data) => base44.entities.File.update(fileId, data),
-    onSuccess: () => {
+    mutationFn: async (data) => {
+      console.log('Updating file with data:', data);
+      const result = await base44.entities.File.update(fileId, data);
+      console.log('Update result:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('File saved successfully:', data);
       setHasChanges(false);
-      queryClient.invalidateQueries({ queryKey: ['file', fileId] });
     },
   });
 
@@ -104,15 +114,22 @@ export default function FileViewer() {
         ? JSON.stringify(localContent) 
         : (localContent || '');
       
-      console.log('Saving content:', contentToSave.substring(0, 200));
+      console.log('=== SAVING FILE ===');
+      console.log('File ID:', fileId);
+      console.log('File Type:', file.type);
+      console.log('Content length:', contentToSave.length);
+      console.log('Content preview:', contentToSave.substring(0, 200));
       
-      await updateFileMutation.mutateAsync({ 
+      const result = await updateFileMutation.mutateAsync({ 
         name: fileName,
         content: contentToSave 
       });
+      
+      console.log('Save completed successfully');
+      alert('Arquivo salvo com sucesso!');
     } catch (error) {
       console.error('Error saving file:', error);
-      alert('Erro ao salvar o arquivo. Tente novamente.');
+      alert('Erro ao salvar o arquivo: ' + error.message);
     } finally {
       setSaving(false);
     }
