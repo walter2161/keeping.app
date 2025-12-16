@@ -143,26 +143,21 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
 
       const permissionsContext = `\n\nPermissões habilitadas:\n- Criar pastas: ${user?.assistant_can_create_folders !== false ? 'Sim' : 'Não'}\n- Criar arquivos: ${user?.assistant_can_create_files !== false ? 'Sim' : 'Não'}\n- Editar arquivos: ${user?.assistant_can_edit_files !== false ? 'Sim' : 'Não'}\n- Excluir itens: ${user?.assistant_can_delete_items !== false ? 'Sim' : 'Não'}`;
 
-      const systemInstructions = `INSTRUÇÕES CRÍTICAS:
-1. Você DEVE executar ações automaticamente quando solicitado pelo usuário
-2. Quando o usuário pedir para criar/editar/excluir algo, retorne APENAS um objeto JSON válido, sem nenhum texto adicional
-3. Formato do JSON: {"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}
-4. NUNCA adicione texto explicativo antes ou depois do JSON
-5. NUNCA mostre ou explique o JSON ao usuário
-6. Para conversas normais (sem ações), responda em português de forma natural
-7. Você só pode falar sobre o aplicativo, pastas e arquivos do usuário
-8. Use o contexto de localização atual para saber onde criar itens (pasta atual: ${currentFolderId || 'raiz'})
+      const systemInstructions = `REGRAS ABSOLUTAS:
+1. Quando usuário pedir criar/editar/excluir: retorne SÓ o JSON puro, SEM markdown, SEM explicações
+2. NÃO use \`\`\`json ou \`\`\` - apenas o objeto JSON direto
+3. Formato: {"action": "create_folder|create_file|edit_file|delete_item", "data": {...}}
+4. Para conversa normal: responda em português naturalmente
+5. Só fale sobre o app/arquivos do usuário
 
-FORMATAÇÃO DE CONTEÚDO:
-- Documentos (docx): Use \\n\\n entre seções e \\n entre parágrafos
-- Planilhas (xlsx): Retorne dados em formato tabular organizado
-- Para criar planilha, use: {"action": "create_file", "data": {"name": "Nome", "type": "xlsx", "content": "dados aqui"}}
+CRIAR ARQUIVOS (sempre use "action": "create_file"):
+- Planilha: {"action": "create_file", "data": {"name": "Nome", "type": "xlsx", "content": ""}}
+- Documento: {"action": "create_file", "data": {"name": "Nome", "type": "docx", "content": "texto\\n\\nparagrafo"}}
+- Kanban: {"action": "create_file", "data": {"name": "Nome", "type": "kbn"}}
+- Gantt: {"action": "create_file", "data": {"name": "Nome", "type": "gnt"}}
+- Cronograma: {"action": "create_file", "data": {"name": "Nome", "type": "crn"}}
 
-EXEMPLOS DE AÇÕES:
-- "crie uma pasta X" → {"action": "create_folder", "data": {"name": "X"}}
-- "crie um documento" → {"action": "create_file", "data": {"name": "Nome", "type": "docx", "content": "texto..."}}
-- "crie uma planilha" → {"action": "create_file", "data": {"name": "Nome", "type": "xlsx", "content": "dados..."}}
-- "crie um kanban" → {"action": "create_file", "data": {"name": "Nome", "type": "kbn"}}`;
+IMPORTANTE: Planilha = xlsx, Documento/Texto = docx`;
 
       const fullPrompt = `${getSystemPrompt()}\n\n${systemInstructions}${currentLocationContext}${driveContext}${permissionsContext}${contextInfo}\n\nUsuário: ${input}`;
 
@@ -186,12 +181,39 @@ EXEMPLOS DE AÇÕES:
       const result = await mistralResponse.json();
       let responseText = result.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação.';
 
-      // Tentar detectar e extrair JSON da resposta
-      const jsonMatch = responseText.match(/\{[\s\S]*"action"[\s\S]*\}/);
+      // Remover markdown code blocks se existirem
+      responseText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+      // Tentar detectar e extrair JSON da resposta (mais robusto)
+      let jsonMatch = responseText.match(/\{\s*"action"\s*:\s*"[^"]+"\s*,[\s\S]*?\}/);
+      if (!jsonMatch) {
+        jsonMatch = responseText.match(/\{[\s\S]*"action"[\s\S]*\}/);
+      }
       
       if (jsonMatch) {
         try {
-          const actionData = JSON.parse(jsonMatch[0]);
+          // Limpar o JSON extraído
+          let jsonStr = jsonMatch[0].trim();
+          
+          // Tentar encontrar o fechamento correto do JSON
+          let braceCount = 0;
+          let validJsonEnd = 0;
+          for (let i = 0; i < jsonStr.length; i++) {
+            if (jsonStr[i] === '{') braceCount++;
+            if (jsonStr[i] === '}') {
+              braceCount--;
+              if (braceCount === 0) {
+                validJsonEnd = i + 1;
+                break;
+              }
+            }
+          }
+          
+          if (validJsonEnd > 0) {
+            jsonStr = jsonStr.substring(0, validJsonEnd);
+          }
+          
+          const actionData = JSON.parse(jsonStr);
           if (actionData.action) {
             const actionResult = await executeAction(actionData, folders, files);
             const successMessage = { 
