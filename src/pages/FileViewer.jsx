@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { wpClient } from '@/api/wpClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -49,10 +50,10 @@ export default function FileViewer() {
   const { data: file, isLoading, error } = useQuery({
     queryKey: ['file', fileId],
     queryFn: async () => {
-      const files = await base44.entities.File.filter({ id: fileId });
-      console.log('Loaded file from DB:', files[0]);
-      console.log('Content length:', files[0]?.content?.length || 0);
-      return files[0];
+      const file = await wpClient.getFile(fileId);
+      console.log('Loaded file from DB:', file);
+      console.log('Content length:', file?.content?.length || 0);
+      return file;
     },
     enabled: !!fileId,
     refetchOnWindowFocus: false,
@@ -99,7 +100,7 @@ export default function FileViewer() {
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
       console.log('Updating file with data:', data);
-      const result = await base44.entities.File.update(fileId, data);
+      const result = await wpClient.updateFile(fileId, data);
       console.log('Update result:', result);
       return result;
     },
@@ -143,11 +144,11 @@ export default function FileViewer() {
       queryClient.invalidateQueries({ queryKey: ['file', fileId] });
       
       // Verify the save by fetching again
-      const verifyFiles = await base44.entities.File.filter({ id: fileId });
+      const verifiedFile = await wpClient.getFile(fileId);
       console.log('=== VERIFICATION AFTER SAVE ===');
-      console.log('Verified file:', verifyFiles[0]);
-      console.log('Verified content length:', verifyFiles[0]?.content?.length || 0);
-      console.log('Verified content preview:', verifyFiles[0]?.content?.substring(0, 300));
+      console.log('Verified file:', verifiedFile);
+      console.log('Verified content length:', verifiedFile?.content?.length || 0);
+      console.log('Verified content preview:', verifiedFile?.content?.substring(0, 300));
       
       alert('Arquivo salvo com sucesso!');
     } catch (error) {
