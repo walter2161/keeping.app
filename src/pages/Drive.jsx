@@ -243,6 +243,7 @@ export default function Drive() {
   };
 
   const handleRefreshClick = async () => {
+    setPendingUpdates(0);
     if (user) {
       await base44.auth.updateMe({ last_seen_update: new Date().toISOString() });
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });

@@ -178,12 +178,17 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       // Verificar se é uma automação personalizada
       const automations = user?.assistant_automations || [];
       const matchedAutomation = automations.find(auto => 
-        input.toLowerCase().includes(auto.keyword.toLowerCase())
+        input.toLowerCase().trim() === auto.keyword.toLowerCase().trim()
       );
 
       if (matchedAutomation) {
-        // Executar automação
-        const actionPrompt = `Você é uma assistente que executa comandos.
+        // Detectar se é uma ação ou resposta simples
+        const actionWords = ['criar', 'crie', 'gerar', 'gere', 'adicionar', 'adicione', 'editar', 'edite', 'deletar', 'delete', 'arquivo', 'pasta', 'kanban', 'documento', 'planilha'];
+        const isActionAutomation = actionWords.some(word => matchedAutomation.action.toLowerCase().includes(word));
+
+        if (isActionAutomation) {
+          // Executar automação com ação
+          const actionPrompt = `Você é uma assistente que executa comandos.
 
 Contexto:
 - Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz'}
@@ -206,57 +211,66 @@ IMPORTANTE:
 
 Converta a ação em uma estrutura JSON executável.`;
 
-        const actionSchema = {
-          type: "object",
-          properties: {
-            action: {
-              type: "string",
-              enum: ["create_folder", "create_file", "edit_file", "delete_item"]
-            },
-            data: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
-                content: { type: "string" },
-                folder_id: { type: "string" },
-                parent_id: { type: "string" },
-                color: { type: "string" },
-                file_id: { type: "string" },
-                id: { type: "string" }
+          const actionSchema = {
+            type: "object",
+            properties: {
+              action: {
+                type: "string",
+                enum: ["create_folder", "create_file", "edit_file", "delete_item"]
+              },
+              data: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
+                  content: { type: "string" },
+                  folder_id: { type: "string" },
+                  parent_id: { type: "string" },
+                  color: { type: "string" },
+                  file_id: { type: "string" },
+                  id: { type: "string" }
+                }
               }
-            }
-          },
-          required: ["action", "data"]
-        };
-
-        const llmResult = await base44.integrations.Core.InvokeLLM({
-          prompt: actionPrompt,
-          response_json_schema: actionSchema
-        });
-
-        if (llmResult && llmResult.action) {
-          const actionResult = await executeAction(llmResult, folders, files);
-
-          await queryClient.invalidateQueries({ queryKey: ['files'] });
-          await queryClient.invalidateQueries({ queryKey: ['folders'] });
-
-          const successMessage = { 
-            role: 'assistant', 
-            content: `✓ Automação executada: ${getActionSuccessMessage(llmResult)}` 
+            },
+            required: ["action", "data"]
           };
-          setMessages(prev => [...prev, successMessage]);
 
-          setTimeout(() => {
-            if (llmResult.action === 'create_file' && actionResult?.id) {
-              window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
-            } else if (llmResult.action === 'create_folder' && actionResult?.id) {
-              window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
-            } else {
-              window.location.reload();
-            }
-          }, 1200);
+          const llmResult = await base44.integrations.Core.InvokeLLM({
+            prompt: actionPrompt,
+            response_json_schema: actionSchema
+          });
+
+          if (llmResult && llmResult.action) {
+            const actionResult = await executeAction(llmResult, folders, files);
+
+            await queryClient.invalidateQueries({ queryKey: ['files'] });
+            await queryClient.invalidateQueries({ queryKey: ['folders'] });
+
+            const successMessage = { 
+              role: 'assistant', 
+              content: `✓ Automação executada: ${getActionSuccessMessage(llmResult)}` 
+            };
+            setMessages(prev => [...prev, successMessage]);
+
+            setTimeout(() => {
+              if (llmResult.action === 'create_file' && actionResult?.id) {
+                window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
+              } else if (llmResult.action === 'create_folder' && actionResult?.id) {
+                window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
+              } else {
+                window.location.reload();
+              }
+            }, 1200);
+          }
+        } else {
+          // Resposta simples de automação
+          const assistantMessage = { 
+            role: 'assistant', 
+            content: matchedAutomation.action
+          };
+          setMessages(prev => [...prev, assistantMessage]);
         }
+        setLoading(false);
         return;
       }
       
