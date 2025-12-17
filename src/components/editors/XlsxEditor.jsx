@@ -35,10 +35,11 @@ export default function XlsxEditor({ value, onChange }) {
       defaultColWidth: 120,
       defaultRowHeight: 32,
       tableOverflow: true,
-      tableHeight: 'calc(100vh - 250px)',
+      tableHeight: 'calc(100vh - 300px)',
       tableWidth: '100%',
       freezeColumns: 0,
       csvFileName: 'planilha',
+      about: false,
       allowInsertRow: true,
       allowManualInsertRow: true,
       allowInsertColumn: true,
@@ -274,6 +275,47 @@ export default function XlsxEditor({ value, onChange }) {
   return (
     <div className="w-full h-full bg-white">
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+      
+      {/* Barra de Fórmulas */}
+      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-600 min-w-[60px]">
+            {worksheetRef.current?.getSelectedIndex?.() ? 
+              String.fromCharCode(65 + worksheetRef.current.getSelectedIndex()[0]) + (worksheetRef.current.getSelectedIndex()[1] + 1) : 
+              'A1'}
+          </span>
+          <span className="text-gray-400">|</span>
+        </div>
+        <input
+          type="text"
+          placeholder="Digite uma fórmula (ex: =SOMA(A1:A10))"
+          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && worksheetRef.current) {
+              const value = e.target.value;
+              const selected = worksheetRef.current.getSelectedIndex();
+              if (selected && value) {
+                worksheetRef.current.setValue(
+                  String.fromCharCode(65 + selected[0]) + (selected[1] + 1),
+                  value
+                );
+                e.target.value = '';
+              }
+            }
+          }}
+          onFocus={(e) => {
+            if (worksheetRef.current) {
+              const selected = worksheetRef.current.getSelectedIndex();
+              if (selected) {
+                const cellName = String.fromCharCode(65 + selected[0]) + (selected[1] + 1);
+                const value = worksheetRef.current.getValue(cellName);
+                if (value) e.target.value = value;
+              }
+            }
+          }}
+        />
+      </div>
+      
       <style>{`
         .jexcel_container {
           background: white;
