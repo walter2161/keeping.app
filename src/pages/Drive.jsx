@@ -33,6 +33,7 @@ export default function Drive() {
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clipboard, setClipboard] = useState({ type: null, item: null });
+  const [moveConfirmDialog, setMoveConfirmDialog] = useState({ open: false, data: null });
   
   const queryClient = useQueryClient();
 
@@ -491,7 +492,29 @@ export default function Drive() {
 
   const handleCopyFile = (file) => {
     setClipboard({ type: 'file', item: file });
-  };
+    };
+
+    const handleConfirmMove = async () => {
+    const { type, item, targetFolderId } = moveConfirmDialog.data;
+
+    if (type === 'folder') {
+      await updateFolderMutation.mutateAsync({
+        id: item.id,
+        data: { parent_id: targetFolderId }
+      });
+    } else if (type === 'file') {
+      const teamId = getFolderTeam(targetFolderId);
+      await updateFileMutation.mutateAsync({
+        id: item.id,
+        data: { 
+          folder_id: targetFolderId,
+          team_id: teamId
+        }
+      });
+    }
+
+    setMoveConfirmDialog({ open: false, data: null });
+    };
 
   const handlePaste = async () => {
     if (!clipboard.item) return;
@@ -531,20 +554,28 @@ export default function Drive() {
       if (type === 'FOLDER') {
         const folder = folders.find(f => f.id === draggableId);
         if (folder && folder.parent_id !== finalFolderId) {
-          await updateFolderMutation.mutateAsync({
-            id: draggableId,
-            data: { parent_id: finalFolderId }
+          const targetFolder = finalFolderId ? folders.find(f => f.id === finalFolderId) : null;
+          setMoveConfirmDialog({
+            open: true,
+            data: {
+              type: 'folder',
+              item: folder,
+              targetFolderId: finalFolderId,
+              targetFolderName: targetFolder ? targetFolder.name : 'Meu Drive'
+            }
           });
         }
       } else if (type === 'FILE') {
         const file = files.find(f => f.id === draggableId);
         if (file && file.folder_id !== finalFolderId) {
-          const teamId = getFolderTeam(finalFolderId);
-          await updateFileMutation.mutateAsync({
-            id: draggableId,
-            data: { 
-              folder_id: finalFolderId,
-              team_id: teamId
+          const targetFolder = finalFolderId ? folders.find(f => f.id === finalFolderId) : null;
+          setMoveConfirmDialog({
+            open: true,
+            data: {
+              type: 'file',
+              item: file,
+              targetFolderId: finalFolderId,
+              targetFolderName: targetFolder ? targetFolder.name : 'Meu Drive'
             }
           });
         }
@@ -932,6 +963,28 @@ export default function Drive() {
 
       {/* Toast Container */}
       <Toaster />
+
+      {/* Move Confirmation Dialog */}
+      <AlertDialog open={moveConfirmDialog.open} onOpenChange={(open) => !open && setMoveConfirmDialog({ open: false, data: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
+            <AlertDialogDescription>
+              {moveConfirmDialog.data && (
+                <>
+                  Deseja mover {moveConfirmDialog.data.type === 'folder' ? 'a pasta' : 'o arquivo'}{' '}
+                  <strong>"{moveConfirmDialog.data.item?.name}"</strong> para{' '}
+                  <strong>"{moveConfirmDialog.data.targetFolderName}"</strong>?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmMove}>Sim</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
       </DragDropContext>
       );
