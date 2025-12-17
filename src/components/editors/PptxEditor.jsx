@@ -4,15 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
-  Play, X, Bold, Italic, Underline, Palette, Maximize, Upload, ZoomIn, ZoomOut, LayoutTemplate
+  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus
 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { base44 } from '@/api/base44Client';
 
 export default function PptxEditor({ value, onChange }) {
@@ -22,25 +15,20 @@ export default function PptxEditor({ value, onChange }) {
   const [presentationMode, setPresentationMode] = useState(false);
   const [dragging, setDragging] = useState(null);
   const [uploadingBg, setUploadingBg] = useState(false);
-  const [zoom, setZoom] = useState(0.6);
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
-  const [showTemplates, setShowTemplates] = useState(false);
-  const slideRef = useRef(null);
+  
   const canvasRef = useRef(null);
+  const slideRef = useRef(null);
 
   useEffect(() => {
     if (value && value.trim()) {
       try {
         const parsed = JSON.parse(value);
         const loadedSlides = parsed.slides || [createEmptySlide()];
-        // Garantir que todos os slides têm a estrutura correta
-        const normalizedSlides = loadedSlides.map(slide => ({
-          background: slide.background || '#ffffff',
-          elements: slide.elements || []
-        }));
-        setSlides(normalizedSlides);
+        setSlides(loadedSlides);
       } catch (e) {
         setSlides([createEmptySlide()]);
       }
@@ -49,7 +37,6 @@ export default function PptxEditor({ value, onChange }) {
     }
   }, [value]);
 
-  // ESC para sair do modo apresentação
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape' && presentationMode) {
@@ -59,6 +46,23 @@ export default function PptxEditor({ value, onChange }) {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [presentationMode]);
+
+  // Mouse wheel zoom
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom(prev => Math.max(0.2, Math.min(2, prev + delta)));
+      }
+    };
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      return () => canvas.removeEventListener('wheel', handleWheel);
+    }
+  }, []);
 
   const createEmptySlide = () => ({
     background: '#ffffff',
@@ -70,61 +74,12 @@ export default function PptxEditor({ value, onChange }) {
     onChange(JSON.stringify({ slides: newSlides }));
   };
 
-  const addSlide = (template = null) => {
-    const newSlide = template ? { ...template } : createEmptySlide();
+  const addSlide = () => {
+    const newSlide = createEmptySlide();
     const newSlides = [...slides, newSlide];
     handleUpdate(newSlides);
     setCurrentSlide(newSlides.length - 1);
-    setShowTemplates(false);
   };
-
-  const slideTemplates = [
-    {
-      name: 'Título',
-      background: '#ffffff',
-      elements: [
-        { id: '1', type: 'title', x: 100, y: 200, width: 1000, height: 100, content: 'Título Principal', fontSize: 60, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
-        { id: '2', type: 'text', x: 100, y: 350, width: 1000, height: 80, content: 'Subtítulo ou descrição', fontSize: 28, fontWeight: 'normal', color: '#666666', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
-      ]
-    },
-    {
-      name: 'Título e Conteúdo',
-      background: '#ffffff',
-      elements: [
-        { id: '1', type: 'title', x: 60, y: 50, width: 1080, height: 80, content: 'Título', fontSize: 44, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
-        { id: '2', type: 'text', x: 60, y: 160, width: 1080, height: 450, content: '• Ponto 1\n• Ponto 2\n• Ponto 3', fontSize: 24, fontWeight: 'normal', color: '#333333', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
-      ]
-    },
-    {
-      name: 'Duas Colunas',
-      background: '#ffffff',
-      elements: [
-        { id: '1', type: 'title', x: 60, y: 50, width: 1080, height: 70, content: 'Título', fontSize: 44, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
-        { id: '2', type: 'text', x: 60, y: 150, width: 500, height: 450, content: 'Coluna esquerda\n\n• Item 1\n• Item 2\n• Item 3', fontSize: 20, fontWeight: 'normal', color: '#333333', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
-        { id: '3', type: 'text', x: 640, y: 150, width: 500, height: 450, content: 'Coluna direita\n\n• Item A\n• Item B\n• Item C', fontSize: 20, fontWeight: 'normal', color: '#333333', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
-      ]
-    },
-    {
-      name: 'Título e Imagem',
-      background: '#ffffff',
-      elements: [
-        { id: '1', type: 'title', x: 60, y: 50, width: 1080, height: 70, content: 'Título com Imagem', fontSize: 44, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
-        { id: '2', type: 'image', x: 300, y: 150, width: 600, height: 450, content: '', fontSize: 18, fontWeight: 'normal', color: '#000000', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
-      ]
-    },
-    {
-      name: 'Imagem Grande',
-      background: '#ffffff',
-      elements: [
-        { id: '1', type: 'image', x: 100, y: 50, width: 1000, height: 575, content: '', fontSize: 18, fontWeight: 'normal', color: '#000000', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
-      ]
-    },
-    {
-      name: 'Vazio',
-      background: '#ffffff',
-      elements: []
-    }
-  ];
 
   const deleteSlide = (index) => {
     if (slides.length === 1) return;
@@ -142,14 +97,16 @@ export default function PptxEditor({ value, onChange }) {
       type,
       x: 100,
       y: 100,
-      width: type === 'text' ? 300 : type === 'image' ? 400 : 200,
-      height: type === 'text' ? 100 : type === 'image' ? 300 : 50,
+      width: type === 'text' ? 400 : type === 'image' ? 400 : type === 'shape' ? 200 : 600,
+      height: type === 'text' ? 100 : type === 'image' ? 300 : type === 'shape' ? 200 : 80,
       content: type === 'text' ? 'Digite seu texto' : type === 'title' ? 'Título' : '',
-      fontSize: type === 'title' ? 48 : 18,
+      fontSize: type === 'title' ? 48 : 24,
       fontWeight: type === 'title' ? 'bold' : 'normal',
       fontStyle: 'normal',
       textDecoration: 'none',
       color: '#000000',
+      backgroundColor: type === 'shape' ? '#3b82f6' : 'transparent',
+      shapeType: type === 'shape' ? 'rectangle' : null,
       imageUrl: ''
     };
     newSlides[currentSlide].elements.push(newElement);
@@ -179,38 +136,43 @@ export default function PptxEditor({ value, onChange }) {
     setSelectedElement(elementId);
     
     const element = slides[currentSlide].elements.find(el => el.id === elementId);
-    const rect = e.currentTarget.getBoundingClientRect();
-    const slideRect = slideRef.current.getBoundingClientRect();
     
     setDragging({
       elementId,
       startX: e.clientX,
       startY: e.clientY,
       initialX: element.x,
-      initialY: element.y,
-      slideLeft: slideRect.left,
-      slideTop: slideRect.top
+      initialY: element.y
     });
   };
 
   const handleMouseMove = (e) => {
-    if (!dragging) return;
-    
-    const deltaX = (e.clientX - dragging.startX) / zoom;
-    const deltaY = (e.clientY - dragging.startY) / zoom;
-    
-    updateElement(dragging.elementId, {
-      x: dragging.initialX + deltaX,
-      y: dragging.initialY + deltaY
-    });
+    if (dragging) {
+      const deltaX = (e.clientX - dragging.startX) / zoom;
+      const deltaY = (e.clientY - dragging.startY) / zoom;
+      
+      updateElement(dragging.elementId, {
+        x: dragging.initialX + deltaX,
+        y: dragging.initialY + deltaY
+      });
+    } else if (isPanning) {
+      const deltaX = e.clientX - panStart.x;
+      const deltaY = e.clientY - panStart.y;
+      setPanOffset({
+        x: panOffset.x + deltaX,
+        y: panOffset.y + deltaY
+      });
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
   };
 
   const handleMouseUp = () => {
     setDragging(null);
+    setIsPanning(false);
   };
 
   useEffect(() => {
-    if (dragging) {
+    if (dragging || isPanning) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
@@ -218,7 +180,7 @@ export default function PptxEditor({ value, onChange }) {
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [dragging]);
+  }, [dragging, isPanning, panOffset, panStart, zoom]);
 
   const handleImageUpload = async (elementId) => {
     const input = document.createElement('input');
@@ -270,26 +232,7 @@ export default function PptxEditor({ value, onChange }) {
 
   if (presentationMode) {
     return (
-      <div 
-        className="fixed inset-0 bg-black z-50 overflow-auto"
-        style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
-        onMouseDown={(e) => {
-          setIsPanning(true);
-          setPanStart({ x: e.clientX, y: e.clientY });
-          setScrollPos({ x: e.currentTarget.scrollLeft, y: e.currentTarget.scrollTop });
-          e.preventDefault();
-        }}
-        onMouseMove={(e) => {
-          if (isPanning) {
-            const dx = panStart.x - e.clientX;
-            const dy = panStart.y - e.clientY;
-            e.currentTarget.scrollLeft = scrollPos.x + dx;
-            e.currentTarget.scrollTop = scrollPos.y + dy;
-          }
-        }}
-        onMouseUp={() => setIsPanning(false)}
-        onMouseLeave={() => setIsPanning(false)}
-      >
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
         <Button
           variant="ghost"
           size="icon"
@@ -299,54 +242,72 @@ export default function PptxEditor({ value, onChange }) {
           <X className="w-6 h-6" />
         </Button>
         
-        <div className="relative p-[50vh] inline-block">
-          <div 
-            className="w-[1200px] h-[675px] rounded-lg shadow-2xl relative"
-            style={{
-              background: currentSlideData.background.startsWith('url') 
-                ? currentSlideData.background 
-                : currentSlideData.background,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-          >
-            {currentSlideData.elements.map(element => (
-              <div
-                key={element.id}
-                style={{
-                  position: 'absolute',
-                  left: `${(element.x / 1200) * 100}%`,
-                  top: `${(element.y / 675) * 100}%`,
-                  width: `${(element.width / 1200) * 100}%`,
-                  height: `${(element.height / 675) * 100}%`,
-                }}
-              >
-                {element.type === 'image' && element.imageUrl && (
-                  <img 
-                    src={element.imageUrl} 
-                    alt="" 
-                    className="w-full h-full object-contain"
-                  />
-                )}
-                {(element.type === 'text' || element.type === 'title') && (
-                  <div
-                    style={{
-                      fontSize: `${(element.fontSize / 1200) * 100}%`,
-                      fontWeight: element.fontWeight,
-                      fontStyle: element.fontStyle,
-                      textDecoration: element.textDecoration,
-                      color: element.color,
-                      whiteSpace: 'pre-wrap',
-                      wordWrap: 'break-word'
-                    }}
-                  >
-                    {element.content}
-                  </div>
-                )}
-              </div>
-            ))}
+        <div 
+          className="w-[1200px] h-[675px] rounded-lg shadow-2xl relative"
+          style={{
+            background: currentSlideData.background.startsWith('url') 
+              ? currentSlideData.background 
+              : currentSlideData.background,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
+          {currentSlideData.elements.map(element => (
+            <div
+              key={element.id}
+              style={{
+                position: 'absolute',
+                left: `${element.x}px`,
+                top: `${element.y}px`,
+                width: `${element.width}px`,
+                height: `${element.height}px`,
+              }}
+            >
+              {element.type === 'image' && element.imageUrl && (
+                <img 
+                  src={element.imageUrl} 
+                  alt="" 
+                  className="w-full h-full object-contain"
+                />
+              )}
+              {element.type === 'shape' && (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: element.backgroundColor,
+                    borderRadius: element.shapeType === 'circle' ? '50%' : '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: element.color,
+                    fontSize: `${element.fontSize}px`,
+                    fontWeight: element.fontWeight
+                  }}
+                >
+                  {element.content}
+                </div>
+              )}
+              {(element.type === 'text' || element.type === 'title') && (
+                <div
+                  style={{
+                    fontSize: `${element.fontSize}px`,
+                    fontWeight: element.fontWeight,
+                    fontStyle: element.fontStyle,
+                    textDecoration: element.textDecoration,
+                    color: element.color,
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    width: '100%',
+                    height: '100%'
+                  }}
+                >
+                  {element.content}
+                </div>
+              )}
             </div>
-            </div>
+          ))}
+        </div>
 
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
           <Button
@@ -401,7 +362,7 @@ export default function PptxEditor({ value, onChange }) {
                   {index + 1}
                 </div>
                 <div 
-                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
+                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200"
                   style={{
                     background: slide.background.startsWith('url') 
                       ? slide.background 
@@ -409,37 +370,13 @@ export default function PptxEditor({ value, onChange }) {
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
-                >
-                  {slide.elements.map(el => (
-                    <div
-                      key={el.id}
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: `${(el.x / 1200) * 100}%`,
-                        top: `${(el.y / 675) * 100}%`,
-                        width: `${(el.width / 1200) * 100}%`,
-                        height: `${(el.height / 675) * 100}%`,
-                        fontSize: `${el.fontSize * 0.08}px`,
-                        fontWeight: el.fontWeight,
-                        color: el.color,
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {el.type === 'image' && el.imageUrl && (
-                        <img src={el.imageUrl} alt="" className="w-full h-full object-contain" />
-                      )}
-                      {(el.type === 'text' || el.type === 'title') && el.content}
-                    </div>
-                  ))}
-                </div>
+                />
               </div>
               {slides.length > 1 && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 bg-white hover:bg-red-50 transition-opacity"
+                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 bg-white hover:bg-red-50"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteSlide(index);
@@ -455,36 +392,27 @@ export default function PptxEditor({ value, onChange }) {
 
       {/* Área Principal */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Toolbar Superior */}
-        <div className="bg-white border-b px-4 py-2.5 flex items-center gap-4 flex-wrap">
-          {/* Ferramentas de Inserção */}
-          <div className="flex items-center gap-1">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={() => setShowTemplates(!showTemplates)} 
-              className="h-8"
-            >
-              <LayoutTemplate className="w-4 h-4 mr-1.5" />
-              Layout
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => addElement('title')} className="h-8">
-              <Type className="w-4 h-4 mr-1.5" />
-              Título
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => addElement('text')} className="h-8">
-              <Type className="w-4 h-4 mr-1.5" />
-              Texto
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => addElement('image')} className="h-8">
-              <ImageIcon className="w-4 h-4 mr-1.5" />
-              Imagem
-            </Button>
-          </div>
+        {/* Toolbar */}
+        <div className="bg-white border-b px-4 py-2.5 flex items-center gap-3 flex-wrap">
+          <Button size="sm" variant="ghost" onClick={() => addElement('title')} className="h-8">
+            <Type className="w-4 h-4 mr-1.5" />
+            Título
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => addElement('text')} className="h-8">
+            <Type className="w-4 h-4 mr-1.5" />
+            Texto
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => addElement('image')} className="h-8">
+            <ImageIcon className="w-4 h-4 mr-1.5" />
+            Imagem
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => addElement('shape')} className="h-8">
+            <Square className="w-4 h-4 mr-1.5" />
+            Forma
+          </Button>
 
           <div className="h-6 w-px bg-gray-300" />
 
-          {/* Ferramentas de Formatação do Elemento Selecionado */}
           {selectedEl && (
             <div className="flex items-center gap-1.5">
               {(selectedEl.type === 'text' || selectedEl.type === 'title') && (
@@ -535,6 +463,40 @@ export default function PptxEditor({ value, onChange }) {
                   />
                 </>
               )}
+              {selectedEl.type === 'shape' && (
+                <>
+                  <Button
+                    size="sm"
+                    variant={selectedEl.shapeType === 'rectangle' ? 'default' : 'ghost'}
+                    className="h-8"
+                    onClick={() => updateElement(selectedEl.id, { shapeType: 'rectangle' })}
+                  >
+                    <Square className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedEl.shapeType === 'circle' ? 'default' : 'ghost'}
+                    className="h-8"
+                    onClick={() => updateElement(selectedEl.id, { shapeType: 'circle' })}
+                  >
+                    <Circle className="w-4 h-4" />
+                  </Button>
+                  <input
+                    type="color"
+                    value={selectedEl.backgroundColor}
+                    onChange={(e) => updateElement(selectedEl.id, { backgroundColor: e.target.value })}
+                    className="w-8 h-8 rounded cursor-pointer border"
+                    title="Cor de fundo"
+                  />
+                  <input
+                    type="color"
+                    value={selectedEl.color}
+                    onChange={(e) => updateElement(selectedEl.id, { color: e.target.value })}
+                    className="w-8 h-8 rounded cursor-pointer border"
+                    title="Cor do texto"
+                  />
+                </>
+              )}
               {selectedEl.type === 'image' && (
                 <Button size="sm" variant="ghost" onClick={() => handleImageUpload(selectedEl.id)} className="h-8">
                   <Upload className="w-4 h-4 mr-1.5" />
@@ -554,7 +516,6 @@ export default function PptxEditor({ value, onChange }) {
 
           <div className="flex-1" />
 
-          {/* Controles de Fundo e Apresentação */}
           <div className="flex items-center gap-1.5">
             <Button size="sm" variant="ghost" onClick={handleBackgroundUpload} disabled={uploadingBg} className="h-8">
               <Palette className="w-4 h-4 mr-1.5" />
@@ -579,7 +540,7 @@ export default function PptxEditor({ value, onChange }) {
           </div>
         </div>
 
-        {/* Barra de Navegação e Zoom */}
+        {/* Navegação e Zoom */}
         <div className="bg-white border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
@@ -613,7 +574,7 @@ export default function PptxEditor({ value, onChange }) {
               disabled={zoom <= 0.2}
               className="h-7 w-7 p-0"
             >
-              <ZoomOut className="w-3.5 h-3.5" />
+              <Minus className="w-3.5 h-3.5" />
             </Button>
             <span className="text-xs text-gray-600 min-w-[45px] text-center">
               {Math.round(zoom * 100)}%
@@ -621,171 +582,131 @@ export default function PptxEditor({ value, onChange }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
-              disabled={zoom >= 1.5}
+              onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+              disabled={zoom >= 2}
               className="h-7 w-7 p-0"
             >
-              <ZoomIn className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
 
-        {/* Canvas do Slide */}
+        {/* Canvas */}
         <div 
           ref={canvasRef}
-          className="flex-1 overflow-auto bg-gray-100"
+          className="flex-1 bg-gray-200 overflow-hidden relative"
           style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onMouseDown={(e) => {
-            if (e.button === 0 && (e.target === canvasRef.current || !slideRef.current.contains(e.target))) {
+            if (e.target === canvasRef.current && e.button === 0) {
               setIsPanning(true);
               setPanStart({ x: e.clientX, y: e.clientY });
-              setScrollPos({ x: canvasRef.current.scrollLeft, y: canvasRef.current.scrollTop });
               e.preventDefault();
             }
           }}
-          onMouseMove={(e) => {
-            if (isPanning && canvasRef.current) {
-              const dx = e.clientX - panStart.x;
-              const dy = e.clientY - panStart.y;
-              canvasRef.current.scrollLeft = scrollPos.x - dx;
-              canvasRef.current.scrollTop = scrollPos.y - dy;
-            }
-          }}
-          onMouseUp={() => setIsPanning(false)}
-          onMouseLeave={() => setIsPanning(false)}
+          onClick={() => setSelectedElement(null)}
         >
-          <div className="flex items-center justify-center min-h-full p-8">
+          <div
+            style={{
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+              transformOrigin: '0 0',
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              marginLeft: '-600px',
+              marginTop: '-337.5px'
+            }}
+          >
             <div
               ref={slideRef}
-              className="bg-white shadow-xl relative"
+              className="bg-white shadow-2xl relative"
               style={{
                 width: '1200px',
                 height: '675px',
-                transform: `scale(${zoom})`,
-                transformOrigin: 'center center',
                 background: currentSlideData.background.startsWith('url') 
                   ? currentSlideData.background 
                   : currentSlideData.background,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
               }}
-              onClick={() => setSelectedElement(null)}
             >
               {currentSlideData.elements.map(element => (
-              <div
-                key={element.id}
-                onMouseDown={(e) => handleMouseDown(e, element.id)}
-                className={`absolute cursor-move ${
-                  selectedElement === element.id ? 'ring-2 ring-blue-500' : ''
-                }`}
-                style={{
-                  left: element.x,
-                  top: element.y,
-                  width: element.width,
-                  height: element.height,
-                }}
-              >
-                {element.type === 'image' && (
-                  element.imageUrl ? (
-                    <img 
-                      src={element.imageUrl} 
-                      alt="" 
-                      className="w-full h-full object-contain"
-                      draggable={false}
-                    />
-                  ) : (
-                    <div 
-                      className="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageUpload(element.id);
-                      }}
-                    >
-                      <ImageIcon className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )
-                )}
-                {(element.type === 'text' || element.type === 'title') && (
-                  <Textarea
-                    value={element.content}
-                    onChange={(e) => updateElement(element.id, { content: e.target.value })}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full h-full resize-none border-none bg-transparent focus-visible:ring-0 p-2"
-                    style={{
-                      fontSize: element.fontSize,
-                      fontWeight: element.fontWeight,
-                      fontStyle: element.fontStyle,
-                      textDecoration: element.textDecoration,
-                      color: element.color
-                    }}
-                  />
-                )}
-              </div>
-              ))}
-              </div>
-              </div>
-              </div>
-
-              {/* Dialog de Templates */}
-        {showTemplates && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTemplates(false)}>
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Escolha um Layout</h3>
-                <Button variant="ghost" size="icon" onClick={() => setShowTemplates(false)}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                {slideTemplates.map((template, index) => (
-                  <div
-                    key={index}
-                    className="border-2 border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:border-blue-500 transition-all"
-                    onClick={() => addSlide(template)}
-                  >
-                    <div 
-                      className="w-full aspect-video bg-gray-50 relative"
+                <div
+                  key={element.id}
+                  onMouseDown={(e) => handleMouseDown(e, element.id)}
+                  className={`absolute cursor-move ${
+                    selectedElement === element.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  style={{
+                    left: element.x,
+                    top: element.y,
+                    width: element.width,
+                    height: element.height,
+                  }}
+                >
+                  {element.type === 'image' && (
+                    element.imageUrl ? (
+                      <img 
+                        src={element.imageUrl} 
+                        alt="" 
+                        className="w-full h-full object-contain pointer-events-none"
+                      />
+                    ) : (
+                      <div 
+                        className="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleImageUpload(element.id);
+                        }}
+                      >
+                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )
+                  )}
+                  {element.type === 'shape' && (
+                    <div
+                      className="w-full h-full flex items-center justify-center"
                       style={{
-                        background: template.background,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
+                        backgroundColor: element.backgroundColor,
+                        borderRadius: element.shapeType === 'circle' ? '50%' : '8px',
+                        color: element.color,
+                        fontSize: element.fontSize,
+                        fontWeight: element.fontWeight,
+                        padding: '8px'
                       }}
                     >
-                      {template.elements.map(el => (
-                        <div
-                          key={el.id}
-                          className="absolute pointer-events-none"
-                          style={{
-                            left: `${(el.x / 1200) * 100}%`,
-                            top: `${(el.y / 675) * 100}%`,
-                            width: `${(el.width / 1200) * 100}%`,
-                            height: `${(el.height / 675) * 100}%`,
-                            fontSize: `${el.fontSize * 0.08}px`,
-                            fontWeight: el.fontWeight,
-                            color: el.color,
-                            overflow: 'hidden',
-                            whiteSpace: 'pre-wrap',
-                            lineHeight: '1.2'
-                          }}
-                        >
-                          {el.type === 'image' && !el.imageUrl && (
-                            <div className="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-100">
-                              <ImageIcon className="w-6 h-6 text-gray-400" />
-                            </div>
-                          )}
-                          {(el.type === 'text' || el.type === 'title') && el.content}
-                        </div>
-                      ))}
+                      <Input
+                        value={element.content}
+                        onChange={(e) => updateElement(element.id, { content: e.target.value })}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full h-full border-none bg-transparent text-center focus-visible:ring-0 p-0"
+                        style={{
+                          color: element.color,
+                          fontSize: element.fontSize,
+                          fontWeight: element.fontWeight
+                        }}
+                      />
                     </div>
-                    <div className="p-2 text-center text-sm font-medium bg-white">
-                      {template.name}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                  {(element.type === 'text' || element.type === 'title') && (
+                    <Textarea
+                      value={element.content}
+                      onChange={(e) => updateElement(element.id, { content: e.target.value })}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full h-full resize-none border-none bg-transparent focus-visible:ring-0 p-2"
+                      style={{
+                        fontSize: element.fontSize,
+                        fontWeight: element.fontWeight,
+                        fontStyle: element.fontStyle,
+                        textDecoration: element.textDecoration,
+                        color: element.color
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
