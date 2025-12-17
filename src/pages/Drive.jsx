@@ -29,6 +29,7 @@ import ListView from '../components/drive/ListView';
 import UploadDialog from '../components/drive/UploadDialog';
 import AIAssistant from '../components/ai/AIAssistant';
 import TeamDialog from '../components/drive/TeamDialog';
+import MoveDialog from '../components/drive/MoveDialog';
 
 export default function Drive() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -44,6 +45,7 @@ export default function Drive() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clipboard, setClipboard] = useState({ type: null, item: null });
   const [moveConfirmDialog, setMoveConfirmDialog] = useState({ open: false, data: null });
+  const [moveDialog, setMoveDialog] = useState({ open: false, item: null, type: null });
   
   const queryClient = useQueryClient();
 
@@ -502,7 +504,73 @@ export default function Drive() {
 
   const handleCopyFile = (file) => {
     setClipboard({ type: 'file', item: file });
-    };
+  };
+
+  const handleMoveFolder = (folder) => {
+    setMoveDialog({ open: true, item: folder, type: 'folder' });
+  };
+
+  const handleMoveFile = (file) => {
+    setMoveDialog({ open: true, item: file, type: 'file' });
+  };
+
+  const handleMoveDialogSubmit = async (targetFolderId) => {
+    const { item, type } = moveDialog;
+
+    try {
+      if (type === 'folder') {
+        const teamId = getFolderTeam(targetFolderId);
+
+        await updateFolderMutation.mutateAsync({
+          id: item.id,
+          data: { 
+            parent_id: targetFolderId,
+            team_id: teamId
+          }
+        });
+
+        // Atualizar recursivamente todos os arquivos e subpastas
+        const updateChildrenTeam = async (folderId, newTeamId) => {
+          const childFolders = folders.filter(f => f.parent_id === folderId);
+          const childFiles = files.filter(f => f.folder_id === folderId);
+
+          for (const folder of childFolders) {
+            await updateFolderMutation.mutateAsync({
+              id: folder.id,
+              data: { team_id: newTeamId }
+            });
+            await updateChildrenTeam(folder.id, newTeamId);
+          }
+
+          for (const file of childFiles) {
+            await updateFileMutation.mutateAsync({
+              id: file.id,
+              data: { team_id: newTeamId }
+            });
+          }
+        };
+
+        await updateChildrenTeam(item.id, teamId);
+
+      } else if (type === 'file') {
+        const teamId = getFolderTeam(targetFolderId);
+        await updateFileMutation.mutateAsync({
+          id: item.id,
+          data: { 
+            folder_id: targetFolderId,
+            team_id: teamId
+          }
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['folders'] });
+      await queryClient.invalidateQueries({ queryKey: ['files'] });
+
+    } catch (error) {
+      console.error('Erro ao mover item:', error);
+      alert('Erro ao mover item: ' + error.message);
+    }
+  };
 
     const handleConfirmMove = async () => {
       if (!moveConfirmDialog.data) return;
@@ -849,6 +917,7 @@ export default function Drive() {
             onFolderCopy={handleCopyFolder}
             onFolderExport={handleExportFolder}
             onFolderColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
+            onFolderMove={handleMoveFolder}
             onFileDelete={(file) => {
               if (file.owner !== user?.email) {
                 alert('Apenas o proprietário pode excluir este arquivo.');
@@ -866,6 +935,7 @@ export default function Drive() {
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
             onFileCopy={handleCopyFile}
+            onFileMove={handleMoveFile}
             currentUserEmail={user?.email}
             allFolders={folders.filter(f => !f.deleted)}
             allFiles={files.filter(f => !f.deleted)}
@@ -896,6 +966,7 @@ export default function Drive() {
                               onCopy={() => handleCopyFolder(folder)}
                               onExport={() => handleExportFolder(folder)}
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
+                              onMove={() => handleMoveFolder(folder)}
                               isOwner={folder.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
@@ -947,6 +1018,7 @@ export default function Drive() {
                               onRename={() => handleRenameFile(file)}
                               onExport={() => handleExportFile(file)}
                               onCopy={() => handleCopyFile(file)}
+                              onMove={() => handleMoveFile(file)}
                               isOwner={file.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
@@ -1015,7 +1087,7 @@ export default function Drive() {
       {/* Toast Container */}
       <Toaster />
 
-      {/* Move Confirmation Dialog */}
+      {/* Move Confirmation Dialog (Drag and Drop) */}
       <AlertDialog open={moveConfirmDialog.open} onOpenChange={(open) => !open && setMoveConfirmDialog({ open: false, data: null })}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1036,6 +1108,18 @@ export default function Drive() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Move Dialog (Menu Option) */}
+      <MoveDialog
+        open={moveDialog.open}
+        onOpenChange={(open) => setMoveDialog({ ...moveDialog, open })}
+        item={moveDialog.item}
+        itemType={moveDialog.type}
+        folders={folders}
+        teams={userTeams}
+        currentUserEmail={user?.email}
+        onMove={handleMoveDialogSubmit}
+      />
       </div>
       </DragDropContext>
       );
