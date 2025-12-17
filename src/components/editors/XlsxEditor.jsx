@@ -330,20 +330,28 @@ export default function XlsxEditor({ value, onChange }) {
         <input
           type="text"
           id="formula-input"
-          placeholder="Digite uma fórmula (ex: =SOMA(A1:A10))"
+          placeholder="Digite uma fórmula (ex: =SUM(A1:A10) ou =B2+C2)"
           className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && worksheetRef.current) {
-              const value = e.target.value;
+              let value = e.target.value;
               if (value) {
-                worksheetRef.current.setValue(selectedCell.name, value, true);
+                // Traduzir fórmulas PT-BR para EN
+                value = value.replace(/=SOMA\(/gi, '=SUM(');
+                value = value.replace(/=MÉDIA\(/gi, '=AVERAGE(');
+                value = value.replace(/=MÁXIMO\(/gi, '=MAX(');
+                value = value.replace(/=MÍNIMO\(/gi, '=MIN(');
+                
+                worksheetRef.current.setValue(selectedCell.name, value);
                 e.target.value = '';
                 setTimeout(() => {
-                  const data = worksheetRef.current.getData();
-                  const meta = worksheetRef.current.getMeta();
-                  const style = worksheetRef.current.getStyle();
-                  const merged = worksheetRef.current.getMerge();
-                  onChange(JSON.stringify({ data, meta, style, merged }));
+                  if (worksheetRef.current && onChange) {
+                    const data = worksheetRef.current.getData();
+                    const meta = worksheetRef.current.getMeta();
+                    const style = worksheetRef.current.getStyle();
+                    const merged = worksheetRef.current.getMerge();
+                    onChange(JSON.stringify({ data, meta, style, merged }));
+                  }
                 }, 100);
               }
             }
