@@ -132,9 +132,18 @@ export default function FileViewer() {
   };
 
   const handleExport = () => {
-    // Para docx e xlsx, exportar no formato de texto/csv
+    // Para imagens, vídeos e PDFs, fazer download direto do arquivo original
+    if ((file.type === 'img' || file.type === 'video' || file.type === 'pdf') && file.file_url) {
+      const a = document.createElement('a');
+      a.href = file.file_url;
+      a.download = file.name;
+      a.target = '_blank';
+      a.click();
+      return;
+    }
+    
+    // Para docx, exportar como texto
     if (file.type === 'docx') {
-      // Remover tags HTML e manter apenas o texto
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = localContent || '';
       const textContent = tempDiv.textContent || tempDiv.innerText || '';
@@ -149,6 +158,7 @@ export default function FileViewer() {
       return;
     }
     
+    // Para xlsx, exportar como CSV
     if (file.type === 'xlsx') {
       const blob = new Blob([localContent || ''], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -160,7 +170,7 @@ export default function FileViewer() {
       return;
     }
     
-    // Para outros tipos, exportar como JSON
+    // Para outros tipos (kbn, gnt, crn, flux), exportar como JSON
     const exportData = {
       type: 'single_file',
       file: {
