@@ -257,11 +257,8 @@ export default function PptxEditor({ value, onChange }) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-700">Slides</h3>
           <Select onValueChange={(layout) => addSlide(layout)}>
-            <SelectTrigger asChild>
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-1" />
-                Novo
-              </Button>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Novo Slide" />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(LAYOUTS).map(([key, layout]) => {
@@ -355,10 +352,7 @@ export default function PptxEditor({ value, onChange }) {
               onValueChange={(layout) => changeLayout(currentSlide, layout)}
             >
               <SelectTrigger className="w-48">
-                <div className="flex items-center gap-2">
-                  <LayoutTemplate className="w-4 h-4" />
-                  <SelectValue />
-                </div>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(LAYOUTS).map(([key, layout]) => {
