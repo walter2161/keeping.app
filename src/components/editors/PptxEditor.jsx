@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
-  Play, X, Bold, Italic, Underline, Palette, Maximize, Upload
+  Play, X, Bold, Italic, Underline, Palette, Maximize, Upload, ZoomIn, ZoomOut
 } from 'lucide-react';
 import {
   Select,
@@ -22,6 +22,7 @@ export default function PptxEditor({ value, onChange }) {
   const [presentationMode, setPresentationMode] = useState(false);
   const [dragging, setDragging] = useState(null);
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [zoom, setZoom] = useState(0.6);
   const slideRef = useRef(null);
 
   useEffect(() => {
@@ -140,8 +141,8 @@ export default function PptxEditor({ value, onChange }) {
   const handleMouseMove = (e) => {
     if (!dragging) return;
     
-    const deltaX = e.clientX - dragging.startX;
-    const deltaY = e.clientY - dragging.startY;
+    const deltaX = (e.clientX - dragging.startX) / zoom;
+    const deltaY = (e.clientY - dragging.startY) / zoom;
     
     updateElement(dragging.elementId, {
       x: dragging.initialX + deltaX,
@@ -467,36 +468,61 @@ export default function PptxEditor({ value, onChange }) {
         </div>
 
         {/* Navigation */}
-        <div className="bg-gray-100 border-b px-4 py-2 flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
-            disabled={currentSlide === 0}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <span className="text-sm font-medium text-gray-600 px-4">
-            Slide {currentSlide + 1} de {slides.length}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))}
-            disabled={currentSlide === slides.length - 1}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        <div className="bg-gray-100 border-b px-4 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
+              disabled={currentSlide === 0}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium text-gray-600 px-4">
+              Slide {currentSlide + 1} de {slides.length}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))}
+              disabled={currentSlide === slides.length - 1}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setZoom(Math.max(0.2, zoom - 0.1))}
+              disabled={zoom <= 0.2}
+            >
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium text-gray-600 min-w-[60px] text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
+              disabled={zoom >= 1.5}
+            >
+              <ZoomIn className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Slide Canvas */}
         <div className="flex-1 overflow-auto p-8 bg-gray-100 flex items-center justify-center">
           <div
             ref={slideRef}
-            className="bg-white shadow-2xl relative"
+            className="bg-white shadow-2xl relative origin-center transition-transform"
             style={{
               width: '1200px',
               height: '675px',
+              transform: `scale(${zoom})`,
               background: currentSlideData.background.startsWith('url') 
                 ? currentSlideData.background 
                 : currentSlideData.background,
