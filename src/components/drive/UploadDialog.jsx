@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-export default function UploadDialog({ open, onOpenChange, onUploadComplete, folderId }) {
+export default function UploadDialog({ open, onOpenChange, onUploadComplete, folderId, folders }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({});
@@ -42,6 +42,15 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
     setUploading(true);
     const uploadedFiles = [];
 
+    // Herdar compartilhamento da pasta pai
+    let sharedWith = [];
+    if (folderId) {
+      const parentFolder = folders?.find(f => f.id === folderId);
+      if (parentFolder && parentFolder.shared_with) {
+        sharedWith = [...parentFolder.shared_with];
+      }
+    }
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setProgress(prev => ({ ...prev, [i]: 'uploading' }));
@@ -57,6 +66,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
           folder_id: folderId,
           file_url: file_url,
           content: '',
+          shared_with: sharedWith,
         });
         
         uploadedFiles.push(newFile);

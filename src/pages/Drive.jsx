@@ -960,6 +960,7 @@ export default function Drive() {
           queryClient.invalidateQueries({ queryKey: ['files'] });
         }}
         folderId={currentFolderId}
+        folders={folders}
       />
 
       {/* Share Dialog */}
