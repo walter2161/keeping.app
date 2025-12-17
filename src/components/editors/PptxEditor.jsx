@@ -614,12 +614,14 @@ export default function PptxEditor({ value, onChange }) {
         {/* Canvas do Slide */}
         <div 
           ref={canvasRef}
-          className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-6 cursor-grab active:cursor-grabbing"
+          className="flex-1 overflow-auto bg-gray-100 p-8"
+          style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onMouseDown={(e) => {
-            if (e.target === canvasRef.current || e.target.contains(slideRef.current)) {
+            if (e.button === 0 && (e.target === canvasRef.current || !slideRef.current.contains(e.target))) {
               setIsPanning(true);
               setPanStart({ x: e.clientX, y: e.clientY });
               setScrollPos({ x: canvasRef.current.scrollLeft, y: canvasRef.current.scrollTop });
+              e.preventDefault();
             }
           }}
           onMouseMove={(e) => {
@@ -633,22 +635,23 @@ export default function PptxEditor({ value, onChange }) {
           onMouseUp={() => setIsPanning(false)}
           onMouseLeave={() => setIsPanning(false)}
         >
-          <div
-            ref={slideRef}
-            className="bg-white shadow-xl relative"
-            style={{
-              width: '1200px',
-              height: '675px',
-              transform: `scale(${zoom})`,
-              transformOrigin: 'center',
-              background: currentSlideData.background.startsWith('url') 
-                ? currentSlideData.background 
-                : currentSlideData.background,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-            onClick={() => setSelectedElement(null)}
-          >
+          <div className="min-w-max min-h-max flex items-center justify-center">
+            <div
+              ref={slideRef}
+              className="bg-white shadow-xl relative"
+              style={{
+                width: '1200px',
+                height: '675px',
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center',
+                background: currentSlideData.background.startsWith('url') 
+                  ? currentSlideData.background 
+                  : currentSlideData.background,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}
+              onClick={() => setSelectedElement(null)}
+            >
             {currentSlideData.elements.map(element => (
               <div
                 key={element.id}
