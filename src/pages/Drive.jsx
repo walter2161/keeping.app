@@ -23,6 +23,7 @@ import AIAssistant from '../components/ai/AIAssistant';
 export default function Drive() {
   const urlParams = new URLSearchParams(window.location.search);
   const folderParam = urlParams.get('folder');
+  const shareToken = urlParams.get('share');
   const viewFilter = urlParams.get('view') || 'myDrive'; // 'myDrive' ou 'shared'
   const [currentFolderId, setCurrentFolderId] = useState(folderParam);
   const [searchQuery, setSearchQuery] = useState('');
@@ -790,7 +791,7 @@ export default function Drive() {
   // Handle shared link access
   useEffect(() => {
     const shareToken = urlParams.get('share');
-    if (shareToken && user) {
+    if (shareToken && user && allFolders.length > 0 && allFiles.length > 0) {
       const sharedFolder = allFolders.find(f => f.share_token === shareToken);
       const sharedFile = allFiles.find(f => f.share_token === shareToken);
       
@@ -802,6 +803,8 @@ export default function Drive() {
             data: { shared_with: [...currentShared, user.email] }
           });
         }
+        // Navigate to folder
+        setCurrentFolderId(sharedFolder.id);
         window.history.replaceState({}, '', createPageUrl(`Drive?folder=${sharedFolder.id}`));
       } else if (sharedFile) {
         const currentShared = sharedFile.shared_with || [];
@@ -811,10 +814,11 @@ export default function Drive() {
             data: { shared_with: [...currentShared, user.email] }
           });
         }
-        window.history.replaceState({}, '', createPageUrl(`FileViewer?id=${sharedFile.id}`));
+        // Navigate to file
+        window.location.href = createPageUrl(`FileViewer?id=${sharedFile.id}`);
       }
     }
-  }, [urlParams, user, allFolders, allFiles]);
+  }, [shareToken, user, allFolders, allFiles]);
 
   const isLoading = foldersLoading || filesLoading || !user;
 
