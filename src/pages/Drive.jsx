@@ -505,25 +505,65 @@ export default function Drive() {
     };
 
     const handleConfirmMove = async () => {
-    const { type, item, targetFolderId } = moveConfirmDialog.data;
-
-    if (type === 'folder') {
-      await updateFolderMutation.mutateAsync({
-        id: item.id,
-        data: { parent_id: targetFolderId }
-      });
-    } else if (type === 'file') {
-      const teamId = getFolderTeam(targetFolderId);
-      await updateFileMutation.mutateAsync({
-        id: item.id,
-        data: { 
-          folder_id: targetFolderId,
-          team_id: teamId
+      const { type, item, targetFolderId } = moveConfirmDialog.data;
+      
+      try {
+        if (type === 'folder') {
+          const teamId = getFolderTeam(targetFolderId);
+          
+          // Atualizar a pasta
+          await updateFolderMutation.mutateAsync({
+            id: item.id,
+            data: { 
+              parent_id: targetFolderId,
+              team_id: teamId
+            }
+          });
+          
+          // Atualizar recursivamente todos os arquivos e subpastas
+          const updateChildrenTeam = async (folderId, newTeamId) => {
+            const childFolders = folders.filter(f => f.parent_id === folderId);
+            const childFiles = files.filter(f => f.folder_id === folderId);
+            
+            for (const folder of childFolders) {
+              await updateFolderMutation.mutateAsync({
+                id: folder.id,
+                data: { team_id: newTeamId }
+              });
+              await updateChildrenTeam(folder.id, newTeamId);
+            }
+            
+            for (const file of childFiles) {
+              await updateFileMutation.mutateAsync({
+                id: file.id,
+                data: { team_id: newTeamId }
+              });
+            }
+          };
+          
+          await updateChildrenTeam(item.id, teamId);
+          
+        } else if (type === 'file') {
+          const teamId = getFolderTeam(targetFolderId);
+          await updateFileMutation.mutateAsync({
+            id: item.id,
+            data: { 
+              folder_id: targetFolderId,
+              team_id: teamId
+            }
+          });
         }
-      });
-    }
-
-    setMoveConfirmDialog({ open: false, data: null });
+        
+        // Invalidar queries para atualizar a UI
+        await queryClient.invalidateQueries({ queryKey: ['folders'] });
+        await queryClient.invalidateQueries({ queryKey: ['files'] });
+        
+      } catch (error) {
+        console.error('Erro ao mover item:', error);
+        alert('Erro ao mover item: ' + error.message);
+      } finally {
+        setMoveConfirmDialog({ open: false, data: null });
+      }
     };
 
   const handlePaste = async () => {
