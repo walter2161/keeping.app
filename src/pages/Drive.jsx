@@ -22,6 +22,7 @@ import AIAssistant from '../components/ai/AIAssistant';
 export default function Drive() {
   const urlParams = new URLSearchParams(window.location.search);
   const folderParam = urlParams.get('folder');
+  const viewFilter = urlParams.get('view') || 'myDrive'; // 'myDrive' ou 'shared'
   const [currentFolderId, setCurrentFolderId] = useState(folderParam);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
@@ -32,20 +33,45 @@ export default function Drive() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clipboard, setClipboard] = useState({ type: null, item: null });
   const [dragOverFolder, setDragOverFolder] = useState(null);
+  const [shareDialog, setShareDialog] = useState({ open: false, item: null, type: null });
   
   const queryClient = useQueryClient();
 
-  // Fetch folders
-  const { data: folders = [], isLoading: foldersLoading } = useQuery({
-    queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+  // Fetch current user
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
   });
 
-  // Fetch files
-  const { data: files = [], isLoading: filesLoading } = useQuery({
+  // Fetch folders (apenas do usuário ou compartilhadas com ele)
+  const { data: allFolders = [], isLoading: foldersLoading } = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => base44.entities.Folder.list(),
+    enabled: !!user,
+  });
+
+  const folders = useMemo(() => {
+    if (!user || !allFolders.length) return [];
+    return allFolders.filter(f => 
+      f.owner === user.email || 
+      (f.shared_with && f.shared_with.includes(user.email))
+    );
+  }, [allFolders, user]);
+
+  // Fetch files (apenas do usuário ou compartilhados com ele)
+  const { data: allFiles = [], isLoading: filesLoading } = useQuery({
     queryKey: ['files'],
     queryFn: () => base44.entities.File.list(),
+    enabled: !!user,
   });
+
+  const files = useMemo(() => {
+    if (!user || !allFiles.length) return [];
+    return allFiles.filter(f => 
+      f.owner === user.email || 
+      (f.shared_with && f.shared_with.includes(user.email))
+    );
+  }, [allFiles, user]);
 
   // Mutations
   const createFolderMutation = useMutation({
@@ -96,23 +122,42 @@ export default function Drive() {
 
   // Filter items for current folder
   const currentFolders = useMemo(() => {
-    return folders
-      .filter(f => !f.deleted)
+    if (!user) return [];
+    let filtered = folders.filter(f => !f.deleted);
+    
+    // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
+    if (viewFilter === 'shared') {
+      filtered = filtered.filter(f => f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email));
+    } else {
+      filtered = filtered.filter(f => f.owner === user.email);
+    }
+    
+    return filtered
       .filter(f => f.parent_id === currentFolderId)
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [folders, currentFolderId, searchQuery]);
+  }, [folders, currentFolderId, searchQuery, viewFilter, user]);
 
   const currentFiles = useMemo(() => {
-    return files
-      .filter(f => !f.deleted)
+    if (!user) return [];
+    let filtered = files.filter(f => !f.deleted);
+    
+    // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
+    if (viewFilter === 'shared') {
+      filtered = filtered.filter(f => f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email));
+    } else {
+      filtered = filtered.filter(f => f.owner === user.email);
+    }
+    
+    return filtered
       .filter(f => f.folder_id === currentFolderId)
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [files, currentFolderId, searchQuery]);
+  }, [files, currentFolderId, searchQuery, viewFilter, user]);
 
   // Handlers
   const handleCreateFolder = async (name, color) => {
+    if (!user) return;
     try {
       // Se estiver dentro de uma pasta pai, herdar a cor dela
       let folderColor = color;
@@ -128,6 +173,8 @@ export default function Drive() {
         parent_id: currentFolderId,
         color: folderColor,
         order: currentFolders.length,
+        owner: user.email,
+        shared_with: [],
       });
       setCreateDialog({ open: false, type: null });
     } catch (error) {
@@ -137,6 +184,7 @@ export default function Drive() {
   };
 
   const handleCreateFile = async (name, type) => {
+    if (!user) return;
     const defaultContent = {
       kbn: JSON.stringify({ columns: [], cards: [] }),
       gnt: JSON.stringify({ tasks: [] }),
@@ -154,6 +202,8 @@ export default function Drive() {
         folder_id: currentFolderId,
         content: defaultContent[type] || '',
         order: currentFiles.length,
+        owner: user.email,
+        shared_with: [],
       });
       setCreateDialog({ open: false, type: null });
     } catch (error) {
@@ -167,6 +217,12 @@ export default function Drive() {
   };
 
   const handleDeleteFolder = async (folder) => {
+    // Apenas o proprietário pode excluir
+    if (!user || folder.owner !== user.email) {
+      alert('Apenas o proprietário pode excluir esta pasta.');
+      return;
+    }
+    
     // Move to trash instead of deleting
     await updateFolderMutation.mutateAsync({
       id: folder.id,
@@ -539,7 +595,79 @@ export default function Drive() {
     return 'other';
   };
 
-  const isLoading = foldersLoading || filesLoading;
+  const handleShareItem = (item, type) => {
+    setShareDialog({ open: true, item, type });
+  };
+
+  const handleGenerateShareLink = async (item, type) => {
+    const token = Math.random().toString(36).substr(2, 16);
+    const mutation = type === 'folder' ? updateFolderMutation : updateFileMutation;
+    await mutation.mutateAsync({
+      id: item.id,
+      data: { share_token: token }
+    });
+    const shareUrl = `${window.location.origin}${createPageUrl('Drive')}?share=${token}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert('Link de compartilhamento copiado!');
+  };
+
+  const handleShareWithEmail = async (item, type, email) => {
+    if (!email || !email.includes('@')) {
+      alert('Email inválido');
+      return;
+    }
+    const mutation = type === 'folder' ? updateFolderMutation : updateFileMutation;
+    const currentShared = item.shared_with || [];
+    if (currentShared.includes(email)) {
+      alert('Este usuário já tem acesso');
+      return;
+    }
+    await mutation.mutateAsync({
+      id: item.id,
+      data: { shared_with: [...currentShared, email] }
+    });
+    alert('Compartilhado com sucesso!');
+  };
+
+  const handleRemoveShare = async (item, type, email) => {
+    const mutation = type === 'folder' ? updateFolderMutation : updateFileMutation;
+    const currentShared = item.shared_with || [];
+    await mutation.mutateAsync({
+      id: item.id,
+      data: { shared_with: currentShared.filter(e => e !== email) }
+    });
+  };
+
+  // Handle shared link access
+  useEffect(() => {
+    const shareToken = urlParams.get('share');
+    if (shareToken && user) {
+      const sharedFolder = allFolders.find(f => f.share_token === shareToken);
+      const sharedFile = allFiles.find(f => f.share_token === shareToken);
+      
+      if (sharedFolder) {
+        const currentShared = sharedFolder.shared_with || [];
+        if (!currentShared.includes(user.email) && sharedFolder.owner !== user.email) {
+          updateFolderMutation.mutate({
+            id: sharedFolder.id,
+            data: { shared_with: [...currentShared, user.email] }
+          });
+        }
+        window.history.replaceState({}, '', createPageUrl(`Drive?folder=${sharedFolder.id}`));
+      } else if (sharedFile) {
+        const currentShared = sharedFile.shared_with || [];
+        if (!currentShared.includes(user.email) && sharedFile.owner !== user.email) {
+          updateFileMutation.mutate({
+            id: sharedFile.id,
+            data: { shared_with: [...currentShared, user.email] }
+          });
+        }
+        window.history.replaceState({}, '', createPageUrl(`FileViewer?id=${sharedFile.id}`));
+      }
+    }
+  }, [urlParams, user, allFolders, allFiles]);
+
+  const isLoading = foldersLoading || filesLoading || !user;
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
