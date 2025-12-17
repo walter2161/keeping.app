@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft, Key, Settings } from 'lucide-react';
+import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft, Key, Settings, Zap } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import AutomationManager from '../components/assistant/AutomationManager';
 
 export default function AssistantSettings() {
   const queryClient = useQueryClient();
@@ -32,6 +33,7 @@ export default function AssistantSettings() {
     assistant_can_create_files: user?.assistant_can_create_files !== false,
     assistant_can_edit_files: user?.assistant_can_edit_files !== false,
     assistant_can_delete_items: user?.assistant_can_delete_items !== false,
+    assistant_automations: user?.assistant_automations || [],
   });
 
   React.useEffect(() => {
@@ -49,6 +51,7 @@ export default function AssistantSettings() {
         assistant_can_create_files: user.assistant_can_create_files !== false,
         assistant_can_edit_files: user.assistant_can_edit_files !== false,
         assistant_can_delete_items: user.assistant_can_delete_items !== false,
+        assistant_automations: user.assistant_automations || [],
       });
     }
   }, [user]);
@@ -307,6 +310,24 @@ export default function AssistantSettings() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-purple-600" />
+              Automações Personalizadas
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Crie atalhos para ações frequentes. Basta digitar a palavra-chave no chat e o assistente executará a ação automaticamente.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <AutomationManager
+              automations={formData.assistant_automations}
+              onChange={(automations) => setFormData({ ...formData, assistant_automations: automations })}
+            />
           </CardContent>
         </Card>
       </div>
