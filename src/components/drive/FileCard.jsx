@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight, Share2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -30,7 +30,7 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy, provided, isDragging }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy, onShare, isOwner, provided, isDragging }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
   const [clickCount, setClickCount] = React.useState(0);
@@ -139,6 +139,10 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare?.(file); }}>
+            <Share2 className="w-4 h-4 mr-2" />
+            Compartilhar
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(file); }}>
             <Copy className="w-4 h-4 mr-2" />
             Copiar
@@ -147,13 +151,15 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="text-red-600" 
-            onClick={(e) => { e.stopPropagation(); onDelete?.(file); }}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Excluir
-          </DropdownMenuItem>
+          {isOwner && (
+            <DropdownMenuItem 
+              className="text-red-600" 
+              onClick={(e) => { e.stopPropagation(); onDelete?.(file); }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
           </div>

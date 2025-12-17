@@ -730,17 +730,26 @@ export default function Drive() {
             onFolderCopy={handleCopyFolder}
             onFolderExport={handleExportFolder}
             onFolderColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
-            onFileDelete={(file) => updateFileMutation.mutate({
-              id: file.id,
-              data: {
-                deleted: true,
-                deleted_at: new Date().toISOString(),
-                original_folder_id: file.folder_id,
+            onFileDelete={(file) => {
+              if (file.owner !== user?.email) {
+                alert('Apenas o proprietário pode excluir este arquivo.');
+                return;
               }
-            })}
+              updateFileMutation.mutate({
+                id: file.id,
+                data: {
+                  deleted: true,
+                  deleted_at: new Date().toISOString(),
+                  original_folder_id: file.folder_id,
+                }
+              });
+            }}
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
             onFileCopy={handleCopyFile}
+            onFileShare={(file) => handleShareItem(file, 'file')}
+            onFolderShare={(folder) => handleShareItem(folder, 'folder')}
+            currentUserEmail={user?.email}
             allFolders={folders.filter(f => !f.deleted)}
             allFiles={files.filter(f => !f.deleted)}
           />
