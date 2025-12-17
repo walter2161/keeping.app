@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,8 @@ export default function Toolbar({
   onViewModeChange,
   onPaste,
   sidebarOpen,
-  onToggleSidebar
+  onToggleSidebar,
+  viewFilter
 }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -194,6 +195,28 @@ export default function Toolbar({
             onChange={(e) => onSearchChange?.(e.target.value)}
             className="pl-8 w-48 h-8 text-sm"
           />
+        </div>
+
+        <div className="flex items-center gap-1 border border-gray-300 rounded-md p-0.5">
+          <Link to={createPageUrl('Drive?view=myDrive')}>
+            <Button
+              variant={viewFilter === 'myDrive' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs"
+            >
+              Meu Drive
+            </Button>
+          </Link>
+          <Link to={createPageUrl('Drive?view=shared')}>
+            <Button
+              variant={viewFilter === 'shared' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs gap-1"
+            >
+              <Users className="w-3 h-3" />
+              Compartilhados
+            </Button>
+          </Link>
         </div>
 
         <Link to={createPageUrl('Trash')}>
