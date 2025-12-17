@@ -73,6 +73,7 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
     const labels = {
       docx: 'documentos',
       xlsx: 'planilhas',
+      pptx: 'apresentações',
       kbn: 'Kanban',
       gnt: 'Gantt',
       crn: 'cronogramas',
@@ -112,6 +113,13 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
 - Analisar dados
 - Criar gráficos e resumos
 - Traduzir números em insights`,
+      
+      pptx: `Você pode ajudar a:
+- Criar apresentações
+- Estruturar slides
+- Formatar conteúdo
+- Gerar roteiros
+- Sugerir layouts`,
       
       kbn: `Você pode ajudar a:
 - Organizar tarefas
@@ -206,6 +214,7 @@ Comando do usuário: "${input}"
 IMPORTANTE:
 - Planilha/Excel = type: "xlsx", SEMPRE preencha com dados CSV se o usuário pediu dados
 - Documento/Word/Texto = type: "docx", SEMPRE use HTML formatado no content
+- Apresentação/PowerPoint = type: "pptx", use o formato JSON de slides
 - Kanban = type: "kbn"
 - Gantt = type: "gnt"
 - Cronograma = type: "crn"
@@ -274,6 +283,50 @@ SEMPRE estruture documentos com:
 4. Formatação adequada (negrito, itálico)
 5. Espaçamento entre seções (<p><br></p>)
 
+FORMATAÇÃO DE APRESENTAÇÕES (type: pptx):
+Use formato JSON com estrutura de slides:
+
+Exemplo de apresentação:
+{
+  "action": "create_file",
+  "data": {
+    "name": "Apresentação Vendas",
+    "type": "pptx",
+    "content": "{\\"slides\\":[{\\"background\\":\\"#ffffff\\",\\"elements\\":[{\\"id\\":\\"1\\",\\"type\\":\\"title\\",\\"content\\":\\"Resultados de Vendas\\",\\"x\\":100,\\"y\\":250,\\"width\\":1000,\\"height\\":100,\\"fontSize\\":48,\\"fontWeight\\":\\"bold\\",\\"color\\":\\"#1e293b\\"}]},{\\"background\\":\\"#f8fafc\\",\\"elements\\":[{\\"id\\":\\"2\\",\\"type\\":\\"title\\",\\"content\\":\\"Principais Indicadores\\",\\"x\\":100,\\"y\\":50,\\"width\\":1000,\\"height\\":80,\\"fontSize\\":36,\\"fontWeight\\":\\"bold\\",\\"color\\":\\"#1e293b\\"},{\\"id\\":\\"3\\",\\"type\\":\\"text\\",\\"content\\":\\"Crescimento de 35% no trimestre\\",\\"x\\":100,\\"y\\":200,\\"width\\":1000,\\"height\\":60,\\"fontSize\\":24,\\"color\\":\\"#475569\\"}]}]}"
+  }
+}
+
+Estrutura do JSON de slides:
+{
+  "slides": [
+    {
+      "background": "#ffffff" ou "url(https://...)",
+      "elements": [
+        {
+          "id": "único_id",
+          "type": "title" | "text" | "image" | "shape",
+          "content": "texto do elemento",
+          "x": 100,
+          "y": 100,
+          "width": 400,
+          "height": 100,
+          "fontSize": 24,
+          "fontWeight": "bold" | "normal",
+          "color": "#000000",
+          "backgroundColor": "#ffffff" (para shapes)
+        }
+      ]
+    }
+  ]
+}
+
+IMPORTANTE para apresentações:
+- SEMPRE crie pelo menos 3 slides
+- Slide 1: Título principal (title, fontSize: 48)
+- Slides seguintes: Conteúdo com title + text
+- Use cores harmônicas
+- Posicione elementos de forma organizada
+
 Converta o comando em uma ação estruturada.`;
 
         const actionSchema = {
@@ -287,7 +340,7 @@ Converta o comando em uma ação estruturada.`;
               type: "object",
               properties: {
                 name: { type: "string" },
-                type: { type: "string", enum: ["docx", "xlsx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
+                type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
                 content: { type: "string" },
                 folder_id: { type: "string" },
                 parent_id: { type: "string" },
@@ -403,6 +456,7 @@ Usuário: ${input}`;
         gnt: JSON.stringify({ tasks: [] }),
         crn: JSON.stringify({ groups: [], items: [] }),
         flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
+        pptx: data.content || JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] }),
         docx: data.content || '',
         xlsx: data.content || '',
       };
