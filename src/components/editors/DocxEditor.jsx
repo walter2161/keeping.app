@@ -13,7 +13,7 @@ const Font = Quill.import('attributors/style/font');
 Font.whitelist = ['arial', 'comic-sans', 'courier-new', 'georgia', 'helvetica', 'lucida', 'times-new-roman', 'verdana'];
 Quill.register(Font, true);
 
-const DocxEditor = forwardRef(({ value, onChange }, ref) => {
+const DocxEditor = forwardRef(({ value, onChange, zoom = 100 }, ref) => {
   const quillRef = useRef(null);
   const [orientation, setOrientation] = useState('portrait'); // 'portrait' or 'landscape'
   
@@ -137,7 +137,7 @@ const DocxEditor = forwardRef(({ value, onChange }, ref) => {
   };
 
   return (
-    <div className="bg-gray-100 h-full flex flex-col">
+    <div className="bg-gray-100 h-full flex flex-col" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
       <style>{`
         .ql-container {
           font-family: 'Montserrat', Arial, sans-serif;

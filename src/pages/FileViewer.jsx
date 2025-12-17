@@ -9,7 +9,7 @@ import {
         ArrowLeft, Save, Download, FileText, FileSpreadsheet,
         LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
         Image as ImageIcon, Video, ArrowRight, Upload, Presentation, Printer,
-        FileImage, FileType
+        FileImage, FileType, ZoomIn, ZoomOut
       } from 'lucide-react';
 import {
   Dialog,
@@ -51,6 +51,7 @@ export default function FileViewer() {
   const xlsxEditorRef = useRef(null);
   const [docOrientation, setDocOrientation] = useState('portrait');
   const [slideOrientation, setSlideOrientation] = useState('landscape');
+  const [docZoom, setDocZoom] = useState(100);
   
   const queryClient = useQueryClient();
 
@@ -421,6 +422,29 @@ export default function FileViewer() {
               >
                 <FileImage className="w-4 h-4 rotate-90" />
               </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => setDocZoom(Math.max(50, docZoom - 10))}
+                disabled={docZoom <= 50}
+                className="h-9 w-9"
+                title="Diminuir Zoom"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium text-gray-600 min-w-[45px] text-center">
+                {docZoom}%
+              </span>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => setDocZoom(Math.min(200, docZoom + 10))}
+                disabled={docZoom >= 200}
+                className="h-9 w-9"
+                title="Aumentar Zoom"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
             </>
           )}
           
@@ -541,6 +565,7 @@ export default function FileViewer() {
               ref={docxEditorRef}
               value={typeof localContent === 'string' ? localContent : ''}
               onChange={handleContentChange}
+              zoom={docZoom}
             />
           </div>
         )}
