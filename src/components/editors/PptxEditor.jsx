@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
-  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus
+  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus, Download
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import PptxGenJS from 'pptxgenjs';
 
 export default function PptxEditor({ value, onChange }) {
   const [slides, setSlides] = useState([]);
@@ -223,6 +224,66 @@ export default function PptxEditor({ value, onChange }) {
     input.click();
   };
 
+  const handleExportPptx = async () => {
+    const pptx = new PptxGenJS();
+    
+    for (const slide of slides) {
+      const pptxSlide = pptx.addSlide();
+      
+      // Background
+      if (slide.background.startsWith('url(')) {
+        const imageUrl = slide.background.match(/url\((.*?)\)/)[1];
+        pptxSlide.background = { data: imageUrl };
+      } else if (slide.background.startsWith('#')) {
+        pptxSlide.background = { color: slide.background };
+      }
+      
+      // Elements
+      for (const element of slide.elements) {
+        const x = element.x / 1200 * 10; // Convert to inches
+        const y = element.y / 675 * 5.625;
+        const w = element.width / 1200 * 10;
+        const h = element.height / 675 * 5.625;
+        
+        if (element.type === 'text' || element.type === 'title') {
+          pptxSlide.addText(element.content, {
+            x, y, w, h,
+            fontSize: element.fontSize,
+            bold: element.fontWeight === 'bold',
+            italic: element.fontStyle === 'italic',
+            underline: element.textDecoration === 'underline',
+            color: element.color.replace('#', ''),
+            valign: 'top',
+            breakLine: true
+          });
+        } else if (element.type === 'image' && element.imageUrl) {
+          pptxSlide.addImage({ data: element.imageUrl, x, y, w, h });
+        } else if (element.type === 'shape') {
+          pptxSlide.addShape(element.shapeType === 'circle' ? 'ellipse' : 'rect', {
+            x, y, w, h,
+            fill: { color: element.backgroundColor.replace('#', '') }
+          });
+          if (element.content) {
+            pptxSlide.addText(element.content, {
+              x, y, w, h,
+              fontSize: element.fontSize,
+              bold: element.fontWeight === 'bold',
+              color: element.color.replace('#', ''),
+              align: 'center',
+              valign: 'middle'
+            });
+          }
+        }
+      }
+    }
+    
+    await pptx.writeFile({ fileName: 'apresentacao.pptx' });
+  };
+
+  const handleImportPptx = () => {
+    alert('Importação de .pptx ainda não suportada. Use arquivos JSON exportados desta ferramenta.');
+  };
+
   const currentSlideData = slides[currentSlide];
   const selectedEl = currentSlideData?.elements?.find(el => el.id === selectedElement);
 
@@ -362,7 +423,7 @@ export default function PptxEditor({ value, onChange }) {
                   {index + 1}
                 </div>
                 <div 
-                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200"
+                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
                   style={{
                     background: slide.background.startsWith('url') 
                       ? slide.background 
@@ -370,7 +431,53 @@ export default function PptxEditor({ value, onChange }) {
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
-                />
+                >
+                  {slide.elements.map(el => (
+                    <div
+                      key={el.id}
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${(el.x / 1200) * 100}%`,
+                        top: `${(el.y / 675) * 100}%`,
+                        width: `${(el.width / 1200) * 100}%`,
+                        height: `${(el.height / 675) * 100}%`,
+                      }}
+                    >
+                      {el.type === 'image' && el.imageUrl && (
+                        <img src={el.imageUrl} alt="" className="w-full h-full object-contain" />
+                      )}
+                      {el.type === 'shape' && (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-center"
+                          style={{
+                            backgroundColor: el.backgroundColor,
+                            borderRadius: el.shapeType === 'circle' ? '50%' : '4px',
+                            fontSize: `${el.fontSize * 0.05}px`,
+                            fontWeight: el.fontWeight,
+                            color: el.color,
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {el.content}
+                        </div>
+                      )}
+                      {(el.type === 'text' || el.type === 'title') && (
+                        <div
+                          style={{
+                            fontSize: `${el.fontSize * 0.05}px`,
+                            fontWeight: el.fontWeight,
+                            color: el.color,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {el.content}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               {slides.length > 1 && (
                 <Button
@@ -533,6 +640,10 @@ export default function PptxEditor({ value, onChange }) {
               title="Cor de fundo"
             />
             <div className="h-6 w-px bg-gray-300 mx-1" />
+            <Button size="sm" variant="ghost" onClick={handleExportPptx} className="h-8">
+              <Download className="w-4 h-4 mr-1.5" />
+              Exportar PPTX
+            </Button>
             <Button size="sm" variant="default" onClick={() => setPresentationMode(true)} className="h-8 bg-green-600 hover:bg-green-700">
               <Play className="w-4 h-4 mr-1.5" />
               Apresentar
