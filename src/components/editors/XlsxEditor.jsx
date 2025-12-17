@@ -7,6 +7,7 @@ export default function XlsxEditor({ value, onChange }) {
   const jssRef = useRef(null);
   const tableRef = useRef(null);
   const worksheetRef = useRef(null);
+  const [selectedCell, setSelectedCell] = React.useState({ x: 0, y: 0, name: 'A1' });
   
   useEffect(() => {
     if (!jssRef.current || !jspreadsheet) return;
@@ -217,9 +218,8 @@ export default function XlsxEditor({ value, onChange }) {
       },
       onselection: function(instance, x1, y1, x2, y2) {
         const cellName = String.fromCharCode(65 + x1) + (y1 + 1);
-        const display = document.getElementById('selected-cell-display');
+        setSelectedCell({ x: x1, y: y1, name: cellName });
         const input = document.getElementById('formula-input');
-        if (display) display.textContent = cellName;
         if (input && worksheetRef.current) {
           const value = worksheetRef.current.getValue(cellName);
           input.value = value || '';
@@ -322,8 +322,8 @@ export default function XlsxEditor({ value, onChange }) {
       {/* Barra de Fórmulas */}
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-600 min-w-[60px]" id="selected-cell-display">
-            A1
+          <span className="text-sm font-semibold text-gray-600 min-w-[60px]">
+            {selectedCell.name}
           </span>
           <span className="text-gray-400">|</span>
         </div>
@@ -335,10 +335,8 @@ export default function XlsxEditor({ value, onChange }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && worksheetRef.current) {
               const value = e.target.value;
-              const selected = worksheetRef.current.getSelected();
-              if (selected && value) {
-                const cellName = selected.split(':')[0];
-                worksheetRef.current.setValue(cellName, value, true);
+              if (value) {
+                worksheetRef.current.setValue(selectedCell.name, value, true);
                 e.target.value = '';
                 setTimeout(() => {
                   const data = worksheetRef.current.getData();
