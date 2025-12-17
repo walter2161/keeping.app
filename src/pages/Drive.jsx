@@ -272,7 +272,7 @@ export default function Drive() {
     if (!user) return;
     try {
       let folderColor = color;
-      let teamId = null;
+      let teamId = selectedTeamId || null;
       
       if (currentFolderId) {
         const parentFolder = folders.find(f => f.id === currentFolderId);
@@ -317,8 +317,8 @@ export default function Drive() {
       pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
     };
 
-    // Herdar team_id da pasta pai
-    const teamId = getFolderTeam(currentFolderId);
+    // Herdar team_id da pasta pai ou usar selectedTeamId
+    const teamId = selectedTeamId || getFolderTeam(currentFolderId);
 
     try {
       const newFile = await createFileMutation.mutateAsync({
@@ -920,7 +920,10 @@ export default function Drive() {
           <ListView
             folders={currentFolders}
             files={currentFiles}
-            onFolderClick={setCurrentFolderId}
+            onFolderClick={(folderId) => {
+              setCurrentFolderId(folderId);
+              setSelectedTeamId(null);
+            }}
             onFileClick={handleFileClick}
             onFolderDelete={handleDeleteFolder}
             onFolderRename={handleRenameFolder}
@@ -968,7 +971,10 @@ export default function Drive() {
                           {(provided, snapshot) => (
                             <FolderCard
                               folder={folder}
-                              onClick={() => setCurrentFolderId(folder.id)}
+                              onClick={() => {
+                                setCurrentFolderId(folder.id);
+                                setSelectedTeamId(null);
+                              }}
                               onDelete={() => handleDeleteFolder(folder)}
                               onRename={() => handleRenameFolder(folder)}
                               onExport={() => handleExportFolder(folder)}
