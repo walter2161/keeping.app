@@ -189,6 +189,16 @@ export default function Drive() {
   // Filter items for current folder
   const currentFolders = useMemo(() => {
     if (!user) return [];
+    
+    // Se tem busca ativa, buscar em TODAS as pastas do usuário
+    if (searchQuery && searchQuery.trim()) {
+      return folders
+        .filter(f => !f.deleted)
+        .filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+    
+    // Sem busca, mostrar apenas pastas da pasta atual
     return folders
       .filter(f => !f.deleted)
       .filter(f => f.parent_id === currentFolderId)
@@ -200,12 +210,21 @@ export default function Drive() {
         // Se está dentro de uma pasta, mostrar apenas se tiver acesso
         return hasAccessToFolder(f);
       })
-      .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [folders, currentFolderId, searchQuery, user]);
 
   const currentFiles = useMemo(() => {
     if (!user) return [];
+    
+    // Se tem busca ativa, buscar em TODOS os arquivos do usuário
+    if (searchQuery && searchQuery.trim()) {
+      return files
+        .filter(f => !f.deleted)
+        .filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+    
+    // Sem busca, mostrar apenas arquivos da pasta atual
     return files
       .filter(f => !f.deleted)
       .filter(f => f.folder_id === currentFolderId)
@@ -217,7 +236,6 @@ export default function Drive() {
         // Se está dentro de uma pasta, mostrar apenas se tiver acesso
         return hasAccessToFile(f);
       })
-      .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [files, currentFolderId, searchQuery, user]);
 

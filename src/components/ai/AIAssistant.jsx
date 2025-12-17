@@ -194,25 +194,29 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       );
 
       if (matchedAutomation) {
-        // Detectar o tipo de ação baseado em palavras-chave
-        const actionTypes = {
-          create: ['criar', 'crie', 'gerar', 'gere', 'adicionar', 'adicione', 'novo', 'nova'],
-          search: ['pesquisar', 'pesquise', 'buscar', 'busque', 'encontrar', 'encontre', 'procurar', 'procure', 'listar', 'liste'],
-          write: ['escrever', 'escreva', 'redigir', 'redija', 'compor', 'componha', 'formular', 'formule'],
-          edit: ['editar', 'edite', 'modificar', 'modifique', 'alterar', 'altere', 'atualizar', 'atualize', 'mudar', 'mude'],
-          delete: ['deletar', 'delete', 'excluir', 'exclua', 'remover', 'remova', 'apagar', 'apague'],
-          analyze: ['analisar', 'analise', 'avaliar', 'avalie', 'revisar', 'revise', 'verificar', 'verifique'],
-        };
+        // Usar o tipo definido pelo usuário ou detectar automaticamente
+        let detectedType = matchedAutomation.type || null;
+        
+        // Se não tem tipo definido, detectar baseado em palavras-chave
+        if (!detectedType) {
+          const actionTypes = {
+            create: ['criar', 'crie', 'gerar', 'gere', 'adicionar', 'adicione', 'novo', 'nova'],
+            search: ['pesquisar', 'pesquise', 'buscar', 'busque', 'encontrar', 'encontre', 'procurar', 'procure', 'listar', 'liste'],
+            write: ['escrever', 'escreva', 'redigir', 'redija', 'compor', 'componha', 'formular', 'formule'],
+            edit: ['editar', 'edite', 'modificar', 'modifique', 'alterar', 'altere', 'atualizar', 'atualize', 'mudar', 'mude'],
+            delete: ['deletar', 'delete', 'excluir', 'exclua', 'remover', 'remova', 'apagar', 'apague'],
+            analyze: ['analisar', 'analise', 'avaliar', 'avalie', 'revisar', 'revise', 'verificar', 'verifique'],
+          };
 
-        let detectedType = null;
-        for (const [type, keywords] of Object.entries(actionTypes)) {
-          if (keywords.some(word => matchedAutomation.action.toLowerCase().includes(word))) {
-            detectedType = type;
-            break;
+          for (const [type, keywords] of Object.entries(actionTypes)) {
+            if (keywords.some(word => matchedAutomation.action.toLowerCase().includes(word))) {
+              detectedType = type;
+              break;
+            }
           }
         }
 
-        const isActionAutomation = detectedType !== null;
+        const isActionAutomation = detectedType !== null && detectedType !== 'response';
 
         if (isActionAutomation) {
           // Montar prompt específico baseado no tipo de ação
@@ -576,6 +580,37 @@ Converta o comando em uma ação estruturada.`;
           ? `\n\nArquivo aberto: ${fileType}`
           : '';
 
+        // Criar lista detalhada de pastas com caminho completo
+        const buildFolderPath = (folderId) => {
+          if (!folderId) return 'Raiz';
+          const folder = folders.find(f => f.id === folderId);
+          if (!folder) return 'Desconhecido';
+          const parentPath = buildFolderPath(folder.parent_id);
+          return parentPath === 'Raiz' ? folder.name : `${parentPath} > ${folder.name}`;
+        };
+
+        const foldersInfo = folders
+          .filter(f => !f.deleted)
+          .map(f => ({
+            id: f.id,
+            name: f.name,
+            path: buildFolderPath(f.parent_id),
+            team: f.team_id ? teams.find(t => t.id === f.team_id)?.name : 'Meu Drive',
+            owner: f.owner
+          }));
+
+        const filesInfo = files
+          .filter(f => !f.deleted)
+          .map(f => ({
+            id: f.id,
+            name: f.name,
+            type: f.type,
+            path: buildFolderPath(f.folder_id),
+            team: f.team_id ? teams.find(t => t.id === f.team_id)?.name : 'Meu Drive',
+            content_preview: f.content ? f.content.substring(0, 500) : '(vazio)',
+            owner: f.owner
+          }));
+
         const chatPrompt = `${getSystemPrompt()}
 
 Você está conversando com o usuário sobre o app Keeping.
@@ -586,7 +621,25 @@ ${conversationHistory}
 Localização atual: ${currentFolder ? currentFolder.name : 'Raiz'}
 ${contextInfo}
 
-Responda de forma natural e amigável em português. Não execute ações, apenas converse.
+INFORMAÇÕES COMPLETAS DO DRIVE:
+
+PASTAS DISPONÍVEIS (${foldersInfo.length} pastas):
+${JSON.stringify(foldersInfo, null, 2)}
+
+ARQUIVOS DISPONÍVEIS (${filesInfo.length} arquivos):
+${JSON.stringify(filesInfo, null, 2)}
+
+EQUIPES DO USUÁRIO:
+${JSON.stringify(teams.filter(t => t.members && t.members.includes(user.email)).map(t => ({ id: t.id, name: t.name, members: t.members })), null, 2)}
+
+IMPORTANTE:
+- Você tem acesso a TODOS os arquivos e pastas listados acima
+- Você pode ver o conteúdo parcial (preview) de cada arquivo
+- Você sabe onde cada arquivo/pasta está localizado
+- Você sabe a qual equipe cada item pertence
+- Use essas informações para responder perguntas sobre organização, localização e conteúdo
+
+Responda de forma natural e amigável em português. Não execute ações, apenas converse e forneça informações baseadas nos dados acima.
 
 Usuário: ${input}`;
 
