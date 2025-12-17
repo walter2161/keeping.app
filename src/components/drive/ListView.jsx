@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video, Palette, Presentation, ArrowRight
+  MoreVertical, Trash2, Edit2, Download, ChevronRight, Image, Video, Palette, Presentation, ArrowRight
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -41,14 +41,12 @@ export default function ListView({
   onFileClick,
   onFolderDelete,
   onFolderRename,
-  onFolderCopy,
   onFolderExport,
   onFolderColorChange,
   onFolderMove,
   onFileDelete,
   onFileRename,
   onFileExport,
-  onFileCopy,
   onFileMove,
   level = 0,
   allFolders = [],
@@ -150,10 +148,6 @@ export default function ListView({
                     Mudar Cor
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderCopy?.(folder); }}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copiar
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderExport?.(folder); }}>
                   <Download className="w-4 h-4 mr-2" />
                   Exportar (.zip)
@@ -183,14 +177,12 @@ export default function ListView({
             onFileClick={onFileClick}
             onFolderDelete={onFolderDelete}
             onFolderRename={onFolderRename}
-            onFolderCopy={onFolderCopy}
             onFolderExport={onFolderExport}
             onFolderColorChange={onFolderColorChange}
             onFolderMove={onFolderMove}
             onFileDelete={onFileDelete}
             onFileRename={onFileRename}
             onFileExport={onFileExport}
-            onFileCopy={onFileCopy}
             onFileMove={onFileMove}
             level={level + 1}
             allFolders={allFolders}
@@ -234,10 +226,6 @@ export default function ListView({
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileRename?.(file); }}>
                     <Edit2 className="w-4 h-4 mr-2" />
                     Renomear
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileCopy?.(file); }}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copiar
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileExport?.(file); }}>
                     <Download className="w-4 h-4 mr-2" />

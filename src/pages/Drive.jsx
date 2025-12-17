@@ -43,7 +43,6 @@ export default function Drive() {
   const [uploadDialog, setUploadDialog] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [clipboard, setClipboard] = useState({ type: null, item: null });
   const [moveConfirmDialog, setMoveConfirmDialog] = useState({ open: false, data: null });
   const [moveDialog, setMoveDialog] = useState({ open: false, item: null, type: null });
   
@@ -498,14 +497,6 @@ export default function Drive() {
     window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
   };
 
-  const handleCopyFolder = (folder) => {
-    setClipboard({ type: 'folder', item: folder });
-  };
-
-  const handleCopyFile = (file) => {
-    setClipboard({ type: 'file', item: file });
-  };
-
   const handleMoveFolder = (folder) => {
     setMoveDialog({ open: true, item: folder, type: 'folder' });
   };
@@ -635,27 +626,7 @@ export default function Drive() {
       }
     };
 
-  const handlePaste = async () => {
-    if (!clipboard.item) return;
 
-    if (clipboard.type === 'folder') {
-      await createFolderMutation.mutateAsync({
-        name: `${clipboard.item.name} (cópia)`,
-        parent_id: currentFolderId,
-        color: clipboard.item.color,
-        order: currentFolders.length,
-      });
-    } else if (clipboard.type === 'file') {
-      await createFileMutation.mutateAsync({
-        name: `${clipboard.item.name} (cópia)`,
-        type: clipboard.item.type,
-        folder_id: currentFolderId,
-        content: clipboard.item.content,
-        file_url: clipboard.item.file_url,
-        order: currentFiles.length,
-      });
-    }
-  };
 
   const handleDragEnd = async (result) => {
     if (!result.destination) return;
@@ -866,7 +837,6 @@ export default function Drive() {
           onSearchChange={setSearchQuery}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          onPaste={clipboard.item ? handlePaste : null}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onRefresh={handleRefreshClick}
@@ -914,7 +884,6 @@ export default function Drive() {
             onFileClick={handleFileClick}
             onFolderDelete={handleDeleteFolder}
             onFolderRename={handleRenameFolder}
-            onFolderCopy={handleCopyFolder}
             onFolderExport={handleExportFolder}
             onFolderColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
             onFolderMove={handleMoveFolder}
@@ -934,7 +903,6 @@ export default function Drive() {
             }}
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
-            onFileCopy={handleCopyFile}
             onFileMove={handleMoveFile}
             currentUserEmail={user?.email}
             allFolders={folders.filter(f => !f.deleted)}
@@ -963,7 +931,6 @@ export default function Drive() {
                               onClick={() => setCurrentFolderId(folder.id)}
                               onDelete={() => handleDeleteFolder(folder)}
                               onRename={() => handleRenameFolder(folder)}
-                              onCopy={() => handleCopyFolder(folder)}
                               onExport={() => handleExportFolder(folder)}
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
                               onMove={() => handleMoveFolder(folder)}
@@ -1017,7 +984,6 @@ export default function Drive() {
                               }}
                               onRename={() => handleRenameFile(file)}
                               onExport={() => handleExportFile(file)}
-                              onCopy={() => handleCopyFile(file)}
                               onMove={() => handleMoveFile(file)}
                               isOwner={file.owner === user?.email}
                               provided={provided}

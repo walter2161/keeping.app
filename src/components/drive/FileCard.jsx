@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight, Users, Presentation
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,7 +31,7 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy, onMove, isOwner, provided, isDragging }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, isOwner, provided, isDragging }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
   const [clickCount, setClickCount] = React.useState(0);
@@ -152,10 +152,6 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename?.(file); }}>
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(file); }}>
-            <Copy className="w-4 h-4 mr-2" />
-            Copiar
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onExport?.(file); }}>
             <Download className="w-4 h-4 mr-2" />
