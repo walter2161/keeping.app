@@ -659,18 +659,18 @@ export default function PptxEditor({ value, onChange }) {
               ref={slideRef}
               className="bg-white shadow-xl relative"
               style={{
-                width: '1200px',
-                height: '675px',
-                transform: `scale(${zoom})`,
-                transformOrigin: 'top left',
-              background: currentSlideData.background.startsWith('url') 
-                ? currentSlideData.background 
-                : currentSlideData.background,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-            onClick={() => setSelectedElement(null)}
-          >
+               width: '1200px',
+               height: '675px',
+               transform: `scale(${zoom})`,
+               transformOrigin: 'top left',
+               background: currentSlideData.background.startsWith('url') 
+                 ? currentSlideData.background 
+                 : currentSlideData.background,
+               backgroundSize: 'cover',
+               backgroundPosition: 'center'
+              }}
+              onClick={() => setSelectedElement(null)}
+              >
             {currentSlideData.elements.map(element => (
               <div
                 key={element.id}
