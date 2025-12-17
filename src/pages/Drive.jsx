@@ -114,10 +114,19 @@ export default function Drive() {
   // Handlers
   const handleCreateFolder = async (name, color) => {
     try {
+      // Se estiver dentro de uma pasta pai, herdar a cor dela
+      let folderColor = color;
+      if (currentFolderId && !color) {
+        const parentFolder = folders.find(f => f.id === currentFolderId);
+        if (parentFolder && parentFolder.color) {
+          folderColor = parentFolder.color;
+        }
+      }
+      
       await createFolderMutation.mutateAsync({
         name,
         parent_id: currentFolderId,
-        color,
+        color: folderColor,
         order: currentFolders.length,
       });
       setCreateDialog({ open: false, type: null });
