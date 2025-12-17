@@ -211,8 +211,8 @@ IMPORTANTE:
 - Cronograma = type: "crn"
 
 FORMATAÇÃO DE PLANILHAS (type: xlsx):
-SEMPRE preencha o content com dados CSV quando o usuário solicitar.
-Formato: linhas separadas por \n, colunas separadas por vírgula.
+SEMPRE preencha com dados em formato de array de arrays (JSON).
+Cada linha é um array, primeira linha são os cabeçalhos.
 
 Exemplo CORRETO de planilha COM DADOS:
 {
@@ -220,12 +220,12 @@ Exemplo CORRETO de planilha COM DADOS:
   "data": {
     "name": "Controle de Vendas",
     "type": "xlsx",
-    "content": "Produto,Quantidade,Valor Unitário,Total\nNotebook,5,3500,17500\nMouse,20,50,1000\nTeclado,15,150,2250\nTOTAL,40,,20750"
+    "content": "[[\\"Produto\\",\\"Quantidade\\",\\"Valor Unitário\\",\\"Total\\"],[\\"Notebook\\",\\"5\\",\\"3500\\",\\"17500\\"],[\\"Mouse\\",\\"20\\",\\"50\\",\\"1000\\"],[\\"Teclado\\",\\"15\\",\\"150\\",\\"2250\\"],[\\"TOTAL\\",\\"40\\",\\"\\",\\"20750\\"]]"
   }
 }
 
+IMPORTANTE: content deve ser uma STRING JSON de array de arrays.
 NUNCA crie planilhas vazias quando o usuário pedir dados específicos!
-Se o usuário pedir "crie uma planilha de vendas", preencha com dados de exemplo realistas.
 
 FORMATAÇÃO DE DOCUMENTOS (type: docx):
 Use HTML completo e bem formatado no campo content:
@@ -318,26 +318,16 @@ Converta o comando em uma ação estruturada.`;
           };
           setMessages(prev => [...prev, successMessage]);
 
-          // Para planilhas com conteúdo, editar após criar
-          if (llmResult.action === 'create_file' && llmResult.data.type === 'xlsx' && llmResult.data.content && actionResult?.id) {
-            setTimeout(async () => {
-              await base44.entities.File.update(actionResult.id, {
-                content: llmResult.data.content
-              });
+          // Navegar para o item criado após invalidar queries
+          setTimeout(() => {
+            if (llmResult.action === 'create_file' && actionResult?.id) {
               window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
-            }, 500);
-          } else {
-            // Navegar para o item criado após invalidar queries
-            setTimeout(() => {
-              if (llmResult.action === 'create_file' && actionResult?.id) {
-                window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
-              } else if (llmResult.action === 'create_folder' && actionResult?.id) {
-                window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
-              } else {
-                window.location.reload();
-              }
-            }, 1200);
-          }
+            } else if (llmResult.action === 'create_folder' && actionResult?.id) {
+              window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
+            } else {
+              window.location.reload();
+            }
+          }, 1200);
         }
       } else {
         // Conversa normal
@@ -414,13 +404,13 @@ Usuário: ${input}`;
         crn: JSON.stringify({ groups: [], items: [] }),
         flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
         docx: data.content || '',
-        xlsx: '', // Sempre criar planilha vazia primeiro
+        xlsx: data.content || '',
       };
       const result = await base44.entities.File.create({
         name: data.name,
         type: data.type,
         folder_id: data.folder_id || currentFolderId || null,
-        content: data.type === 'xlsx' ? '' : (data.content || defaultContent[data.type] || ''),
+        content: data.content || defaultContent[data.type] || '',
       });
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
