@@ -91,16 +91,18 @@ export default function AutomationManager({ automations = [], onChange }) {
 
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Ação a executar
+                Ação ou Resposta
               </label>
               <Textarea
                 value={editData.action}
                 onChange={(e) => setEditData({ ...editData, action: e.target.value })}
-                placeholder="Ex: Criar um cartão no kanban 'Tarefas Diárias' com título 'Ler emails'"
+                placeholder="Para ações: 'Criar um cartão no kanban Tarefas com título Email'&#10;Para respostas: 'Este é o número da sorte de Kratos'"
                 className="bg-white h-24"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Descreva exatamente o que o assistente deve fazer
+                • Para <strong>ações</strong>: descreva o que criar/editar (ex: "criar uma planilha...")
+                <br />
+                • Para <strong>respostas simples</strong>: digite diretamente a resposta (ex: "esse é o número...")
               </p>
             </div>
 
