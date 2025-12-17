@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight, Home } from 'lucide-react';
 
-export default function Breadcrumb({ path, onNavigate }) {
+export default function Breadcrumb({ path, onNavigate, onTeamNavigate }) {
   return (
     <div className="flex items-center gap-1 px-4 py-3 bg-gray-50 border-b overflow-x-auto">
       <button

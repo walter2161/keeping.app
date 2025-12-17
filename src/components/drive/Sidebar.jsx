@@ -104,7 +104,7 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
   );
 }
 
-export default function Sidebar({ folders, teams, currentFolderId, onFolderSelect, onTeamSelect, onTeamEdit, isOpen, onToggleSidebar, currentUserEmail }) {
+export default function Sidebar({ folders, teams, currentFolderId, selectedTeamId, onFolderSelect, onTeamSelect, onTeamEdit, isOpen, onToggleSidebar, currentUserEmail }) {
   const [expandedFolders, setExpandedFolders] = React.useState(new Set());
   const [expandedTeams, setExpandedTeams] = React.useState(new Set());
 
@@ -268,8 +268,11 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
                           toggleTeam(team.id);
                         }
                         onTeamSelect?.(team.id);
+                        onFolderSelect(null); // Limpa a pasta selecionada
                       }}
-                      className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm text-gray-700"
+                      className={`flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+                        selectedTeamId === team.id && !currentFolderId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                      }`}
                     >
                       {hasRootFolders ? (
                         expandedTeams.has(team.id) ? (
