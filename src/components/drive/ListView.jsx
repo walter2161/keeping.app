@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video, Palette
+  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video, Palette, Presentation
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ const folderColors = {
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600' },
   xlsx: { icon: FileSpreadsheet, color: 'text-green-600' },
+  pptx: { icon: Presentation, color: 'text-amber-600' },
   kbn: { icon: LayoutGrid, color: 'text-purple-600' },
   gnt: { icon: GanttChart, color: 'text-orange-600' },
   crn: { icon: Calendar, color: 'text-pink-600' },
