@@ -28,7 +28,13 @@ export default function PptxEditor({ value, onChange }) {
     if (value && value.trim()) {
       try {
         const parsed = JSON.parse(value);
-        setSlides(parsed.slides || [createEmptySlide()]);
+        const loadedSlides = parsed.slides || [createEmptySlide()];
+        // Garantir que todos os slides têm a estrutura correta
+        const normalizedSlides = loadedSlides.map(slide => ({
+          background: slide.background || '#ffffff',
+          elements: slide.elements || []
+        }));
+        setSlides(normalizedSlides);
       } catch (e) {
         setSlides([createEmptySlide()]);
       }
@@ -188,10 +194,10 @@ export default function PptxEditor({ value, onChange }) {
     input.click();
   };
 
-  const selectedEl = slides[currentSlide]?.elements.find(el => el.id === selectedElement);
   const currentSlideData = slides[currentSlide];
+  const selectedEl = currentSlideData?.elements?.find(el => el.id === selectedElement);
 
-  if (!currentSlideData) {
+  if (!currentSlideData || !slides.length) {
     return <div className="flex items-center justify-center h-full">Carregando...</div>;
   }
 
