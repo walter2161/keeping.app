@@ -30,7 +30,6 @@ export default function Toolbar({
   onNewFolder, 
   onNewFile,
   onNewTeam,
-  onNewTeamFolder,
   onUpload,
   onImport, 
   onExportAll,
@@ -97,10 +96,6 @@ export default function Toolbar({
             <DropdownMenuItem onClick={onNewFolder}>
               <FolderPlus className="w-4 h-4 mr-2 text-gray-600" />
               Nova Pasta
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onNewTeamFolder}>
-              <Users className="w-4 h-4 mr-2 text-purple-600" />
-              Pasta de Equipe
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onNewTeam}>

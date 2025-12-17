@@ -19,7 +19,6 @@ import ListView from '../components/drive/ListView';
 import UploadDialog from '../components/drive/UploadDialog';
 import AIAssistant from '../components/ai/AIAssistant';
 import TeamDialog from '../components/drive/TeamDialog';
-import TeamFolderDialog from '../components/drive/TeamFolderDialog';
 
 export default function Drive() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -29,7 +28,6 @@ export default function Drive() {
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
   const [teamDialog, setTeamDialog] = useState({ open: false, team: null });
-  const [teamFolderDialog, setTeamFolderDialog] = useState(false);
   const [importDialog, setImportDialog] = useState(false);
   const [uploadDialog, setUploadDialog] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
@@ -217,22 +215,7 @@ export default function Drive() {
     }
   };
 
-  const handleCreateTeamFolder = async (name, teamId) => {
-    if (!user) return;
-    try {
-      await createFolderMutation.mutateAsync({
-        name,
-        parent_id: null,
-        team_id: teamId,
-        order: 0,
-        owner: user.email,
-      });
-      setTeamFolderDialog(false);
-    } catch (error) {
-      console.error('Erro ao criar pasta de equipe:', error);
-      alert('Erro ao criar pasta de equipe: ' + error.message);
-    }
-  };
+
 
   const handleCreateFile = async (name, type) => {
     if (!user) return;
@@ -667,7 +650,6 @@ export default function Drive() {
         onNewFolder={() => setCreateDialog({ open: true, type: 'folder' })}
         onNewFile={handleNewFile}
         onNewTeam={() => setTeamDialog({ open: true, team: null })}
-        onNewTeamFolder={() => setTeamFolderDialog(true)}
         onUpload={() => setUploadDialog(true)}
         onImport={() => setImportDialog(true)}
         onExportAll={handleExportAll}
@@ -884,14 +866,6 @@ export default function Drive() {
         onOpenChange={(open) => setTeamDialog({ ...teamDialog, open })}
         team={teamDialog.team}
         currentUserEmail={user?.email}
-      />
-
-      {/* Team Folder Dialog */}
-      <TeamFolderDialog
-        open={teamFolderDialog}
-        onOpenChange={setTeamFolderDialog}
-        teams={userTeams}
-        onSubmit={handleCreateTeamFolder}
       />
 
       {/* AI Assistant */}
