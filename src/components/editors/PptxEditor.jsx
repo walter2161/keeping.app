@@ -276,13 +276,15 @@ export default function PptxEditor({ value, onChange }) {
         onMouseDown={(e) => {
           setIsPanning(true);
           setPanStart({ x: e.clientX, y: e.clientY });
-          setPanStart({ x: e.clientX + e.currentTarget.scrollLeft, y: e.clientY + e.currentTarget.scrollTop });
+          setScrollPos({ x: e.currentTarget.scrollLeft, y: e.currentTarget.scrollTop });
           e.preventDefault();
         }}
         onMouseMove={(e) => {
           if (isPanning) {
-            e.currentTarget.scrollLeft = panStart.x - e.clientX;
-            e.currentTarget.scrollTop = panStart.y - e.clientY;
+            const dx = panStart.x - e.clientX;
+            const dy = panStart.y - e.clientY;
+            e.currentTarget.scrollLeft = scrollPos.x + dx;
+            e.currentTarget.scrollTop = scrollPos.y + dy;
           }
         }}
         onMouseUp={() => setIsPanning(false)}
