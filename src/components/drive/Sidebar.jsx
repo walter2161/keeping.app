@@ -40,50 +40,59 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
   const isActive = currentFolderId === folder.id;
 
   return (
-    <Droppable droppableId={`sidebar-folder-${folder.id}`} type="FOLDER">
-      {(provided, snapshot) => (
-        <div ref={provided.innerRef} {...provided.droppableProps}>
-          <button
-            onClick={() => {
-              onSelect(folder.id);
-              if (hasChildren) onToggle(folder.id);
-            }}
-            className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
-              isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-            } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
-            style={{ paddingLeft: `${level * 12 + 12}px` }}
-          >
-        {hasChildren && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle(folder.id);
-            }}
-            className="flex-shrink-0"
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            )}
-          </button>
-        )}
-        {!hasChildren && <div className="w-4" />}
-        <Folder 
-          className={`w-4 h-4 flex-shrink-0 ${folderColors[folder.color] || folderColors.default}`}
-          fill="currentColor"
-        />
-        <span className="truncate flex-1 text-left">{folder.name}</span>
-          </button>
-          <div style={{ display: 'none' }}>{provided.placeholder}</div>
-          {hasChildren && isExpanded && (
-            <div>
-              {children}
-            </div>
+    <>
+      <Droppable droppableId={`sidebar-folder-${folder.id}`} type="FOLDER">
+        {(provided, snapshot) => (
+          <div ref={provided.innerRef} {...provided.droppableProps}>
+            <button
+              onClick={() => {
+                onSelect(folder.id);
+                if (hasChildren) onToggle(folder.id);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+                isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+              } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
+              style={{ paddingLeft: `${level * 12 + 12}px` }}
+            >
+          {hasChildren && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(folder.id);
+              }}
+              className="flex-shrink-0"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
           )}
+          {!hasChildren && <div className="w-4" />}
+          <Folder 
+            className={`w-4 h-4 flex-shrink-0 ${folderColors[folder.color] || folderColors.default}`}
+            fill="currentColor"
+          />
+          <span className="truncate flex-1 text-left">{folder.name}</span>
+            </button>
+            <div style={{ display: 'none' }}>{provided.placeholder}</div>
+          </div>
+        )}
+      </Droppable>
+      <Droppable droppableId={`sidebar-folder-${folder.id}`} type="FILE">
+        {(provided) => (
+          <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: 'none' }}>
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+      {hasChildren && isExpanded && (
+        <div>
+          {children}
         </div>
       )}
-    </Droppable>
+    </>
   );
 }
 
@@ -210,6 +219,13 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
                   <span className="truncate flex-1 text-left">Meu Drive</span>
                 </button>
                 <div style={{ display: 'none' }}>{provided.placeholder}</div>
+              </div>
+            )}
+          </Droppable>
+          <Droppable droppableId="sidebar-folder-root" type="FILE">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: 'none' }}>
+                {provided.placeholder}
               </div>
             )}
           </Droppable>
