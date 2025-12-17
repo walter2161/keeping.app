@@ -17,6 +17,7 @@ import ImportExportDialog from '../components/drive/ImportExportDialog';
 import Sidebar from '../components/drive/Sidebar';
 import ListView from '../components/drive/ListView';
 import UploadDialog from '../components/drive/UploadDialog';
+import ShareDialog from '../components/drive/ShareDialog';
 import AIAssistant from '../components/ai/AIAssistant';
 
 export default function Drive() {
@@ -685,6 +686,7 @@ export default function Drive() {
         onPaste={clipboard.item ? handlePaste : null}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        viewFilter={viewFilter}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -768,6 +770,8 @@ export default function Drive() {
                               onCopy={() => handleCopyFolder(folder)}
                               onExport={() => handleExportFolder(folder)}
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
+                              onShare={() => handleShareItem(folder, 'folder')}
+                              isOwner={folder.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
                               onExternalDrop={handleExternalDrop}
@@ -801,17 +805,25 @@ export default function Drive() {
                             <FileCard
                               file={file}
                               onClick={() => handleFileClick(file)}
-                              onDelete={() => updateFileMutation.mutate({
-                                id: file.id,
-                                data: {
-                                  deleted: true,
-                                  deleted_at: new Date().toISOString(),
-                                  original_folder_id: file.folder_id,
+                              onDelete={() => {
+                                if (file.owner !== user?.email) {
+                                  alert('Apenas o proprietário pode excluir este arquivo.');
+                                  return;
                                 }
-                              })}
+                                updateFileMutation.mutate({
+                                  id: file.id,
+                                  data: {
+                                    deleted: true,
+                                    deleted_at: new Date().toISOString(),
+                                    original_folder_id: file.folder_id,
+                                  }
+                                });
+                              }}
                               onRename={() => handleRenameFile(file)}
                               onExport={() => handleExportFile(file)}
                               onCopy={() => handleCopyFile(file)}
+                              onShare={() => handleShareItem(file, 'file')}
+                              isOwner={file.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
                             />
@@ -859,6 +871,18 @@ export default function Drive() {
           queryClient.invalidateQueries({ queryKey: ['files'] });
         }}
         folderId={currentFolderId}
+      />
+
+      {/* Share Dialog */}
+      <ShareDialog
+        open={shareDialog.open}
+        onOpenChange={(open) => setShareDialog({ ...shareDialog, open })}
+        item={shareDialog.item}
+        type={shareDialog.type}
+        onGenerateLink={handleGenerateShareLink}
+        onShareWithEmail={handleShareWithEmail}
+        onRemoveShare={handleRemoveShare}
+        currentUserEmail={user?.email}
       />
 
       {/* AI Assistant */}
