@@ -25,7 +25,8 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const slideRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
-    exportPptx: handleExportPptx
+    exportPptx: handleExportPptx,
+    exportJson: handleExportJson
   }));
 
   useEffect(() => {
@@ -283,6 +284,25 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     
     const cleanFileName = fileName.replace(/\.(pptx|json)$/i, '');
     await pptx.writeFile({ fileName: `${cleanFileName}.pptx` });
+  };
+
+  const handleExportJson = () => {
+    const exportData = {
+      type: 'single_file',
+      file: {
+        name: fileName,
+        type: 'pptx',
+        content: JSON.stringify({ slides }),
+      }
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cleanFileName = fileName.replace(/\.(pptx|json)$/i, '');
+    a.download = `${cleanFileName}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const currentSlideData = slides[currentSlide];
@@ -641,6 +661,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
               title="Cor de fundo"
             />
             <div className="h-6 w-px bg-gray-300 mx-1" />
+            <Button size="sm" variant="ghost" onClick={handleExportJson} className="h-8">
+              <Download className="w-4 h-4 mr-1.5" />
+              JSON
+            </Button>
             <Button size="sm" variant="default" onClick={() => setPresentationMode(true)} className="h-8 bg-green-600 hover:bg-green-700">
               <Play className="w-4 h-4 mr-1.5" />
               Apresentar
