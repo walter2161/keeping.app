@@ -180,6 +180,14 @@ export default function Drive() {
     return folders
       .filter(f => !f.deleted)
       .filter(f => f.parent_id === currentFolderId)
+      .filter(f => {
+        // Se está na raiz (Meu Drive), mostrar apenas pastas sem team_id
+        if (currentFolderId === null) {
+          return !f.team_id && f.owner === user.email;
+        }
+        // Se está dentro de uma pasta, mostrar apenas se tiver acesso
+        return hasAccessToFolder(f);
+      })
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [folders, currentFolderId, searchQuery, user]);
@@ -189,6 +197,14 @@ export default function Drive() {
     return files
       .filter(f => !f.deleted)
       .filter(f => f.folder_id === currentFolderId)
+      .filter(f => {
+        // Se está na raiz (Meu Drive), mostrar apenas arquivos sem team_id
+        if (currentFolderId === null) {
+          return !f.team_id && f.owner === user.email;
+        }
+        // Se está dentro de uma pasta, mostrar apenas se tiver acesso
+        return hasAccessToFile(f);
+      })
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [files, currentFolderId, searchQuery, user]);
