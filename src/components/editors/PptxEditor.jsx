@@ -723,7 +723,6 @@ export default function PptxEditor({ value, onChange }) {
             ))}
             </div>
             </div>
-            </div>
 
             {/* Dialog de Templates */}
         {showTemplates && (
