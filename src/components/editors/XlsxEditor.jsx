@@ -51,6 +51,7 @@ export default function XlsxEditor({ value, onChange }) {
       wordWrap: true,
       selectionCopy: true,
       mergeCells: {},
+      parseFormulas: true,
       pagination: 100,
       paginationOptions: [50, 100, 200, 500],
       worksheets: [
@@ -330,11 +331,15 @@ export default function XlsxEditor({ value, onChange }) {
               const value = e.target.value;
               const selected = worksheetRef.current.getSelectedIndex();
               if (selected && value) {
-                worksheetRef.current.setValue(
-                  String.fromCharCode(65 + selected[0]) + (selected[1] + 1),
-                  value
-                );
-                e.target.value = '';
+                const cellName = String.fromCharCode(65 + selected[0]) + (selected[1] + 1);
+                worksheetRef.current.setValue(cellName, value, true);
+                setTimeout(() => {
+                  const data = worksheetRef.current.getData();
+                  const meta = worksheetRef.current.getMeta();
+                  const style = worksheetRef.current.getStyle();
+                  const merged = worksheetRef.current.getMerge();
+                  onChange(JSON.stringify({ data, meta, style, merged }));
+                }, 100);
               }
             }
           }}
