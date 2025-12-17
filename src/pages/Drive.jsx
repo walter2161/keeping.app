@@ -35,6 +35,7 @@ export default function Drive() {
   const [clipboard, setClipboard] = useState({ type: null, item: null });
   const [dragOverFolder, setDragOverFolder] = useState(null);
   const [shareDialog, setShareDialog] = useState({ open: false, item: null, type: null });
+  const [isChangingView, setIsChangingView] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -643,6 +644,15 @@ export default function Drive() {
     });
   };
 
+  // Handle view change loading
+  useEffect(() => {
+    if (viewFilter) {
+      setIsChangingView(true);
+      const timer = setTimeout(() => setIsChangingView(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [viewFilter]);
+
   // Handle shared link access
   useEffect(() => {
     const shareToken = urlParams.get('share');
@@ -715,7 +725,7 @@ export default function Drive() {
           />
 
           <div className="flex-1 p-6 overflow-y-auto">
-        {isLoading ? (
+          {isLoading || isChangingView ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
