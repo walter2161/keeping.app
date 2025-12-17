@@ -24,6 +24,7 @@ import DocxEditor from '../components/editors/DocxEditor';
 import XlsxEditor from '../components/editors/XlsxEditor';
 import PptxEditor from '../components/editors/PptxEditor';
 import AIAssistant from '../components/ai/AIAssistant';
+import CollaborationBar from '../components/collaboration/CollaborationBar';
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
@@ -55,6 +56,11 @@ export default function FileViewer() {
   
   const queryClient = useQueryClient();
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: file, isLoading, error } = useQuery({
     queryKey: ['file', fileId],
     queryFn: async () => {
@@ -69,14 +75,16 @@ export default function FileViewer() {
     refetchOnMount: 'always',
     staleTime: 0,
     cacheTime: 0,
+    refetchInterval: 5000, // Auto-sync every 5 seconds
   });
 
   useEffect(() => {
     if (file) {
       setFileName(file.name);
-      setHasChanges(false);
       
-      if (file.content) {
+      // Only update content if user hasn't made local changes
+      if (!hasChanges) {
+        if (file.content) {
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent(file.content);
         } else if (file.type === 'pptx') {
@@ -105,8 +113,9 @@ export default function FileViewer() {
           setLocalContent({});
         }
       }
+      }
     }
-  }, [file]);
+  }, [file, hasChanges]);
 
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
@@ -141,13 +150,24 @@ export default function FileViewer() {
       });
       
       queryClient.invalidateQueries({ queryKey: ['file', fileId] });
-      alert('Arquivo salvo com sucesso!');
+      setHasChanges(false);
     } catch (error) {
       alert('Erro ao salvar o arquivo: ' + error.message);
     } finally {
       setSaving(false);
     }
   };
+
+  // Auto-save every 30 seconds if there are changes
+  useEffect(() => {
+    if (!hasChanges || !file) return;
+    
+    const autoSaveInterval = setInterval(() => {
+      handleSave();
+    }, 30000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [hasChanges, localContent, fileName, file]);
 
   const handleExport = () => {
     // Para imagens, vídeos e PDFs, fazer download direto do arquivo original
@@ -627,6 +647,11 @@ export default function FileViewer() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Collaboration Bar */}
+      {currentUser && (file.type === 'docx' || file.type === 'xlsx' || file.type === 'pptx') && (
+        <CollaborationBar fileId={fileId} currentUser={currentUser} />
+      )}
 
       {/* AI Assistant with file context */}
       <AIAssistant 
