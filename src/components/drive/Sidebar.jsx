@@ -66,7 +66,7 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
   );
 }
 
-export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOpen, onToggleSidebar }) {
+export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOpen, onToggleSidebar, currentUserEmail, viewFilter }) {
   const [expandedFolders, setExpandedFolders] = React.useState(new Set());
 
   const toggleFolder = (folderId) => {
@@ -85,6 +85,16 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
     const buildTree = (parentId = null, level = 0) => {
       return folders
         .filter(f => !f.deleted)
+        .filter(f => {
+          // Filtrar pastas baseado na view atual
+          if (viewFilter === 'shared') {
+            // Compartilhado comigo: apenas pastas de outros usuários
+            return f.owner !== currentUserEmail && f.shared_with && f.shared_with.includes(currentUserEmail);
+          } else {
+            // Meu Drive: apenas minhas pastas
+            return f.owner === currentUserEmail;
+          }
+        })
         .filter(f => f.parent_id === parentId)
         .sort((a, b) => (a.order || 0) - (b.order || 0))
         .map(folder => {
@@ -104,7 +114,7 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
         });
     };
     return buildTree();
-  }, [folders, expandedFolders, currentFolderId]);
+  }, [folders, expandedFolders, currentFolderId, currentUserEmail, viewFilter]);
 
   if (!isOpen) return null;
 
@@ -139,7 +149,9 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
                 } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
               >
                 <Folder className="w-4 h-4 text-gray-500" fill="currentColor" />
-                <span className="truncate flex-1 text-left">Meu Drive</span>
+                <span className="truncate flex-1 text-left">
+                  {viewFilter === 'shared' ? 'Compart. comigo' : 'Meu Drive'}
+                </span>
               </button>
               <div style={{ display: 'none' }}>{provided.placeholder}</div>
             </div>

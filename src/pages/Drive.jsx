@@ -700,6 +700,8 @@ export default function Drive() {
           onFolderSelect={setCurrentFolderId}
           isOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          currentUserEmail={user?.email}
+          viewFilter={viewFilter}
         />
         
         <div 
