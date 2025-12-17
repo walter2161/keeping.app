@@ -346,7 +346,7 @@ export default function PptxEditor({ value, onChange }) {
             </div>
             </div>
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
           <Button
             variant="outline"
             size="sm"
