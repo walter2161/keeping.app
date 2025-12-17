@@ -215,6 +215,53 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
         const isActionAutomation = detectedType !== null;
 
         if (isActionAutomation) {
+          // Montar prompt específico baseado no tipo de ação
+          const typePrompts = {
+            create: `
+TIPO DE AÇÃO: CRIAÇÃO
+- Crie novos arquivos/pastas conforme solicitado
+- Preencha com conteúdo relevante e estruturado
+- Use nomes descritivos e organizados
+- Para planilhas: sempre adicione dados de exemplo
+- Para documentos: use formatação HTML profissional`,
+            
+            search: `
+TIPO DE AÇÃO: PESQUISA
+- Busque nos arquivos e pastas existentes
+- Retorne informações relevantes encontradas
+- Se não encontrar, sugira criar ou informe que não existe
+- Liste resultados de forma organizada`,
+            
+            write: `
+TIPO DE AÇÃO: ESCRITA/REDAÇÃO
+- Crie conteúdo textual elaborado e profissional
+- Use formatação adequada (títulos, parágrafos, listas)
+- Para documentos: HTML bem estruturado
+- Para apresentações: slides bem organizados com conteúdo relevante`,
+            
+            edit: `
+TIPO DE AÇÃO: EDIÇÃO
+- Localize o arquivo mencionado
+- Faça APENAS as modificações solicitadas
+- Mantenha o resto do conteúdo intacto
+- Preserve a formatação original`,
+            
+            delete: `
+TIPO DE AÇÃO: EXCLUSÃO
+- Identifique o item a ser excluído
+- Marque como deleted com timestamp
+- Confirme a exclusão na resposta`,
+            
+            analyze: `
+TIPO DE AÇÃO: ANÁLISE
+- Examine os arquivos/dados mencionados
+- Forneça insights e observações relevantes
+- Identifique padrões ou problemas
+- Sugira melhorias se apropriado`
+          };
+
+          const specificPrompt = typePrompts[detectedType] || '';
+
           // Executar automação com ação
           const actionPrompt = `Você é uma assistente que executa comandos.
 
@@ -233,6 +280,7 @@ Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ 
 
 AUTOMAÇÃO ATIVADA: "${matchedAutomation.keyword}"
 Descrição: ${matchedAutomation.description || 'Não especificada'}
+${specificPrompt}
 
 Ação a executar: ${matchedAutomation.action}
 
