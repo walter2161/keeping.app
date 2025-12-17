@@ -167,7 +167,7 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       const currentFolder = folders.find(f => f.id === currentFolderId);
       
       // Detectar se é uma ação ou conversa
-      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover'];
+      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover', 'mude', 'mudar', 'altere', 'alterar', 'troque', 'trocar', 'substitua', 'substituir'];
       const isAction = actionKeywords.some(keyword => input.toLowerCase().includes(keyword));
 
       // Histórico das últimas mensagens para contexto
@@ -176,6 +176,11 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
 
       if (isAction) {
         // Usar InvokeLLM com JSON schema para forçar estrutura
+        // Buscar o arquivo atual se estiver na página FileViewer
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentFileId = urlParams.get('id');
+        const currentFile = currentFileId ? files.find(f => f.id === currentFileId) : null;
+
         const actionPrompt = `Você é uma assistente que executa comandos.
 
 Histórico da conversa:
@@ -184,6 +189,7 @@ ${conversationHistory}
 Contexto:
 - Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz'}
 - ID da pasta: ${currentFolderId || null}
+${currentFile ? `\n- ARQUIVO ABERTO: "${currentFile.name}" (ID: ${currentFile.id}, Tipo: ${currentFile.type})\n- CONTEÚDO ATUAL DO ARQUIVO:\n${currentFile.content || '(vazio)'}` : ''}
 
 Pastas existentes: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name })))}
 Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type })))}
@@ -215,6 +221,24 @@ Exemplo de documento bem formatado:
     "content": "<h1 style=\\"text-align: center;\\"><strong>POLÍTICA DE FÉRIAS</strong></h1><p><br></p><h2><strong>1. Objetivo</strong></h2><p>Esta política estabelece as diretrizes para concessão de férias aos colaboradores.</p><p><br></p><h2><strong>2. Diretrizes</strong></h2><p>• Todo colaborador tem direito a 30 dias de férias após 12 meses de trabalho.</p><p>• As férias devem ser solicitadas com <strong>antecedência mínima de 30 dias</strong>.</p><p>• É permitido fracionamento em até 3 períodos.</p><p><br></p><h3><em>Observação Importante</em></h3><p>Para casos excepcionais, consultar o RH.</p>"
   }
 }
+
+EDITAR ARQUIVO ABERTO:
+Se houver um arquivo aberto e o usuário pedir para mudar/editar algo nele:
+{
+  "action": "edit_file",
+  "data": {
+    "file_id": "ID_DO_ARQUIVO_ABERTO",
+    "content": "NOVO_CONTEUDO_COMPLETO_COM_AS_ALTERACOES"
+  }
+}
+
+IMPORTANTE para edições:
+- SEMPRE pegue o conteúdo atual completo do arquivo
+- Faça APENAS as alterações solicitadas
+- Mantenha toda a formatação HTML original
+- Retorne o conteúdo COMPLETO modificado no campo content
+- Para documentos docx: mantenha o HTML formatado
+- Para planilhas xlsx: mantenha o formato de texto/csv
 
 Tags HTML permitidas:
 - Títulos: <h1>, <h2>, <h3> (sempre com text-align: center para centralizar)
@@ -337,7 +361,7 @@ Usuário: ${input}`;
       case 'create_file':
         return `Arquivo "${data.name}" criado com sucesso!`;
       case 'edit_file':
-        return `Arquivo atualizado com sucesso!`;
+        return `Arquivo editado com sucesso! Recarregando...`;
       case 'delete_item':
         return `Item excluído com sucesso!`;
       default:
@@ -375,6 +399,8 @@ Usuário: ${input}`;
       const result = await base44.entities.File.update(data.file_id, {
         content: typeof data.content === 'object' ? JSON.stringify(data.content) : data.content,
       });
+      // Forçar reload da página para mostrar as alterações
+      setTimeout(() => window.location.reload(), 800);
       return result;
     } else if (action === 'delete_item' && user?.assistant_can_delete_items !== false) {
       if (data.type === 'folder') {
