@@ -81,7 +81,9 @@
     "jspreadsheet-ce": "^4.13.1",
     "jsuites": "^4.16.3",
     "drawflow": "^0.0.60",
-    "pptxgenjs": "^3.12.0"
+    "pptxgenjs": "^3.12.0",
+    "pizzip": "^3.1.7",
+    "docxtemplater": "^3.50.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
