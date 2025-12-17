@@ -67,13 +67,36 @@ export default function Drive() {
     enabled: !!user,
   });
 
+  // Helper function to check if a folder is shared with the user
+  const isFolderSharedWithUser = (folderId) => {
+    if (!folderId) return false;
+    const folder = allFolders.find(f => f.id === folderId);
+    if (!folder) return false;
+    
+    // Check if this folder is shared
+    if (folder.shared_with && folder.shared_with.includes(user?.email)) {
+      return true;
+    }
+    
+    // Check parent folders recursively
+    return isFolderSharedWithUser(folder.parent_id);
+  };
+
   const files = useMemo(() => {
     if (!user || !allFiles.length) return [];
-    return allFiles.filter(f => 
-      f.owner === user.email || 
-      (f.shared_with && f.shared_with.includes(user.email))
-    );
-  }, [allFiles, user]);
+    return allFiles.filter(f => {
+      // Own files
+      if (f.owner === user.email) return true;
+      
+      // Files explicitly shared with user
+      if (f.shared_with && f.shared_with.includes(user.email)) return true;
+      
+      // Files inside folders shared with user
+      if (f.folder_id && isFolderSharedWithUser(f.folder_id)) return true;
+      
+      return false;
+    });
+  }, [allFiles, user, allFolders]);
 
   // Mutations
   const createFolderMutation = useMutation({
@@ -148,8 +171,16 @@ export default function Drive() {
     
     // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
     if (viewFilter === 'shared') {
-      // Compartilhado comigo: apenas itens que OUTROS compartilharam comigo
-      filtered = filtered.filter(f => f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email));
+      // Compartilhado comigo: arquivos de outros OU arquivos em pastas compartilhadas comigo
+      filtered = filtered.filter(f => {
+        // Files explicitly shared with me
+        if (f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email)) return true;
+        
+        // Files in folders shared with me
+        if (f.owner !== user.email && f.folder_id && isFolderSharedWithUser(f.folder_id)) return true;
+        
+        return false;
+      });
     } else {
       // Meu Drive: APENAS meus próprios itens (não mostrar itens compartilhados comigo)
       filtered = filtered.filter(f => f.owner === user.email);
