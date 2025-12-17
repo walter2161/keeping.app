@@ -237,83 +237,26 @@ export default function FileViewer() {
       return;
     }
 
-    // Para arquivos pptx
-    if (file.type === 'pptx' && (fileName.endsWith('.pptx') || fileName.endsWith('.ppt') || fileName.endsWith('.json'))) {
-      if (fileName.endsWith('.json')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const importedData = JSON.parse(event.target.result);
-            if (importedData.type === 'single_file' && importedData.file && importedData.file.type === 'pptx') {
-              const content = JSON.parse(importedData.file.content);
-              setLocalContent(content);
-              setHasChanges(true);
-            } else {
-              alert('Formato de arquivo inválido!');
-            }
-          } catch (error) {
-            alert('Erro ao ler o arquivo.');
+    // Para arquivos pptx (JSON)
+    if (file.type === 'pptx' && fileName.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedData = JSON.parse(event.target.result);
+          if (importedData.type === 'single_file' && importedData.file && importedData.file.type === 'pptx') {
+            const content = JSON.parse(importedData.file.content);
+            setLocalContent(content);
+            setHasChanges(true);
+          } else {
+            alert('Formato de arquivo inválido!');
           }
-        };
-        reader.readAsText(importFile);
-        e.target.value = '';
-        return;
-      } else {
-        // Importar arquivo .pptx nativo
-        const handlePptxImport = async () => {
-          try {
-            // Upload do arquivo
-            const { file_url } = await base44.integrations.Core.UploadFile({ file: importFile });
-            
-            // Extrair dados usando IA
-            const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-              file_url: file_url,
-              json_schema: {
-                type: "object",
-                properties: {
-                  slides: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        background: { type: "string" },
-                        elements: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              type: { type: "string" },
-                              content: { type: "string" },
-                              x: { type: "number" },
-                              y: { type: "number" },
-                              width: { type: "number" },
-                              height: { type: "number" }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            });
-            
-            if (result.status === 'success' && result.output) {
-              setLocalContent(result.output);
-              setHasChanges(true);
-              alert('Arquivo importado com sucesso! Nota: a formatação pode não ser 100% precisa.');
-            } else {
-              alert('Não foi possível extrair dados do arquivo .pptx. Detalhes: ' + (result.details || 'Erro desconhecido'));
-            }
-          } catch (error) {
-            alert('Erro ao importar arquivo .pptx: ' + error.message);
-          }
-        };
-        
-        handlePptxImport();
-        e.target.value = '';
-        return;
-      }
+        } catch (error) {
+          alert('Erro ao ler o arquivo.');
+        }
+      };
+      reader.readAsText(importFile);
+      e.target.value = '';
+      return;
     }
 
     // Para outros tipos (JSON)
