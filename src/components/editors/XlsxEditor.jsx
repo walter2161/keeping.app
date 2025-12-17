@@ -123,7 +123,42 @@ export default function XlsxEditor({ value, onChange }) {
           k: 'vertical-align',
           v: ['top','middle','bottom']
         },
-
+        {
+          type: 'i',
+          content: 'border_all',
+          onclick: function() {
+            if (worksheetRef.current) {
+              const selected = worksheetRef.current.getSelected();
+              if (selected) {
+                worksheetRef.current.setStyle(selected, 'border', '1px solid #000');
+              }
+            }
+          }
+        },
+        {
+          type: 'i',
+          content: 'border_outer',
+          onclick: function() {
+            if (worksheetRef.current) {
+              const selected = worksheetRef.current.getSelected();
+              if (selected) {
+                worksheetRef.current.setStyle(selected, 'border', '2px solid #000');
+              }
+            }
+          }
+        },
+        {
+          type: 'i',
+          content: 'border_clear',
+          onclick: function() {
+            if (worksheetRef.current) {
+              const selected = worksheetRef.current.getSelected();
+              if (selected) {
+                worksheetRef.current.setStyle(selected, 'border', 'none');
+              }
+            }
+          }
+        },
         {
           type: 'i',
           content: 'merge_cells',
