@@ -243,15 +243,15 @@ export default function Drive() {
   };
 
   const handleRefreshClick = async () => {
-    setPendingUpdates(0);
     if (user) {
       await base44.auth.updateMe({ last_seen_update: new Date().toISOString() });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      queryClient.invalidateQueries({ queryKey: ['teamActivities'] });
+      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     queryClient.invalidateQueries({ queryKey: ['folders'] });
     queryClient.invalidateQueries({ queryKey: ['files'] });
     queryClient.invalidateQueries({ queryKey: ['teams'] });
+    queryClient.invalidateQueries({ queryKey: ['teamActivities'] });
   };
 
   const handleCreateFolder = async (name, color) => {
