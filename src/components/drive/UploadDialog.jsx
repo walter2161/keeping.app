@@ -22,6 +22,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
     
     if (ext === 'docx' || ext === 'doc') return 'docx';
     if (ext === 'xlsx' || ext === 'xls') return 'xlsx';
+    if (ext === 'pptx' || ext === 'ppt') return 'pptx';
     if (ext === 'pdf') return 'pdf';
     if (imageExts.includes(ext)) return 'img';
     if (videoExts.includes(ext)) return 'video';
@@ -106,7 +107,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
               multiple
               className="hidden"
               onChange={handleFileSelect}
-              accept="image/*,video/*,.doc,.docx,.xls,.xlsx,.pdf"
+              accept="image/*,video/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf"
               disabled={uploading}
             />
           </label>

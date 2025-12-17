@@ -144,6 +144,7 @@ export default function Drive() {
       flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
       docx: '',
       xlsx: '',
+      pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
     };
 
     try {
@@ -219,11 +220,14 @@ export default function Drive() {
       return;
     }
 
-    // Export docx/xlsx with content
-    if (file.type === 'docx' || file.type === 'xlsx') {
-      const blob = new Blob([file.content || ''], { 
-        type: file.type === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
+    // Export docx/xlsx/pptx with content
+    if (file.type === 'docx' || file.type === 'xlsx' || file.type === 'pptx') {
+      const mimeTypes = {
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      };
+      const blob = new Blob([file.content || ''], { type: mimeTypes[file.type] });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -433,7 +437,7 @@ export default function Drive() {
           } catch (error) {
             console.error('Error downloading file:', error);
           }
-        } else if (file.type === 'docx' || file.type === 'xlsx') {
+        } else if (file.type === 'docx' || file.type === 'xlsx' || file.type === 'pptx') {
           zipFolder.file(`${file.name}.${file.type}`, file.content || '');
         } else {
           zipFolder.file(`${file.name}.json`, JSON.stringify({
@@ -525,6 +529,7 @@ export default function Drive() {
     const name = file.name.toLowerCase();
     if (name.endsWith('.docx') || name.endsWith('.doc')) return 'docx';
     if (name.endsWith('.xlsx') || name.endsWith('.xls')) return 'xlsx';
+    if (name.endsWith('.pptx') || name.endsWith('.ppt')) return 'pptx';
     if (name.endsWith('.pdf')) return 'pdf';
     if (name.match(/\.(jpg|jpeg|png|gif|bmp|svg|webp)$/)) return 'img';
     if (name.match(/\.(mp4|avi|mov|wmv|flv|webm)$/)) return 'video';

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { 
         ArrowLeft, Save, Download, FileText, FileSpreadsheet,
         LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
-        Image as ImageIcon, Video, ArrowRight, Upload
+        Image as ImageIcon, Video, ArrowRight, Upload, Presentation
       } from 'lucide-react';
 import {
   Dialog,
@@ -21,11 +21,13 @@ import CronogramaBoard from '../components/cronograma/CronogramaBoard';
 import FluxMap from '../components/flux/FluxMap';
 import DocxEditor from '../components/editors/DocxEditor';
 import XlsxEditor from '../components/editors/XlsxEditor';
+import PptxEditor from '../components/editors/PptxEditor';
 import AIAssistant from '../components/ai/AIAssistant';
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
   xlsx: { icon: FileSpreadsheet, color: 'text-green-600', label: 'Planilha' },
+  pptx: { icon: Presentation, color: 'text-amber-600', label: 'Apresentação' },
   kbn: { icon: LayoutGrid, color: 'text-purple-600', label: 'Kanban' },
   gnt: { icon: GanttChartIcon, color: 'text-orange-600', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', label: 'Cronograma' },
@@ -70,6 +72,13 @@ export default function FileViewer() {
       if (file.content) {
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent(file.content);
+        } else if (file.type === 'pptx') {
+          try {
+            const parsed = JSON.parse(file.content);
+            setLocalContent(parsed);
+          } catch (e) {
+            setLocalContent({ slides: [{ title: '', content: '' }] });
+          }
         } else {
           try {
             const parsed = JSON.parse(file.content);
@@ -81,6 +90,8 @@ export default function FileViewer() {
       } else {
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent('');
+        } else if (file.type === 'pptx') {
+          setLocalContent({ slides: [{ title: '', content: '' }] });
         } else if (file.type === 'flux') {
           setLocalContent({ drawflow: { Home: { data: {} } } });
         } else {
@@ -169,6 +180,26 @@ export default function FileViewer() {
       URL.revokeObjectURL(url);
       return;
     }
+
+    // Para pptx, exportar como JSON
+    if (file.type === 'pptx') {
+      const exportData = {
+        type: 'single_file',
+        file: {
+          name: file.name,
+          type: file.type,
+          content: JSON.stringify(localContent),
+        }
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${file.name}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
     
     // Para outros tipos (kbn, gnt, crn, flux), exportar como JSON
     const exportData = {
@@ -194,7 +225,7 @@ export default function FileViewer() {
     if (!importFile) return;
 
     const fileName = importFile.name.toLowerCase();
-    
+
     // Para arquivos docx/txt
     if (file.type === 'docx' && (fileName.endsWith('.txt') || fileName.endsWith('.doc') || fileName.endsWith('.docx'))) {
       const reader = new FileReader();
@@ -206,13 +237,35 @@ export default function FileViewer() {
       e.target.value = '';
       return;
     }
-    
+
     // Para arquivos xlsx/csv
     if (file.type === 'xlsx' && (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls'))) {
       const reader = new FileReader();
       reader.onload = (event) => {
         setLocalContent(event.target.result);
         setHasChanges(true);
+      };
+      reader.readAsText(importFile);
+      e.target.value = '';
+      return;
+    }
+
+    // Para arquivos pptx (JSON)
+    if (file.type === 'pptx' && fileName.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedData = JSON.parse(event.target.result);
+          if (importedData.type === 'single_file' && importedData.file && importedData.file.type === 'pptx') {
+            const content = JSON.parse(importedData.file.content);
+            setLocalContent(content);
+            setHasChanges(true);
+          } else {
+            alert('Formato de arquivo inválido!');
+          }
+        } catch (error) {
+          alert('Erro ao ler o arquivo.');
+        }
       };
       reader.readAsText(importFile);
       e.target.value = '';
@@ -308,7 +361,7 @@ export default function FileViewer() {
           )}
           <input
             type="file"
-            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : '.json'}
+            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.json' : '.json'}
             onChange={handleImportFile}
             className="hidden"
             id="import-file"
@@ -388,6 +441,13 @@ export default function FileViewer() {
         {file.type === 'xlsx' && (
           <XlsxEditor
             value={localContent || ''}
+            onChange={handleContentChange}
+          />
+        )}
+
+        {file.type === 'pptx' && (
+          <PptxEditor
+            value={typeof localContent === 'object' ? JSON.stringify(localContent) : (localContent || '')}
             onChange={handleContentChange}
           />
         )}

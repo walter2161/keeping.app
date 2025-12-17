@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, 
-  GanttChart, Calendar, ArrowRight
+  GanttChart, Calendar, ArrowRight, Presentation
 } from 'lucide-react';
 
 export default function CreateDialog({ 
-  type, // 'folder' | 'kbn' | 'gnt' | 'crn' | 'docx' | 'xlsx'
+  type, // 'folder' | 'kbn' | 'gnt' | 'crn' | 'docx' | 'xlsx' | 'pptx'
   open, 
   onOpenChange, 
   onSubmit 
@@ -30,6 +30,7 @@ export default function CreateDialog({
     flux: { icon: ArrowRight, title: 'Novo FluxMap', placeholder: 'Nome do FluxMap', color: 'text-teal-600' },
     docx: { icon: FileText, title: 'Novo Documento', placeholder: 'Nome do documento', color: 'text-blue-600' },
     xlsx: { icon: FileSpreadsheet, title: 'Nova Planilha', placeholder: 'Nome da planilha', color: 'text-green-600' },
+    pptx: { icon: Presentation, title: 'Nova Apresentação', placeholder: 'Nome da apresentação', color: 'text-amber-600' },
   };
 
   const currentConfig = config[type] || config.folder;
