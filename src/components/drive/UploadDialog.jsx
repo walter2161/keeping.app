@@ -42,12 +42,21 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
     setUploading(true);
     const uploadedFiles = [];
 
-    // Herdar compartilhamento da pasta pai
+    // Herdar compartilhamento da pasta pai recursivamente
     let sharedWith = [];
+    
     if (folderId) {
-      const parentFolder = folders?.find(f => f.id === folderId);
-      if (parentFolder && parentFolder.shared_with) {
-        sharedWith = [...parentFolder.shared_with];
+      let checkFolderId = folderId;
+      while (checkFolderId) {
+        const folder = folders?.find(f => f.id === checkFolderId);
+        if (folder && folder.shared_with && folder.shared_with.length > 0) {
+          folder.shared_with.forEach(email => {
+            if (!sharedWith.includes(email)) {
+              sharedWith.push(email);
+            }
+          });
+        }
+        checkFolderId = folder?.parent_id;
       }
     }
 

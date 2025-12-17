@@ -198,10 +198,28 @@ export default function Drive() {
     try {
       // Se estiver dentro de uma pasta pai, herdar a cor dela
       let folderColor = color;
-      if (currentFolderId && !color) {
+      let sharedWith = [];
+      
+      if (currentFolderId) {
         const parentFolder = folders.find(f => f.id === currentFolderId);
-        if (parentFolder && parentFolder.color) {
+        
+        // Herdar cor
+        if (parentFolder && parentFolder.color && !color) {
           folderColor = parentFolder.color;
+        }
+        
+        // Herdar compartilhamento recursivamente
+        let checkFolderId = currentFolderId;
+        while (checkFolderId) {
+          const folder = folders.find(f => f.id === checkFolderId);
+          if (folder && folder.shared_with && folder.shared_with.length > 0) {
+            folder.shared_with.forEach(email => {
+              if (!sharedWith.includes(email)) {
+                sharedWith.push(email);
+              }
+            });
+          }
+          checkFolderId = folder?.parent_id;
         }
       }
       
@@ -211,7 +229,7 @@ export default function Drive() {
         color: folderColor,
         order: currentFolders.length,
         owner: user.email,
-        shared_with: [],
+        shared_with: sharedWith,
       });
       setCreateDialog({ open: false, type: null });
     } catch (error) {
@@ -232,13 +250,21 @@ export default function Drive() {
       pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
     };
 
-    // Herdar compartilhamento da pasta pai
+    // Herdar compartilhamento da pasta pai recursivamente
     let sharedWith = [];
-    if (currentFolderId) {
-      const parentFolder = folders.find(f => f.id === currentFolderId);
-      if (parentFolder && parentFolder.shared_with) {
-        sharedWith = [...parentFolder.shared_with];
+    let checkFolderId = currentFolderId;
+    
+    while (checkFolderId) {
+      const folder = folders.find(f => f.id === checkFolderId);
+      if (folder && folder.shared_with && folder.shared_with.length > 0) {
+        // Adicionar todos os usuários compartilhados sem duplicatas
+        folder.shared_with.forEach(email => {
+          if (!sharedWith.includes(email)) {
+            sharedWith.push(email);
+          }
+        });
       }
+      checkFolderId = folder?.parent_id;
     }
 
     try {
@@ -489,15 +515,24 @@ export default function Drive() {
       } else if (type === 'FILE') {
         const file = files.find(f => f.id === draggableId);
         if (file && file.folder_id !== finalFolderId) {
-          // Herdar compartilhamento da pasta de destino
+          // Herdar compartilhamento da pasta de destino recursivamente
           let sharedWith = [];
+
           if (finalFolderId) {
-            const targetFolder = folders.find(f => f.id === finalFolderId);
-            if (targetFolder && targetFolder.shared_with) {
-              sharedWith = [...targetFolder.shared_with];
+            let checkFolderId = finalFolderId;
+            while (checkFolderId) {
+              const folder = folders.find(f => f.id === checkFolderId);
+              if (folder && folder.shared_with && folder.shared_with.length > 0) {
+                folder.shared_with.forEach(email => {
+                  if (!sharedWith.includes(email)) {
+                    sharedWith.push(email);
+                  }
+                });
+              }
+              checkFolderId = folder?.parent_id;
             }
           }
-          
+
           await updateFileMutation.mutateAsync({
             id: draggableId,
             data: { 
@@ -599,13 +634,22 @@ export default function Drive() {
       { position: 'bottom-left' }
     );
 
-    // Herdar compartilhamento da pasta pai
+    // Herdar compartilhamento da pasta pai recursivamente
     let sharedWith = [];
     const folderId = targetFolderId || currentFolderId;
+    
     if (folderId) {
-      const parentFolder = folders.find(f => f.id === folderId);
-      if (parentFolder && parentFolder.shared_with) {
-        sharedWith = [...parentFolder.shared_with];
+      let checkFolderId = folderId;
+      while (checkFolderId) {
+        const folder = folders.find(f => f.id === checkFolderId);
+        if (folder && folder.shared_with && folder.shared_with.length > 0) {
+          folder.shared_with.forEach(email => {
+            if (!sharedWith.includes(email)) {
+              sharedWith.push(email);
+            }
+          });
+        }
+        checkFolderId = folder?.parent_id;
       }
     }
 
