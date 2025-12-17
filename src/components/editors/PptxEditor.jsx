@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
-  Play, X, Bold, Italic, Underline, Palette, Maximize, Upload, ZoomIn, ZoomOut
+  Play, X, Bold, Italic, Underline, Palette, Maximize, Upload, ZoomIn, ZoomOut, LayoutTemplate
 } from 'lucide-react';
 import {
   Select,
@@ -23,7 +23,12 @@ export default function PptxEditor({ value, onChange }) {
   const [dragging, setDragging] = useState(null);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [zoom, setZoom] = useState(0.6);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
+  const [showTemplates, setShowTemplates] = useState(false);
   const slideRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     if (value && value.trim()) {
@@ -65,11 +70,61 @@ export default function PptxEditor({ value, onChange }) {
     onChange(JSON.stringify({ slides: newSlides }));
   };
 
-  const addSlide = () => {
-    const newSlides = [...slides, createEmptySlide()];
+  const addSlide = (template = null) => {
+    const newSlide = template ? { ...template } : createEmptySlide();
+    const newSlides = [...slides, newSlide];
     handleUpdate(newSlides);
     setCurrentSlide(newSlides.length - 1);
+    setShowTemplates(false);
   };
+
+  const slideTemplates = [
+    {
+      name: 'Título',
+      background: '#ffffff',
+      elements: [
+        { id: '1', type: 'title', x: 100, y: 200, width: 1000, height: 100, content: 'Título Principal', fontSize: 60, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
+        { id: '2', type: 'text', x: 100, y: 350, width: 1000, height: 80, content: 'Subtítulo ou descrição', fontSize: 28, fontWeight: 'normal', color: '#666666', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
+      ]
+    },
+    {
+      name: 'Título e Conteúdo',
+      background: '#ffffff',
+      elements: [
+        { id: '1', type: 'title', x: 60, y: 50, width: 1080, height: 80, content: 'Título', fontSize: 44, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
+        { id: '2', type: 'text', x: 60, y: 160, width: 1080, height: 450, content: '• Ponto 1\n• Ponto 2\n• Ponto 3', fontSize: 24, fontWeight: 'normal', color: '#333333', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
+      ]
+    },
+    {
+      name: 'Duas Colunas',
+      background: '#ffffff',
+      elements: [
+        { id: '1', type: 'title', x: 60, y: 50, width: 1080, height: 70, content: 'Título', fontSize: 44, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
+        { id: '2', type: 'text', x: 60, y: 150, width: 500, height: 450, content: 'Coluna esquerda\n\n• Item 1\n• Item 2\n• Item 3', fontSize: 20, fontWeight: 'normal', color: '#333333', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
+        { id: '3', type: 'text', x: 640, y: 150, width: 500, height: 450, content: 'Coluna direita\n\n• Item A\n• Item B\n• Item C', fontSize: 20, fontWeight: 'normal', color: '#333333', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
+      ]
+    },
+    {
+      name: 'Título e Imagem',
+      background: '#ffffff',
+      elements: [
+        { id: '1', type: 'title', x: 60, y: 50, width: 1080, height: 70, content: 'Título com Imagem', fontSize: 44, fontWeight: 'bold', color: '#1a1a1a', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' },
+        { id: '2', type: 'image', x: 300, y: 150, width: 600, height: 450, content: '', fontSize: 18, fontWeight: 'normal', color: '#000000', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
+      ]
+    },
+    {
+      name: 'Imagem Grande',
+      background: '#ffffff',
+      elements: [
+        { id: '1', type: 'image', x: 100, y: 50, width: 1000, height: 575, content: '', fontSize: 18, fontWeight: 'normal', color: '#000000', fontStyle: 'normal', textDecoration: 'none', imageUrl: '' }
+      ]
+    },
+    {
+      name: 'Vazio',
+      background: '#ffffff',
+      elements: []
+    }
+  ];
 
   const deleteSlide = (index) => {
     if (slides.length === 1) return;
@@ -327,7 +382,7 @@ export default function PptxEditor({ value, onChange }) {
                   {index + 1}
                 </div>
                 <div 
-                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200"
+                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
                   style={{
                     background: slide.background.startsWith('url') 
                       ? slide.background 
@@ -335,7 +390,31 @@ export default function PptxEditor({ value, onChange }) {
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
-                />
+                >
+                  {slide.elements.map(el => (
+                    <div
+                      key={el.id}
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${(el.x / 1200) * 100}%`,
+                        top: `${(el.y / 675) * 100}%`,
+                        width: `${(el.width / 1200) * 100}%`,
+                        height: `${(el.height / 675) * 100}%`,
+                        fontSize: `${el.fontSize * 0.08}px`,
+                        fontWeight: el.fontWeight,
+                        color: el.color,
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {el.type === 'image' && el.imageUrl && (
+                        <img src={el.imageUrl} alt="" className="w-full h-full object-contain" />
+                      )}
+                      {(el.type === 'text' || el.type === 'title') && el.content}
+                    </div>
+                  ))}
+                </div>
               </div>
               {slides.length > 1 && (
                 <Button
@@ -361,6 +440,15 @@ export default function PptxEditor({ value, onChange }) {
         <div className="bg-white border-b px-4 py-2.5 flex items-center gap-4 flex-wrap">
           {/* Ferramentas de Inserção */}
           <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setShowTemplates(!showTemplates)} 
+              className="h-8"
+            >
+              <LayoutTemplate className="w-4 h-4 mr-1.5" />
+              Layout
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => addElement('title')} className="h-8">
               <Type className="w-4 h-4 mr-1.5" />
               Título
@@ -524,7 +612,27 @@ export default function PptxEditor({ value, onChange }) {
         </div>
 
         {/* Canvas do Slide */}
-        <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-6">
+        <div 
+          ref={canvasRef}
+          className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-6 cursor-grab active:cursor-grabbing"
+          onMouseDown={(e) => {
+            if (e.target === canvasRef.current || e.target.contains(slideRef.current)) {
+              setIsPanning(true);
+              setPanStart({ x: e.clientX, y: e.clientY });
+              setScrollPos({ x: canvasRef.current.scrollLeft, y: canvasRef.current.scrollTop });
+            }
+          }}
+          onMouseMove={(e) => {
+            if (isPanning && canvasRef.current) {
+              const dx = e.clientX - panStart.x;
+              const dy = e.clientY - panStart.y;
+              canvasRef.current.scrollLeft = scrollPos.x - dx;
+              canvasRef.current.scrollTop = scrollPos.y - dy;
+            }
+          }}
+          onMouseUp={() => setIsPanning(false)}
+          onMouseLeave={() => setIsPanning(false)}
+        >
           <div
             ref={slideRef}
             className="bg-white shadow-xl relative"
@@ -594,6 +702,67 @@ export default function PptxEditor({ value, onChange }) {
             ))}
           </div>
         </div>
+        
+        {/* Dialog de Templates */}
+        {showTemplates && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTemplates(false)}>
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Escolha um Layout</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowTemplates(false)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {slideTemplates.map((template, index) => (
+                  <div
+                    key={index}
+                    className="border-2 border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:border-blue-500 transition-all"
+                    onClick={() => addSlide(template)}
+                  >
+                    <div 
+                      className="w-full aspect-video bg-gray-50 relative"
+                      style={{
+                        background: template.background,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}
+                    >
+                      {template.elements.map(el => (
+                        <div
+                          key={el.id}
+                          className="absolute pointer-events-none"
+                          style={{
+                            left: `${(el.x / 1200) * 100}%`,
+                            top: `${(el.y / 675) * 100}%`,
+                            width: `${(el.width / 1200) * 100}%`,
+                            height: `${(el.height / 675) * 100}%`,
+                            fontSize: `${el.fontSize * 0.08}px`,
+                            fontWeight: el.fontWeight,
+                            color: el.color,
+                            overflow: 'hidden',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: '1.2'
+                          }}
+                        >
+                          {el.type === 'image' && !el.imageUrl && (
+                            <div className="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-100">
+                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          {(el.type === 'text' || el.type === 'title') && el.content}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-2 text-center text-sm font-medium bg-white">
+                      {template.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
