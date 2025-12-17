@@ -2,12 +2,50 @@ import React, { useEffect, useRef } from 'react';
 import jspreadsheet from 'jspreadsheet-ce';
 import 'jspreadsheet-ce/dist/jspreadsheet.css';
 import 'jsuites/dist/jsuites.css';
+import { Printer } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function XlsxEditor({ value, onChange }) {
   const jssRef = useRef(null);
   const tableRef = useRef(null);
   const worksheetRef = useRef(null);
   const [selectedCell, setSelectedCell] = React.useState({ x: 0, y: 0, name: 'A1' });
+
+  const handlePrint = async () => {
+    const table = jssRef.current?.querySelector('.jexcel');
+    if (!table) return;
+
+    try {
+      const canvas = await html2canvas(table, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pageWidth = 297;
+      const pageHeight = 210;
+      
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, pageHeight - 20));
+
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao preparar planilha para impressão');
+    }
+  };
   
   useEffect(() => {
     if (!jssRef.current || !jspreadsheet) return;
@@ -370,6 +408,19 @@ export default function XlsxEditor({ value, onChange }) {
   return (
     <div className="w-full h-full bg-white">
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+      
+      {/* Toolbar adicional */}
+      <div className="bg-white border-b px-4 py-2 flex items-center justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handlePrint}
+          className="h-8"
+        >
+          <Printer className="w-4 h-4 mr-1.5" />
+          Imprimir
+        </Button>
+      </div>
       
       {/* Barra de Fórmulas */}
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">

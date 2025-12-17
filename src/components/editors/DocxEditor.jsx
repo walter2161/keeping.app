@@ -1,6 +1,10 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { Printer, FileDown } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Configuração avançada do editor
 const Size = Quill.import('attributors/style/size');
@@ -13,6 +17,7 @@ Quill.register(Font, true);
 
 export default function DocxEditor({ value, onChange }) {
   const quillRef = useRef(null);
+  const [orientation, setOrientation] = useState('portrait'); // 'portrait' or 'landscape'
 
   const imageHandler = () => {
     const input = document.createElement('input');
@@ -76,18 +81,98 @@ export default function DocxEditor({ value, onChange }) {
     'code-block', 'script'
   ];
 
+  const handlePrint = async () => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    const content = document.querySelector('.ql-editor');
+    if (!content) return;
+
+    try {
+      // Capturar o conteúdo como imagem
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      // Criar PDF
+      const pdf = new jsPDF({
+        orientation: orientation === 'portrait' ? 'p' : 'l',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pageWidth = orientation === 'portrait' ? 210 : 297;
+      const pageHeight = orientation === 'portrait' ? 297 : 210;
+      
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Abrir janela de impressão
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao preparar documento para impressão');
+    }
+  };
+
   return (
     <div className="bg-gray-100 h-full flex flex-col">
+      {/* Toolbar adicional */}
+      <div className="bg-white border-b px-4 py-2 flex items-center gap-2">
+        <Button
+          size="sm"
+          variant={orientation === 'portrait' ? 'default' : 'outline'}
+          onClick={() => setOrientation('portrait')}
+          className="h-8"
+        >
+          A4 Vertical
+        </Button>
+        <Button
+          size="sm"
+          variant={orientation === 'landscape' ? 'default' : 'outline'}
+          onClick={() => setOrientation('landscape')}
+          className="h-8"
+        >
+          A4 Horizontal
+        </Button>
+        <div className="flex-1" />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handlePrint}
+          className="h-8"
+        >
+          <Printer className="w-4 h-4 mr-1.5" />
+          Imprimir
+        </Button>
+      </div>
       <style>{`
         .ql-container {
           font-family: 'Montserrat', Arial, sans-serif;
           font-size: 11pt;
         }
         .ql-editor {
-          min-height: calc(100vh - 200px);
-          max-width: 21cm;
-          margin: 0 auto;
-          padding: 2.5cm 2cm;
+          min-height: ${orientation === 'portrait' ? '29.7cm' : '21cm'};
+          width: ${orientation === 'portrait' ? '21cm' : '29.7cm'};
+          margin: 20px auto;
+          padding: ${orientation === 'portrait' ? '2.5cm 2cm' : '2cm 2.5cm'};
           background: white;
           line-height: 1.8;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);

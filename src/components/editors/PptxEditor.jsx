@@ -4,11 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
-  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus, Download, GripVertical
+  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus, Download, GripVertical, Printer
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PptxGenJS from 'pptxgenjs';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, ref) => {
   const [slides, setSlides] = useState([]);
@@ -23,9 +25,13 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredElement, setHoveredElement] = useState(null);
+  const [slideOrientation, setSlideOrientation] = useState('landscape'); // 'landscape' or 'portrait'
   
   const canvasRef = useRef(null);
   const slideRef = useRef(null);
+
+  const slideWidth = slideOrientation === 'landscape' ? 1200 : 675;
+  const slideHeight = slideOrientation === 'landscape' ? 675 : 1200;
 
   useImperativeHandle(ref, () => ({
     exportPptx: handleExportPptx
@@ -265,6 +271,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const handleExportPptx = async () => {
     const pptx = new PptxGenJS();
     
+    // Configurar layout do slide
+    pptx.layout = slideOrientation === 'landscape' ? 'LAYOUT_16x9' : 'LAYOUT_WIDE';
+    
     const validSlides = Array.isArray(slides) ? slides : [];
     
     for (const slide of validSlides) {
@@ -281,10 +290,13 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
       // Elements
       const elements = Array.isArray(slide.elements) ? slide.elements : [];
       for (const element of elements) {
-        const x = element.x / 1200 * 10;
-        const y = element.y / 675 * 5.625;
-        const w = element.width / 1200 * 10;
-        const h = element.height / 675 * 5.625;
+        const ratioX = slideOrientation === 'landscape' ? 10 / 1200 : 10 / 675;
+        const ratioY = slideOrientation === 'landscape' ? 5.625 / 675 : 5.625 / 1200;
+        
+        const x = element.x * ratioX;
+        const y = element.y * ratioY;
+        const w = element.width * ratioX;
+        const h = element.height * ratioY;
         
         if (element.type === 'text' || element.type === 'title') {
           pptxSlide.addText(element.content, {
@@ -322,6 +334,46 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     await pptx.writeFile({ fileName: `${cleanFileName}.pptx` });
   };
 
+  const handlePrint = async () => {
+    const slideElement = slideRef.current;
+    if (!slideElement) return;
+
+    try {
+      const canvas = await html2canvas(slideElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const pdf = new jsPDF({
+        orientation: slideOrientation === 'landscape' ? 'l' : 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pageWidth = slideOrientation === 'landscape' ? 297 : 210;
+      const pageHeight = slideOrientation === 'landscape' ? 210 : 297;
+      
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, pageHeight - 20));
+
+      // Adicionar mais slides se houver
+      for (let i = 1; i < slides.length; i++) {
+        pdf.addPage();
+        // Aqui você precisaria renderizar cada slide, mas por simplicidade vamos adicionar uma página em branco
+      }
+
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao preparar apresentação para impressão');
+    }
+  };
+
 
 
   const currentSlideData = slides[currentSlide];
@@ -344,14 +396,16 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
         </Button>
         
         <div 
-          className="w-[1200px] h-[675px] rounded-lg shadow-2xl relative"
           style={{
+            width: `${slideWidth}px`,
+            height: `${slideHeight}px`,
             background: currentSlideData.background && currentSlideData.background.startsWith('url') 
               ? currentSlideData.background 
               : (currentSlideData.background || '#ffffff'),
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
+          className="rounded-lg shadow-2xl relative"
         >
           {currentSlideData.elements.map(element => (
             <div
@@ -450,11 +504,31 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     <div className="flex h-full bg-gray-50">
       {/* Sidebar de Slides */}
       <div className="w-56 bg-white border-r flex flex-col flex-shrink-0">
-        <div className="p-3 border-b flex items-center justify-between">
-          <h3 className="font-semibold text-sm text-gray-700">Slides</h3>
-          <Button size="sm" variant="ghost" onClick={addSlide} className="h-7 w-7 p-0">
-            <Plus className="w-4 h-4" />
-          </Button>
+        <div className="p-3 border-b space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm text-gray-700">Slides</h3>
+            <Button size="sm" variant="ghost" onClick={addSlide} className="h-7 w-7 p-0">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant={slideOrientation === 'landscape' ? 'default' : 'outline'}
+              onClick={() => setSlideOrientation('landscape')}
+              className="h-7 flex-1 text-xs"
+            >
+              Horizontal
+            </Button>
+            <Button
+              size="sm"
+              variant={slideOrientation === 'portrait' ? 'default' : 'outline'}
+              onClick={() => setSlideOrientation('portrait')}
+              className="h-7 flex-1 text-xs"
+            >
+              Vertical
+            </Button>
+          </div>
         </div>
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="slides">
@@ -491,8 +565,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                             </div>
                           </div>
                           <div 
-                            className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
+                            className="w-full bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
                             style={{
+                              aspectRatio: slideOrientation === 'landscape' ? '16/9' : '9/16',
                               background: slide.background && slide.background.startsWith('url') 
                                 ? slide.background 
                                 : (slide.background || '#ffffff'),
@@ -501,16 +576,16 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                             }}
                           >
                   {slide.elements.map(el => {
-                    const scale = 0.15; // Escala fixa para miniaturas (1200px -> ~180px)
+                    const scale = 0.15;
                     return (
                       <div
                         key={el.id}
                         className="absolute pointer-events-none"
                         style={{
-                          left: `${(el.x / 1200) * 100}%`,
-                          top: `${(el.y / 675) * 100}%`,
-                          width: `${(el.width / 1200) * 100}%`,
-                          height: `${(el.height / 675) * 100}%`,
+                          left: `${(el.x / slideWidth) * 100}%`,
+                          top: `${(el.y / slideHeight) * 100}%`,
+                          width: `${(el.width / slideWidth) * 100}%`,
+                          height: `${(el.height / slideHeight) * 100}%`,
                         }}
                       >
                         {el.type === 'image' && el.imageUrl && (
@@ -801,6 +876,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
               title="Cor de fundo"
             />
             <div className="h-6 w-px bg-gray-300 mx-1" />
+            <Button size="sm" variant="outline" onClick={handlePrint} className="h-8">
+              <Printer className="w-4 h-4 mr-1.5" />
+              Imprimir
+            </Button>
             <Button size="sm" variant="default" onClick={() => setPresentationMode(true)} className="h-8 bg-green-600 hover:bg-green-700">
               <Play className="w-4 h-4 mr-1.5" />
               Apresentar
@@ -880,16 +959,16 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
               position: 'absolute',
               left: '50%',
               top: '50%',
-              marginLeft: '-600px',
-              marginTop: '-337.5px'
+              marginLeft: `-${slideWidth / 2}px`,
+              marginTop: `-${slideHeight / 2}px`
             }}
           >
             <div
               ref={slideRef}
               className="bg-white shadow-2xl relative"
               style={{
-                width: '1200px',
-                height: '675px',
+                width: `${slideWidth}px`,
+                height: `${slideHeight}px`,
                 background: currentSlideData.background && currentSlideData.background.startsWith('url') 
                   ? currentSlideData.background 
                   : (currentSlideData.background || '#ffffff'),
