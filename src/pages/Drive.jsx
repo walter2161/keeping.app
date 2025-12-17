@@ -33,6 +33,7 @@ export default function Drive() {
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clipboard, setClipboard] = useState({ type: null, item: null });
+  const [pendingUpdates, setPendingUpdates] = useState(0);
   
   const queryClient = useQueryClient();
 
@@ -41,6 +42,49 @@ export default function Drive() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Fetch team activities to count pending updates
+  const { data: teamActivities = [] } = useQuery({
+    queryKey: ['teamActivities'],
+    queryFn: () => base44.entities.TeamActivity.list('-created_date', 100),
+    enabled: !!user,
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  // Calculate pending updates
+  React.useEffect(() => {
+    if (!user || !teamActivities.length || !userTeams.length) {
+      setPendingUpdates(0);
+      return;
+    }
+
+    const lastSeen = user.last_seen_update ? new Date(user.last_seen_update) : new Date(0);
+    const myTeamIds = userTeams.map(t => t.id);
+    
+    const newUpdates = teamActivities.filter(activity => {
+      const activityDate = new Date(activity.created_date);
+      return (
+        myTeamIds.includes(activity.team_id) &&
+        activity.user_email !== user.email &&
+        activityDate > lastSeen
+      );
+    });
+
+    setPendingUpdates(newUpdates.length);
+  }, [teamActivities, user, userTeams]);
+
+  // Auto-refresh based on user settings
+  React.useEffect(() => {
+    if (!user?.auto_refresh_interval || pendingUpdates === 0) return;
+
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      handleRefreshClick();
+    }, (user.auto_refresh_interval || 120) * 1000);
+
+    return () => clearInterval(interval);
+  }, [user?.auto_refresh_interval, pendingUpdates, queryClient]);
 
   // Fetch teams
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
@@ -182,6 +226,33 @@ export default function Drive() {
   }, [files, currentFolderId, searchQuery, user]);
 
   // Handlers
+  const logTeamActivity = async (teamId, actionType, itemName, itemId) => {
+    if (teamId && user) {
+      try {
+        await base44.entities.TeamActivity.create({
+          team_id: teamId,
+          user_email: user.email,
+          action_type: actionType,
+          item_name: itemName,
+          item_id: itemId,
+        });
+      } catch (error) {
+        console.error('Erro ao registrar atividade:', error);
+      }
+    }
+  };
+
+  const handleRefreshClick = async () => {
+    if (user) {
+      await base44.auth.updateMe({ last_seen_update: new Date().toISOString() });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['teamActivities'] });
+    }
+    queryClient.invalidateQueries({ queryKey: ['folders'] });
+    queryClient.invalidateQueries({ queryKey: ['files'] });
+    queryClient.invalidateQueries({ queryKey: ['teams'] });
+  };
+
   const handleCreateFolder = async (name, color) => {
     if (!user) return;
     try {
@@ -200,7 +271,7 @@ export default function Drive() {
         teamId = getFolderTeam(currentFolderId);
       }
       
-      await createFolderMutation.mutateAsync({
+      const newFolder = await createFolderMutation.mutateAsync({
         name,
         parent_id: currentFolderId,
         team_id: teamId,
@@ -208,6 +279,8 @@ export default function Drive() {
         order: currentFolders.length,
         owner: user.email,
       });
+      
+      await logTeamActivity(teamId, 'create_folder', name, newFolder.id);
       setCreateDialog({ open: false, type: null });
     } catch (error) {
       console.error('Erro ao criar pasta:', error);
@@ -233,7 +306,7 @@ export default function Drive() {
     const teamId = getFolderTeam(currentFolderId);
 
     try {
-      await createFileMutation.mutateAsync({
+      const newFile = await createFileMutation.mutateAsync({
         name,
         type,
         folder_id: currentFolderId,
@@ -242,6 +315,8 @@ export default function Drive() {
         order: currentFiles.length,
         owner: user.email,
       });
+      
+      await logTeamActivity(teamId, 'create_file', name, newFile.id);
       setCreateDialog({ open: false, type: null });
     } catch (error) {
       console.error('Erro ao criar arquivo:', error);
@@ -289,17 +364,19 @@ export default function Drive() {
     }
   };
 
-  const handleRenameFolder = (folder) => {
+  const handleRenameFolder = async (folder) => {
     const newName = prompt('Novo nome:', folder.name);
     if (newName && newName.trim()) {
-      updateFolderMutation.mutate({ id: folder.id, data: { name: newName.trim() } });
+      await updateFolderMutation.mutateAsync({ id: folder.id, data: { name: newName.trim() } });
+      await logTeamActivity(folder.team_id, 'update_folder', newName.trim(), folder.id);
     }
   };
 
-  const handleRenameFile = (file) => {
+  const handleRenameFile = async (file) => {
     const newName = prompt('Novo nome:', file.name);
     if (newName && newName.trim()) {
-      updateFileMutation.mutate({ id: file.id, data: { name: newName.trim() } });
+      await updateFileMutation.mutateAsync({ id: file.id, data: { name: newName.trim() } });
+      await logTeamActivity(file.team_id, 'update_file', newName.trim(), file.id);
     }
   };
 
@@ -647,25 +724,22 @@ export default function Drive() {
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Toolbar
-        onNewFolder={() => setCreateDialog({ open: true, type: 'folder' })}
-        onNewFile={handleNewFile}
-        onNewTeam={() => setTeamDialog({ open: true, team: null })}
-        onUpload={() => setUploadDialog(true)}
-        onImport={() => setImportDialog(true)}
-        onExportAll={handleExportAll}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onPaste={clipboard.item ? handlePaste : null}
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        onRefresh={() => {
-          queryClient.invalidateQueries({ queryKey: ['folders'] });
-          queryClient.invalidateQueries({ queryKey: ['files'] });
-          queryClient.invalidateQueries({ queryKey: ['teams'] });
-        }}
-      />
+          onNewFolder={() => setCreateDialog({ open: true, type: 'folder' })}
+          onNewFile={handleNewFile}
+          onNewTeam={() => setTeamDialog({ open: true, team: null })}
+          onUpload={() => setUploadDialog(true)}
+          onImport={() => setImportDialog(true)}
+          onExportAll={handleExportAll}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onPaste={clipboard.item ? handlePaste : null}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onRefresh={handleRefreshClick}
+          pendingUpdates={pendingUpdates}
+        />
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
