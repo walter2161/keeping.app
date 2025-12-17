@@ -270,17 +270,34 @@ export default function PptxEditor({ value, onChange }) {
 
   if (presentationMode) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+      <div 
+        className="fixed inset-0 bg-black z-50 overflow-auto"
+        style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+        onMouseDown={(e) => {
+          setIsPanning(true);
+          setPanStart({ x: e.clientX, y: e.clientY });
+          setPanStart({ x: e.clientX + e.currentTarget.scrollLeft, y: e.clientY + e.currentTarget.scrollTop });
+          e.preventDefault();
+        }}
+        onMouseMove={(e) => {
+          if (isPanning) {
+            e.currentTarget.scrollLeft = panStart.x - e.clientX;
+            e.currentTarget.scrollTop = panStart.y - e.clientY;
+          }
+        }}
+        onMouseUp={() => setIsPanning(false)}
+        onMouseLeave={() => setIsPanning(false)}
+      >
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 right-4 text-white hover:bg-white/20"
+          className="fixed top-4 right-4 text-white hover:bg-white/20 z-10"
           onClick={() => setPresentationMode(false)}
         >
           <X className="w-6 h-6" />
         </Button>
         
-        <div className="relative w-full h-full flex items-center justify-center p-8">
+        <div className="relative min-w-full min-h-full flex items-center justify-center p-8">
           <div 
             className="w-full h-full max-w-7xl max-h-[90vh] rounded-lg shadow-2xl relative"
             style={{
