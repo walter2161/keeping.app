@@ -363,7 +363,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                     justifyContent: 'center',
                     color: element.color,
                     fontSize: `${element.fontSize}px`,
-                    fontWeight: element.fontWeight
+                    fontWeight: element.fontWeight,
+                    fontStyle: element.fontStyle,
+                    textDecoration: element.textDecoration,
+                    padding: '8px'
                   }}
                 >
                   {element.content}
@@ -380,7 +383,8 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                     whiteSpace: 'pre-wrap',
                     wordWrap: 'break-word',
                     width: '100%',
-                    height: '100%'
+                    height: '100%',
+                    padding: '2px'
                   }}
                 >
                   {element.content}
@@ -452,51 +456,60 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                     backgroundPosition: 'center'
                   }}
                 >
-                  {slide.elements.map(el => (
-                    <div
-                      key={el.id}
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: `${(el.x / 1200) * 100}%`,
-                        top: `${(el.y / 675) * 100}%`,
-                        width: `${(el.width / 1200) * 100}%`,
-                        height: `${(el.height / 675) * 100}%`,
-                      }}
-                    >
-                      {el.type === 'image' && el.imageUrl && (
-                        <img src={el.imageUrl} alt="" className="w-full h-full object-contain" />
-                      )}
-                      {el.type === 'shape' && (
-                        <div
-                          className="w-full h-full flex items-center justify-center text-center"
-                          style={{
-                            backgroundColor: el.backgroundColor,
-                            borderRadius: el.shapeType === 'circle' ? '50%' : '4px',
-                            fontSize: `${el.fontSize * 0.05}px`,
-                            fontWeight: el.fontWeight,
-                            color: el.color,
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {el.content}
-                        </div>
-                      )}
-                      {(el.type === 'text' || el.type === 'title') && (
-                        <div
-                          style={{
-                            fontSize: `${el.fontSize * 0.05}px`,
-                            fontWeight: el.fontWeight,
-                            color: el.color,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {el.content}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {slide.elements.map(el => {
+                    const scale = 0.15; // Escala fixa para miniaturas (1200px -> ~180px)
+                    return (
+                      <div
+                        key={el.id}
+                        className="absolute pointer-events-none"
+                        style={{
+                          left: `${(el.x / 1200) * 100}%`,
+                          top: `${(el.y / 675) * 100}%`,
+                          width: `${(el.width / 1200) * 100}%`,
+                          height: `${(el.height / 675) * 100}%`,
+                        }}
+                      >
+                        {el.type === 'image' && el.imageUrl && (
+                          <img src={el.imageUrl} alt="" className="w-full h-full object-contain" />
+                        )}
+                        {el.type === 'shape' && (
+                          <div
+                            className="w-full h-full flex items-center justify-center text-center"
+                            style={{
+                              backgroundColor: el.backgroundColor,
+                              borderRadius: el.shapeType === 'circle' ? '50%' : `${8 * scale}px`,
+                              fontSize: `${el.fontSize * scale}px`,
+                              fontWeight: el.fontWeight,
+                              fontStyle: el.fontStyle,
+                              textDecoration: el.textDecoration,
+                              color: el.color,
+                              overflow: 'hidden',
+                              padding: `${4 * scale}px`
+                            }}
+                          >
+                            {el.content}
+                          </div>
+                        )}
+                        {(el.type === 'text' || el.type === 'title') && (
+                          <div
+                            style={{
+                              fontSize: `${el.fontSize * scale}px`,
+                              fontWeight: el.fontWeight,
+                              fontStyle: el.fontStyle,
+                              textDecoration: el.textDecoration,
+                              color: el.color,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              padding: `${2 * scale}px`
+                            }}
+                          >
+                            {el.content}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               {slides.length > 1 && (
