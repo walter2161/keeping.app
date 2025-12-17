@@ -14,10 +14,25 @@ import {
 } from "@/components/ui/dialog";
 
 export default function TeamDialog({ open, onOpenChange, team, currentUserEmail }) {
-  const [name, setName] = useState(team?.name || '');
-  const [description, setDescription] = useState(team?.description || '');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
-  const [members, setMembers] = useState(team?.members || [currentUserEmail]);
+  const [members, setMembers] = useState([currentUserEmail]);
+
+  React.useEffect(() => {
+    if (open) {
+      if (team) {
+        setName(team.name || '');
+        setDescription(team.description || '');
+        setMembers(team.members || [currentUserEmail]);
+      } else {
+        setName('');
+        setDescription('');
+        setMembers([currentUserEmail]);
+      }
+      setNewMemberEmail('');
+    }
+  }, [open, team, currentUserEmail]);
   
   const queryClient = useQueryClient();
   

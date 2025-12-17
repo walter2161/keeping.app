@@ -206,29 +206,32 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
               const hasRootFolders = teamFolders.length > 0;
               return (
                 <div key={team.id} className="mb-2">
-                  <div className="flex items-center gap-1 group">
+                  <div className="flex items-center group">
                     <button
                       onClick={() => {
-                        toggleTeam(team.id);
+                        if (hasRootFolders) {
+                          toggleTeam(team.id);
+                        }
                         onTeamSelect?.(team.id);
                       }}
                       className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm text-gray-700"
                     >
-                      {hasRootFolders && (
+                      {hasRootFolders ? (
                         expandedTeams.has(team.id) ? (
                           <ChevronDown className="w-4 h-4 text-gray-400" />
                         ) : (
                           <ChevronRight className="w-4 h-4 text-gray-400" />
                         )
+                      ) : (
+                        <div className="w-4" />
                       )}
-                      {!hasRootFolders && <div className="w-4" />}
                       <Users className="w-4 h-4 text-purple-600" />
                       <span className="truncate flex-1 text-left">{team.name}</span>
                     </button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 mr-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onTeamEdit?.(team);
@@ -237,7 +240,11 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
                       <Settings className="w-3.5 h-3.5 text-gray-500" />
                     </Button>
                   </div>
-                  {expandedTeams.has(team.id) && teamFolders}
+                  {expandedTeams.has(team.id) && hasRootFolders && (
+                    <div>
+                      {teamFolders}
+                    </div>
+                  )}
                 </div>
               );
             })
