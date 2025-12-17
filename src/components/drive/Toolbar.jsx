@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import NotificationBell from './NotificationBell';
 
 export default function Toolbar({ 
   onNewFolder, 
@@ -204,6 +205,8 @@ export default function Toolbar({
             className="pl-8 w-48 h-8 text-sm"
           />
         </div>
+
+        <NotificationBell currentUserEmail={user?.email} />
 
         <Tooltip>
           <TooltipTrigger asChild>

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, X, Plus, Trash2 } from 'lucide-react';
+import { Users, X, Plus, Trash2, LogOut } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,21 +29,32 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [members, setMembers] = useState([currentUserEmail]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+
+  const { data: currentTeam } = useQuery({
+    queryKey: ['team', team?.id],
+    queryFn: async () => {
+      if (!team?.id) return null;
+      const teams = await base44.entities.Team.filter({ id: team.id });
+      return teams[0] || null;
+    },
+    enabled: !!team?.id && open,
+  });
 
   React.useEffect(() => {
     if (open) {
-      if (team) {
-        setName(team.name || '');
-        setDescription(team.description || '');
-        setMembers(team.members || [currentUserEmail]);
-      } else {
+      if (team && currentTeam) {
+        setName(currentTeam.name || '');
+        setDescription(currentTeam.description || '');
+        setMembers(currentTeam.members || [currentUserEmail]);
+      } else if (!team) {
         setName('');
         setDescription('');
         setMembers([currentUserEmail]);
       }
       setNewMemberEmail('');
     }
-  }, [open, team, currentUserEmail]);
+  }, [open, team, currentTeam, currentUserEmail]);
   
   const queryClient = useQueryClient();
   
@@ -96,6 +107,13 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
       for (const folder of teamFolders) {
         await base44.entities.Folder.delete(folder.id);
       }
+
+      // Deletar convites pendentes da equipe
+      const allInvitations = await base44.entities.TeamInvitation.list();
+      const teamInvitations = allInvitations.filter(inv => inv.team_id === teamId);
+      for (const invitation of teamInvitations) {
+        await base44.entities.TeamInvitation.delete(invitation.id);
+      }
       
       // Deletar a equipe
       await base44.entities.Team.delete(teamId);
@@ -104,15 +122,43 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       queryClient.invalidateQueries({ queryKey: ['files'] });
+      queryClient.invalidateQueries({ queryKey: ['teamInvitations'] });
       setDeleteDialogOpen(false);
       onOpenChange(false);
     },
   });
+
+  const leaveTeamMutation = useMutation({
+    mutationFn: async () => {
+      if (!team || !currentTeam) return;
+      const updatedMembers = currentTeam.members.filter(m => m !== currentUserEmail);
+      await base44.entities.Team.update(team.id, { members: updatedMembers });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      setLeaveDialogOpen(false);
+      onOpenChange(false);
+    },
+  });
   
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (newMemberEmail && newMemberEmail.includes('@') && !members.includes(newMemberEmail)) {
-      setMembers([...members, newMemberEmail]);
-      setNewMemberEmail('');
+      if (team) {
+        // Se está editando, criar convite
+        await base44.entities.TeamInvitation.create({
+          team_id: team.id,
+          team_name: team.name,
+          invited_email: newMemberEmail,
+          invited_by: currentUserEmail,
+          status: 'pending',
+        });
+        queryClient.invalidateQueries({ queryKey: ['teamInvitations'] });
+        setNewMemberEmail('');
+      } else {
+        // Se está criando, adicionar à lista local
+        setMembers([...members, newMemberEmail]);
+        setNewMemberEmail('');
+      }
     }
   };
   
@@ -193,6 +239,11 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+            {team && (
+              <p className="text-xs text-gray-500 mb-2">
+                Ao adicionar um email, será enviado um convite para o usuário
+              </p>
+            )}
             
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {members.map((email) => (
@@ -221,14 +272,27 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
         
         <DialogFooter className={team ? "flex justify-between" : ""}>
           {team && (
-            <Button 
-              variant="destructive" 
-              onClick={() => setDeleteDialogOpen(true)}
-              className="mr-auto"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Excluir Equipe
-            </Button>
+            <div className="flex gap-2 mr-auto">
+              {currentTeam && currentTeam.owner !== currentUserEmail && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setLeaveDialogOpen(true)}
+                  className="text-orange-600 hover:text-orange-700"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair da Equipe
+                </Button>
+              )}
+              {currentTeam && currentTeam.owner === currentUserEmail && (
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir Equipe
+                </Button>
+              )}
+            </div>
           )}
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -261,6 +325,27 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
               className="bg-red-600 hover:bg-red-700"
             >
               Excluir Equipe
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leave Team Confirmation Dialog */}
+      <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair da equipe?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você perderá acesso a todas as pastas e arquivos desta equipe. Será necessário um novo convite para voltar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => leaveTeamMutation.mutate()}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Sair da Equipe
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
