@@ -197,13 +197,40 @@ Permissões:
 Comando do usuário: "${input}"
 
 IMPORTANTE:
-- Planilha/Excel = type: "xlsx"
-- Documento/Word/Texto = type: "docx"
+- Planilha/Excel = type: "xlsx", content vazio ""
+- Documento/Word/Texto = type: "docx", SEMPRE use HTML formatado no content
 - Kanban = type: "kbn"
 - Gantt = type: "gnt"
 - Cronograma = type: "crn"
-- Para documentos, use \\n\\n para separar parágrafos
-- Para planilhas, deixe content vazio ""
+
+FORMATAÇÃO DE DOCUMENTOS (type: docx):
+Use HTML completo e bem formatado no campo content:
+
+Exemplo de documento bem formatado:
+{
+  "action": "create_file",
+  "data": {
+    "name": "Política de Férias",
+    "type": "docx",
+    "content": "<h1 style=\\"text-align: center;\\"><strong>POLÍTICA DE FÉRIAS</strong></h1><p><br></p><h2><strong>1. Objetivo</strong></h2><p>Esta política estabelece as diretrizes para concessão de férias aos colaboradores.</p><p><br></p><h2><strong>2. Diretrizes</strong></h2><p>• Todo colaborador tem direito a 30 dias de férias após 12 meses de trabalho.</p><p>• As férias devem ser solicitadas com <strong>antecedência mínima de 30 dias</strong>.</p><p>• É permitido fracionamento em até 3 períodos.</p><p><br></p><h3><em>Observação Importante</em></h3><p>Para casos excepcionais, consultar o RH.</p>"
+  }
+}
+
+Tags HTML permitidas:
+- Títulos: <h1>, <h2>, <h3> (sempre com text-align: center para centralizar)
+- Parágrafos: <p>conteúdo</p>
+- Negrito: <strong>texto</strong>
+- Itálico: <em>texto</em>
+- Sublinhado: <u>texto</u>
+- Quebra de linha: <p><br></p>
+- Listas: <ul><li>item</li></ul> ou <ol><li>item</li></ol>
+
+SEMPRE estruture documentos com:
+1. Título principal centralizado (h1)
+2. Seções com subtítulos (h2, h3)
+3. Parágrafos separados
+4. Formatação adequada (negrito, itálico)
+5. Espaçamento entre seções (<p><br></p>)
 
 Converta o comando em uma ação estruturada.`;
 
