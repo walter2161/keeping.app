@@ -237,24 +237,66 @@ export default function FileViewer() {
       return;
     }
 
-    // Para arquivos pptx (JSON)
-    if (file.type === 'pptx' && fileName.endsWith('.json')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
+    // Para arquivos pptx nativos usando IA do assistente
+    if (file.type === 'pptx' && (fileName.endsWith('.pptx') || fileName.endsWith('.ppt'))) {
+      const handlePptxImport = async () => {
         try {
-          const importedData = JSON.parse(event.target.result);
-          if (importedData.type === 'single_file' && importedData.file && importedData.file.type === 'pptx') {
-            const content = JSON.parse(importedData.file.content);
-            setLocalContent(content);
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: importFile });
+          
+          const user = await base44.auth.me();
+          
+          const result = await base44.integrations.Core.InvokeLLM({
+            prompt: `Você é um especialista em extração de dados de apresentações PowerPoint. Extraia o conteúdo deste arquivo PPTX e retorne no formato JSON especificado. Para cada slide, extraia o texto e organize-o em elementos de texto/título com posições aproximadas.`,
+            response_json_schema: {
+              type: "object",
+              properties: {
+                slides: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      background: { type: "string", default: "#ffffff" },
+                      elements: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            type: { type: "string" },
+                            content: { type: "string" },
+                            x: { type: "number", default: 100 },
+                            y: { type: "number", default: 100 },
+                            width: { type: "number", default: 400 },
+                            height: { type: "number", default: 100 },
+                            fontSize: { type: "number", default: 24 },
+                            fontWeight: { type: "string", default: "normal" },
+                            fontStyle: { type: "string", default: "normal" },
+                            textDecoration: { type: "string", default: "none" },
+                            color: { type: "string", default: "#000000" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            file_urls: [file_url]
+          });
+          
+          if (result && result.slides) {
+            setLocalContent(result);
             setHasChanges(true);
+            alert('Arquivo importado com sucesso!');
           } else {
-            alert('Formato de arquivo inválido!');
+            alert('Não foi possível extrair dados do arquivo.');
           }
         } catch (error) {
-          alert('Erro ao ler o arquivo.');
+          alert('Erro ao importar: ' + error.message);
         }
       };
-      reader.readAsText(importFile);
+      
+      handlePptxImport();
       e.target.value = '';
       return;
     }
