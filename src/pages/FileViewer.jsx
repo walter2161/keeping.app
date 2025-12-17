@@ -259,7 +259,58 @@ export default function FileViewer() {
         e.target.value = '';
         return;
       } else {
-        alert('Importação de arquivos .pptx/.ppt nativos ainda não suportada. Por favor, exporte primeiro como JSON usando esta ferramenta.');
+        // Importar arquivo .pptx nativo
+        const handlePptxImport = async () => {
+          try {
+            // Upload do arquivo
+            const { file_url } = await base44.integrations.Core.UploadFile({ file: importFile });
+            
+            // Extrair dados usando IA
+            const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+              file_url: file_url,
+              json_schema: {
+                type: "object",
+                properties: {
+                  slides: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        background: { type: "string" },
+                        elements: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              type: { type: "string" },
+                              content: { type: "string" },
+                              x: { type: "number" },
+                              y: { type: "number" },
+                              width: { type: "number" },
+                              height: { type: "number" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            });
+            
+            if (result.status === 'success' && result.output) {
+              setLocalContent(result.output);
+              setHasChanges(true);
+              alert('Arquivo importado com sucesso! Nota: a formatação pode não ser 100% precisa.');
+            } else {
+              alert('Não foi possível extrair dados do arquivo .pptx. Detalhes: ' + (result.details || 'Erro desconhecido'));
+            }
+          } catch (error) {
+            alert('Erro ao importar arquivo .pptx: ' + error.message);
+          }
+        };
+        
+        handlePptxImport();
         e.target.value = '';
         return;
       }
