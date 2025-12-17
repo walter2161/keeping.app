@@ -43,6 +43,19 @@ export default function Drive() {
     queryFn: () => base44.auth.me(),
   });
 
+  // Fetch teams
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
+    enabled: !!user,
+  });
+
+  // User's teams
+  const userTeams = useMemo(() => {
+    if (!user || !teams.length) return [];
+    return teams.filter(t => t.members && t.members.includes(user.email));
+  }, [teams, user]);
+
   // Fetch team activities to count pending updates
   const { data: teamActivities = [] } = useQuery({
     queryKey: ['teamActivities'],
@@ -85,19 +98,6 @@ export default function Drive() {
 
     return () => clearInterval(interval);
   }, [user?.auto_refresh_interval, pendingUpdates, queryClient]);
-
-  // Fetch teams
-  const { data: teams = [], isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
-    enabled: !!user,
-  });
-
-  // User's teams
-  const userTeams = useMemo(() => {
-    if (!user || !teams.length) return [];
-    return teams.filter(t => t.members && t.members.includes(user.email));
-  }, [teams, user]);
 
   // Fetch folders
   const { data: allFolders = [], isLoading: foldersLoading } = useQuery({
