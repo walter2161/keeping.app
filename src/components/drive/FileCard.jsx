@@ -9,6 +9,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 
 const fileTypeConfig = {
@@ -55,29 +61,72 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
     }
   };
 
-  return (
-    <div
-      ref={provided?.innerRef}
-      {...provided?.draggableProps}
-      {...provided?.dragHandleProps}
-      className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
-        isDragging ? 'opacity-50 shadow-2xl' : ''
-      }`}
-      onClick={handleCardClick}
-      onContextMenu={handleContextMenu}
-    >
+  const renderThumbnail = () => {
+    if (file.type === 'img' && file.file_url) {
+      return (
+        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          <img 
+            src={file.file_url} 
+            alt={file.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      );
+    }
+    
+    if (file.type === 'video' && file.file_url) {
+      return (
+        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
+          <video 
+            src={file.file_url}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <Video className="w-6 h-6 text-white" />
+          </div>
+        </div>
+      );
+    }
+    
+    if (file.type === 'pdf' && file.file_url) {
+      return (
+        <div className="w-16 h-16 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+          <FileText className="w-8 h-8 text-red-600" />
+        </div>
+      );
+    }
+    
+    return (
       <div className={`p-2 rounded-lg ${config.bg} ${config.color}`}>
         <Icon className="w-6 h-6" />
       </div>
-      
-      <div className="flex-1 min-w-0">
-        <span className="font-medium text-gray-800 truncate text-sm block">
-          {file.name}
-        </span>
-        <span className={`text-xs ${config.color} font-medium`}>
-          {config.label}
-        </span>
-      </div>
+    );
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <div
+            ref={provided?.innerRef}
+            {...provided?.draggableProps}
+            {...provided?.dragHandleProps}
+            className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
+              isDragging ? 'opacity-50 shadow-2xl' : ''
+            }`}
+            onClick={handleCardClick}
+            onContextMenu={handleContextMenu}
+          >
+            {renderThumbnail()}
+            
+            <div className="flex-1 min-w-0">
+              <span className="font-medium text-gray-800 truncate text-sm block">
+                {file.name}
+              </span>
+              <span className={`text-xs ${config.color} font-medium`}>
+                {config.label}
+              </span>
+            </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -107,6 +156,12 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{file.name}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
