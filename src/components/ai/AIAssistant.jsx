@@ -204,11 +204,22 @@ Permissões:
 Comando do usuário: "${input}"
 
 IMPORTANTE:
-- Planilha/Excel = type: "xlsx", content vazio ""
+- Planilha/Excel = type: "xlsx", content em formato CSV (linhas separadas por \n, colunas separadas por vírgula)
 - Documento/Word/Texto = type: "docx", SEMPRE use HTML formatado no content
 - Kanban = type: "kbn"
 - Gantt = type: "gnt"
 - Cronograma = type: "crn"
+
+FORMATAÇÃO DE PLANILHAS (type: xlsx):
+Use formato CSV no campo content. Exemplo:
+{
+  "action": "create_file",
+  "data": {
+    "name": "Controle de Vendas",
+    "type": "xlsx",
+    "content": "Produto,Quantidade,Valor Unitário,Total\nNotebook,5,3500,17500\nMouse,20,50,1000\nTeclado,15,150,2250"
+  }
+}
 
 FORMATAÇÃO DE DOCUMENTOS (type: docx):
 Use HTML completo e bem formatado no campo content:
