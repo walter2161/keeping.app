@@ -32,8 +32,8 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     if (value && value.trim()) {
       try {
         const parsed = JSON.parse(value);
-        const loadedSlides = parsed.slides || [createEmptySlide()];
-        setSlides(loadedSlides);
+        const loadedSlides = Array.isArray(parsed.slides) ? parsed.slides : [createEmptySlide()];
+        setSlides(loadedSlides.length > 0 ? loadedSlides : [createEmptySlide()]);
       } catch (e) {
         setSlides([createEmptySlide()]);
       }
@@ -231,7 +231,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const handleExportPptx = async () => {
     const pptx = new PptxGenJS();
     
-    for (const slide of slides) {
+    const validSlides = Array.isArray(slides) ? slides : [];
+    
+    for (const slide of validSlides) {
       const pptxSlide = pptx.addSlide();
       
       // Background
@@ -243,7 +245,8 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
       }
       
       // Elements
-      for (const element of slide.elements) {
+      const elements = Array.isArray(slide.elements) ? slide.elements : [];
+      for (const element of elements) {
         const x = element.x / 1200 * 10;
         const y = element.y / 675 * 5.625;
         const w = element.width / 1200 * 10;
