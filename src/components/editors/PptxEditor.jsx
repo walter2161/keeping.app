@@ -189,6 +189,11 @@ export default function PptxEditor({ value, onChange }) {
   };
 
   const selectedEl = slides[currentSlide]?.elements.find(el => el.id === selectedElement);
+  const currentSlideData = slides[currentSlide];
+
+  if (!currentSlideData) {
+    return <div className="flex items-center justify-center h-full">Carregando...</div>;
+  }
 
   if (presentationMode) {
     return (
@@ -206,14 +211,14 @@ export default function PptxEditor({ value, onChange }) {
           <div 
             className="w-full h-full max-w-7xl max-h-[90vh] rounded-lg shadow-2xl relative"
             style={{
-              background: slides[currentSlide].background.startsWith('url') 
-                ? slides[currentSlide].background 
-                : slides[currentSlide].background,
+              background: currentSlideData.background.startsWith('url') 
+                ? currentSlideData.background 
+                : currentSlideData.background,
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }}
           >
-            {slides[currentSlide].elements.map(element => (
+            {currentSlideData.elements.map(element => (
               <div
                 key={element.id}
                 style={{
@@ -427,7 +432,7 @@ export default function PptxEditor({ value, onChange }) {
             </Button>
             <input
               type="color"
-              value={slides[currentSlide].background.startsWith('#') ? slides[currentSlide].background : '#ffffff'}
+              value={currentSlideData.background.startsWith('#') ? currentSlideData.background : '#ffffff'}
               onChange={(e) => {
                 const newSlides = [...slides];
                 newSlides[currentSlide].background = e.target.value;
@@ -474,15 +479,15 @@ export default function PptxEditor({ value, onChange }) {
             style={{
               width: '1200px',
               height: '675px',
-              background: slides[currentSlide].background.startsWith('url') 
-                ? slides[currentSlide].background 
-                : slides[currentSlide].background,
+              background: currentSlideData.background.startsWith('url') 
+                ? currentSlideData.background 
+                : currentSlideData.background,
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }}
             onClick={() => setSelectedElement(null)}
           >
-            {slides[currentSlide].elements.map(element => (
+            {currentSlideData.elements.map(element => (
               <div
                 key={element.id}
                 onMouseDown={(e) => handleMouseDown(e, element.id)}
