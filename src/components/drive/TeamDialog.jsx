@@ -22,9 +22,23 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
   const queryClient = useQueryClient();
   
   const createTeamMutation = useMutation({
-    mutationFn: (data) => base44.entities.Team.create(data),
+    mutationFn: async (data) => {
+      const newTeam = await base44.entities.Team.create(data);
+      
+      // Criar pasta automaticamente para a equipe
+      await base44.entities.Folder.create({
+        name: data.name,
+        parent_id: null,
+        team_id: newTeam.id,
+        order: 0,
+        owner: data.owner,
+      });
+      
+      return newTeam;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
       onOpenChange(false);
     },
   });
