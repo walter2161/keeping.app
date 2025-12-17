@@ -12,12 +12,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function TeamDialog({ open, onOpenChange, team, currentUserEmail }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [members, setMembers] = useState([currentUserEmail]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -62,6 +73,38 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
     mutationFn: ({ id, data }) => base44.entities.Team.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      onOpenChange(false);
+    },
+  });
+
+  const deleteTeamMutation = useMutation({
+    mutationFn: async (teamId) => {
+      // Buscar todas as pastas da equipe
+      const allFolders = await base44.entities.Folder.list();
+      const teamFolders = allFolders.filter(f => f.team_id === teamId);
+      
+      // Buscar todos os arquivos da equipe
+      const allFiles = await base44.entities.File.list();
+      const teamFiles = allFiles.filter(f => f.team_id === teamId);
+      
+      // Deletar todos os arquivos
+      for (const file of teamFiles) {
+        await base44.entities.File.delete(file.id);
+      }
+      
+      // Deletar todas as pastas
+      for (const folder of teamFolders) {
+        await base44.entities.Folder.delete(folder.id);
+      }
+      
+      // Deletar a equipe
+      await base44.entities.Team.delete(teamId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      setDeleteDialogOpen(false);
       onOpenChange(false);
     },
   });
@@ -176,19 +219,52 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!name.trim() || members.length === 0}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {team ? 'Salvar' : 'Criar Equipe'}
-          </Button>
+        <DialogFooter className={team ? "flex justify-between" : ""}>
+          {team && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setDeleteDialogOpen(true)}
+              className="mr-auto"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Equipe
+            </Button>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!name.trim() || members.length === 0}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {team ? 'Salvar' : 'Criar Equipe'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir esta equipe?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Todas as pastas e arquivos desta equipe serão permanentemente excluídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => team && deleteTeamMutation.mutate(team.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir Equipe
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
