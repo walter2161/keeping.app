@@ -21,6 +21,7 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
     profile_picture: user?.profile_picture || '',
+    auto_refresh_interval: user?.auto_refresh_interval || 120,
   });
 
   React.useEffect(() => {
@@ -28,6 +29,7 @@ export default function Profile() {
       setFormData({
         full_name: user.full_name || '',
         profile_picture: user.profile_picture || '',
+        auto_refresh_interval: user.auto_refresh_interval || 120,
       });
     }
   }, [user]);
@@ -186,6 +188,25 @@ export default function Profile() {
                 disabled
                 className="bg-gray-100"
               />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Atualização Automática
+              </label>
+              <div className="space-y-2">
+                <Input
+                  type="number"
+                  min="30"
+                  max="600"
+                  value={formData.auto_refresh_interval}
+                  onChange={(e) => setFormData({ ...formData, auto_refresh_interval: parseInt(e.target.value) || 120 })}
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500">
+                  O sistema atualizará automaticamente após {formData.auto_refresh_interval} segundos quando houver mudanças nas equipes (30-600s)
+                </p>
+              </div>
             </div>
 
             <Button 
