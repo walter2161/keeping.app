@@ -122,33 +122,7 @@ export default function XlsxEditor({ value, onChange }) {
           k: 'vertical-align',
           v: ['top','middle','bottom']
         },
-        {
-          type: 'i',
-          content: 'border_all',
-          onclick: function() {
-            if (worksheetRef.current) {
-              worksheetRef.current.setBorder();
-            }
-          }
-        },
-        {
-          type: 'i',
-          content: 'border_outer',
-          onclick: function() {
-            if (worksheetRef.current) {
-              worksheetRef.current.setBorder(null, null, null, null, null, true);
-            }
-          }
-        },
-        {
-          type: 'i',
-          content: 'border_clear',
-          onclick: function() {
-            if (worksheetRef.current) {
-              worksheetRef.current.removeBorder();
-            }
-          }
-        },
+
         {
           type: 'i',
           content: 'merge_cells',
