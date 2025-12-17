@@ -41,8 +41,7 @@ export default function Toolbar({
   onPaste,
   sidebarOpen,
   onToggleSidebar,
-  onRefresh,
-  pendingUpdates = 0
+  onRefresh
 }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -211,17 +210,12 @@ export default function Toolbar({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8 relative" onClick={onRefresh}>
+            <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8" onClick={onRefresh}>
               <RefreshCw className="w-4 h-4" />
-              {pendingUpdates > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
-                  {pendingUpdates > 99 ? '99+' : pendingUpdates}
-                </span>
-              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Atualizar{pendingUpdates > 0 ? ` (${pendingUpdates} atualizações)` : ''}</p>
+            <p>Atualizar</p>
           </TooltipContent>
         </Tooltip>
 

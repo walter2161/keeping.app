@@ -33,7 +33,6 @@ export default function Drive() {
   const [viewMode, setViewMode] = useState('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clipboard, setClipboard] = useState({ type: null, item: null });
-  const [pendingUpdates, setPendingUpdates] = useState(0);
   
   const queryClient = useQueryClient();
 
@@ -56,48 +55,17 @@ export default function Drive() {
     return teams.filter(t => t.members && t.members.includes(user.email));
   }, [teams, user]);
 
-  // Fetch team activities to count pending updates
-  const { data: teamActivities = [] } = useQuery({
-    queryKey: ['teamActivities'],
-    queryFn: () => base44.entities.TeamActivity.list('-created_date', 100),
-    enabled: !!user,
-    refetchInterval: 30000, // Check every 30 seconds
-  });
-
-  // Calculate pending updates
-  React.useEffect(() => {
-    if (!user || !teamActivities.length || !userTeams.length) {
-      setPendingUpdates(0);
-      return;
-    }
-
-    const lastSeen = user.last_seen_update ? new Date(user.last_seen_update) : new Date(0);
-    const myTeamIds = userTeams.map(t => t.id);
-    
-    const newUpdates = teamActivities.filter(activity => {
-      const activityDate = new Date(activity.created_date);
-      return (
-        myTeamIds.includes(activity.team_id) &&
-        activity.user_email !== user.email &&
-        activityDate > lastSeen
-      );
-    });
-
-    setPendingUpdates(newUpdates.length);
-  }, [teamActivities, user, userTeams]);
-
   // Auto-refresh based on user settings
   React.useEffect(() => {
-    if (!user?.auto_refresh_interval || pendingUpdates === 0) return;
+    if (!user?.auto_refresh_interval) return;
 
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       queryClient.invalidateQueries({ queryKey: ['files'] });
-      handleRefreshClick();
     }, (user.auto_refresh_interval || 120) * 1000);
 
     return () => clearInterval(interval);
-  }, [user?.auto_refresh_interval, pendingUpdates, queryClient]);
+  }, [user?.auto_refresh_interval, queryClient]);
 
   // Fetch folders
   const { data: allFolders = [], isLoading: foldersLoading } = useQuery({
@@ -242,16 +210,10 @@ export default function Drive() {
     }
   };
 
-  const handleRefreshClick = async () => {
-    if (user) {
-      await base44.auth.updateMe({ last_seen_update: new Date().toISOString() });
-      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+  const handleRefreshClick = () => {
     queryClient.invalidateQueries({ queryKey: ['folders'] });
     queryClient.invalidateQueries({ queryKey: ['files'] });
     queryClient.invalidateQueries({ queryKey: ['teams'] });
-    queryClient.invalidateQueries({ queryKey: ['teamActivities'] });
   };
 
   const handleCreateFolder = async (name, color) => {
@@ -739,8 +701,7 @@ export default function Drive() {
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onRefresh={handleRefreshClick}
-          pendingUpdates={pendingUpdates}
-        />
+          />
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
