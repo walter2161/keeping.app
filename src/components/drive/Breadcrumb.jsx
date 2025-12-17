@@ -12,18 +12,18 @@ export default function Breadcrumb({ path, onNavigate, onTeamNavigate }) {
         <span className="text-sm font-medium">Meu Drive</span>
       </button>
 
-      {path.map((folder, index) => (
-        <React.Fragment key={folder.id}>
+      {path.map((item, index) => (
+        <React.Fragment key={item.id}>
           <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
           <button
-            onClick={() => onNavigate(folder.id)}
+            onClick={() => item.isTeam ? onNavigate(null, item.id.replace('team-', '')) : onNavigate(item.id)}
             className={`px-2 py-1 rounded-md transition-colors text-sm font-medium truncate max-w-[200px] ${
               index === path.length - 1 
                 ? 'text-blue-600 bg-blue-50' 
                 : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
             }`}
           >
-            {folder.name}
+            {item.name}
           </button>
         </React.Fragment>
       ))}
