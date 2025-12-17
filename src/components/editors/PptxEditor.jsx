@@ -366,7 +366,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                     fontWeight: element.fontWeight,
                     fontStyle: element.fontStyle,
                     textDecoration: element.textDecoration,
-                    padding: '8px'
+                    padding: '8px',
+                    lineHeight: '1.4',
+                    textAlign: 'center'
                   }}
                 >
                   {element.content}
@@ -384,7 +386,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                     wordWrap: 'break-word',
                     width: '100%',
                     height: '100%',
-                    padding: '2px'
+                    padding: '8px',
+                    lineHeight: '1.4',
+                    display: 'flex',
+                    alignItems: element.type === 'title' ? 'center' : 'flex-start'
                   }}
                 >
                   {element.content}
@@ -918,8 +923,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                           backgroundColor: element.backgroundColor,
                           borderRadius: element.shapeType === 'circle' ? '50%' : '8px',
                           color: element.color,
-                          fontSize: element.fontSize,
+                          fontSize: `${element.fontSize}px`,
                           fontWeight: element.fontWeight,
+                          fontStyle: element.fontStyle,
+                          textDecoration: element.textDecoration,
                           padding: '8px'
                         }}
                       >
@@ -930,8 +937,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                           className="w-full h-full border-none bg-transparent text-center focus-visible:ring-0 p-0"
                           style={{
                             color: element.color,
-                            fontSize: element.fontSize,
-                            fontWeight: element.fontWeight
+                            fontSize: `${element.fontSize}px`,
+                            fontWeight: element.fontWeight,
+                            fontStyle: element.fontStyle,
+                            textDecoration: element.textDecoration
                           }}
                         />
                       </div>
@@ -956,11 +965,12 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                         onClick={(e) => e.stopPropagation()}
                         className="w-full h-full resize-none border-none bg-transparent focus-visible:ring-0 p-2"
                         style={{
-                          fontSize: element.fontSize,
+                          fontSize: `${element.fontSize}px`,
                           fontWeight: element.fontWeight,
                           fontStyle: element.fontStyle,
                           textDecoration: element.textDecoration,
-                          color: element.color
+                          color: element.color,
+                          lineHeight: '1.4'
                         }}
                       />
                       {(hoveredElement === element.id || selectedElement === element.id) && (
