@@ -216,7 +216,14 @@ export default function XlsxEditor({ value, onChange }) {
         }
       },
       onselection: function(instance, x1, y1, x2, y2) {
-        // Callback quando células são selecionadas
+        const cellName = String.fromCharCode(65 + x1) + (y1 + 1);
+        const display = document.getElementById('selected-cell-display');
+        const input = document.getElementById('formula-input');
+        if (display) display.textContent = cellName;
+        if (input && worksheetRef.current) {
+          const value = worksheetRef.current.getValue(cellName);
+          input.value = value || '';
+        }
       },
       contextMenu: function(obj, x, y, e) {
         const items = [];
@@ -315,24 +322,24 @@ export default function XlsxEditor({ value, onChange }) {
       {/* Barra de Fórmulas */}
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-600 min-w-[60px]">
-            {worksheetRef.current?.getSelectedIndex?.() ? 
-              String.fromCharCode(65 + worksheetRef.current.getSelectedIndex()[0]) + (worksheetRef.current.getSelectedIndex()[1] + 1) : 
-              'A1'}
+          <span className="text-sm font-semibold text-gray-600 min-w-[60px]" id="selected-cell-display">
+            A1
           </span>
           <span className="text-gray-400">|</span>
         </div>
         <input
           type="text"
+          id="formula-input"
           placeholder="Digite uma fórmula (ex: =SOMA(A1:A10))"
           className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && worksheetRef.current) {
               const value = e.target.value;
-              const selected = worksheetRef.current.getSelectedIndex();
+              const selected = worksheetRef.current.getSelected();
               if (selected && value) {
-                const cellName = String.fromCharCode(65 + selected[0]) + (selected[1] + 1);
+                const cellName = selected.split(':')[0];
                 worksheetRef.current.setValue(cellName, value, true);
+                e.target.value = '';
                 setTimeout(() => {
                   const data = worksheetRef.current.getData();
                   const meta = worksheetRef.current.getMeta();
@@ -340,16 +347,6 @@ export default function XlsxEditor({ value, onChange }) {
                   const merged = worksheetRef.current.getMerge();
                   onChange(JSON.stringify({ data, meta, style, merged }));
                 }, 100);
-              }
-            }
-          }}
-          onFocus={(e) => {
-            if (worksheetRef.current) {
-              const selected = worksheetRef.current.getSelectedIndex();
-              if (selected) {
-                const cellName = String.fromCharCode(65 + selected[0]) + (selected[1] + 1);
-                const value = worksheetRef.current.getValue(cellName);
-                if (value) e.target.value = value;
               }
             }
           }}
