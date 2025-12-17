@@ -303,31 +303,32 @@ export default function PptxEditor({ value, onChange }) {
   return (
     <div className="flex h-full bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r overflow-y-auto p-4">
+      <div className="w-80 min-w-[320px] bg-white border-r overflow-y-auto p-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-700">Slides</h3>
+          <h3 className="font-semibold text-gray-700 text-lg">Slides</h3>
           <Button size="sm" onClick={addSlide}>
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 mr-1" />
+            Novo
           </Button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {slides.map((slide, index) => (
             <div
               key={index}
-              className={`p-2 rounded-lg cursor-pointer border-2 transition-all ${
+              className={`p-3 rounded-lg cursor-pointer border-2 transition-all ${
                 currentSlide === index
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
               onClick={() => setCurrentSlide(index)}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-600 mb-1">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-600 mb-2">
                     Slide {index + 1}
                   </p>
                   <div 
-                    className="w-full aspect-video bg-gray-100 rounded border"
+                    className="w-full h-32 bg-gray-100 rounded border"
                     style={{
                       background: slide.background.startsWith('url') 
                         ? slide.background 
@@ -341,13 +342,13 @@ export default function PptxEditor({ value, onChange }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 flex-shrink-0"
+                    className="h-7 w-7 flex-shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteSlide(index);
                     }}
                   >
-                    <Trash2 className="w-3 h-3 text-red-500" />
+                    <Trash2 className="w-4 h-4 text-red-500" />
                   </Button>
                 )}
               </div>
