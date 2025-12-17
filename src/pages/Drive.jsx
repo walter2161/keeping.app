@@ -152,10 +152,10 @@ export default function Drive() {
     
     // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
     if (viewFilter === 'shared') {
-      // Compartilhado comigo: apenas itens que OUTROS compartilharam comigo
+      // Compartilhado comigo: pastas que OUTROS criaram e compartilharam comigo
       filtered = filtered.filter(f => f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email));
     } else {
-      // Meu Drive: APENAS meus próprios itens (não mostrar itens compartilhados comigo)
+      // Meu Drive: pastas que EU criei
       filtered = filtered.filter(f => f.owner === user.email);
     }
     
@@ -171,26 +171,42 @@ export default function Drive() {
     
     // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
     if (viewFilter === 'shared') {
-      // Compartilhado comigo: arquivos de outros OU arquivos em pastas compartilhadas comigo
+      // Compartilhado comigo: arquivos em pastas que OUTROS criaram e compartilharam comigo
       filtered = filtered.filter(f => {
-        // Files explicitly shared with me
+        // Files explicitly shared with me by others
         if (f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email)) return true;
         
-        // Files in folders shared with me
-        if (f.owner !== user.email && f.folder_id && isFolderSharedWithUser(f.folder_id)) return true;
+        // Files in folders created by others and shared with me
+        if (f.folder_id) {
+          const folder = allFolders.find(fld => fld.id === f.folder_id);
+          if (folder && folder.owner !== user.email && folder.shared_with && folder.shared_with.includes(user.email)) {
+            return true;
+          }
+        }
         
         return false;
       });
     } else {
-      // Meu Drive: APENAS meus próprios itens (não mostrar itens compartilhados comigo)
-      filtered = filtered.filter(f => f.owner === user.email);
+      // Meu Drive: arquivos que eu criei OU arquivos em pastas que EU possuo (independente de quem criou)
+      filtered = filtered.filter(f => {
+        // My own files
+        if (f.owner === user.email) return true;
+        
+        // Files in folders that I own (even if created by others who have access)
+        if (f.folder_id) {
+          const folder = allFolders.find(fld => fld.id === f.folder_id);
+          if (folder && folder.owner === user.email) return true;
+        }
+        
+        return false;
+      });
     }
     
     return filtered
       .filter(f => f.folder_id === currentFolderId)
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [files, currentFolderId, searchQuery, viewFilter, user]);
+  }, [files, currentFolderId, searchQuery, viewFilter, user, allFolders]);
 
   // Handlers
   const handleCreateFolder = async (name, color) => {
