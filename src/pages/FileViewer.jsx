@@ -348,7 +348,7 @@ export default function FileViewer() {
           )}
           <input
             type="file"
-            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.json' : '.json'}
+            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.pptx,.ppt' : '.json'}
             onChange={handleImportFile}
             className="hidden"
             id="import-file"

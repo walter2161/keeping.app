@@ -25,8 +25,7 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const slideRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
-    exportPptx: handleExportPptx,
-    exportJson: handleExportJson
+    exportPptx: handleExportPptx
   }));
 
   useEffect(() => {
@@ -236,10 +235,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
       const pptxSlide = pptx.addSlide();
       
       // Background
-      if (slide.background.startsWith('url(')) {
+      if (slide.background && slide.background.startsWith('url(')) {
         const imageUrl = slide.background.match(/url\((.*?)\)/)[1];
         pptxSlide.background = { data: imageUrl };
-      } else if (slide.background.startsWith('#')) {
+      } else if (slide.background && slide.background.startsWith('#')) {
         pptxSlide.background = { color: slide.background.replace('#', '') };
       }
       
@@ -286,24 +285,7 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     await pptx.writeFile({ fileName: `${cleanFileName}.pptx` });
   };
 
-  const handleExportJson = () => {
-    const exportData = {
-      type: 'single_file',
-      file: {
-        name: fileName,
-        type: 'pptx',
-        content: JSON.stringify({ slides }),
-      }
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const cleanFileName = fileName.replace(/\.(pptx|json)$/i, '');
-    a.download = `${cleanFileName}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   const currentSlideData = slides[currentSlide];
   const selectedEl = currentSlideData?.elements?.find(el => el.id === selectedElement);
@@ -327,9 +309,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
         <div 
           className="w-[1200px] h-[675px] rounded-lg shadow-2xl relative"
           style={{
-            background: currentSlideData.background.startsWith('url') 
+            background: currentSlideData.background && currentSlideData.background.startsWith('url') 
               ? currentSlideData.background 
-              : currentSlideData.background,
+              : (currentSlideData.background || '#ffffff'),
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -446,9 +428,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                 <div 
                   className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
                   style={{
-                    background: slide.background.startsWith('url') 
+                    background: slide.background && slide.background.startsWith('url') 
                       ? slide.background 
-                      : slide.background,
+                      : (slide.background || '#ffffff'),
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
@@ -651,7 +633,7 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
             </Button>
             <input
               type="color"
-              value={currentSlideData.background.startsWith('#') ? currentSlideData.background : '#ffffff'}
+              value={currentSlideData.background && currentSlideData.background.startsWith('#') ? currentSlideData.background : '#ffffff'}
               onChange={(e) => {
                 const newSlides = [...slides];
                 newSlides[currentSlide].background = e.target.value;
@@ -661,10 +643,6 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
               title="Cor de fundo"
             />
             <div className="h-6 w-px bg-gray-300 mx-1" />
-            <Button size="sm" variant="ghost" onClick={handleExportJson} className="h-8">
-              <Download className="w-4 h-4 mr-1.5" />
-              JSON
-            </Button>
             <Button size="sm" variant="default" onClick={() => setPresentationMode(true)} className="h-8 bg-green-600 hover:bg-green-700">
               <Play className="w-4 h-4 mr-1.5" />
               Apresentar
@@ -754,9 +732,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
               style={{
                 width: '1200px',
                 height: '675px',
-                background: currentSlideData.background.startsWith('url') 
+                background: currentSlideData.background && currentSlideData.background.startsWith('url') 
                   ? currentSlideData.background 
-                  : currentSlideData.background,
+                  : (currentSlideData.background || '#ffffff'),
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
               }}
