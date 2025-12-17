@@ -196,12 +196,12 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
         </div>
 
         {/* Equipes Section */}
-        {myTeams && myTeams.length > 0 && (
-          <div>
-            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Equipes
-            </div>
-            {myTeams.map(team => {
+        <div>
+          <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Equipes
+          </div>
+          {myTeams && myTeams.length > 0 ? (
+            myTeams.map(team => {
               const teamFolders = getTeamFolders(team.id);
               const hasRootFolders = teamFolders.length > 0;
               return (
@@ -227,9 +227,13 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
                   {expandedTeams.has(team.id) && teamFolders}
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          ) : (
+            <div className="px-3 py-2 text-xs text-gray-400 text-center">
+              Nenhuma equipe criada
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
