@@ -505,8 +505,11 @@ export default function Drive() {
     const { source, destination, draggableId, type } = result;
 
     // Handle drops into folders (both sidebar and grid)
-    if (destination.droppableId.startsWith('folder-') || destination.droppableId.startsWith('sidebar-folder-')) {
-      const targetFolderId = destination.droppableId.replace('folder-', '').replace('sidebar-folder-', '');
+    if (destination.droppableId.startsWith('folder-') || destination.droppableId.startsWith('sidebar-folder-') || destination.droppableId.startsWith('sidebar-file-')) {
+      const targetFolderId = destination.droppableId
+        .replace('folder-', '')
+        .replace('sidebar-folder-', '')
+        .replace('sidebar-file-', '');
       const finalFolderId = targetFolderId === 'root' ? null : targetFolderId;
 
       if (type === 'FOLDER') {

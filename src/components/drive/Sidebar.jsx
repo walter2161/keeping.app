@@ -76,13 +76,21 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
           />
           <span className="truncate flex-1 text-left">{folder.name}</span>
             </button>
-            <div style={{ display: 'none' }}>{provided.placeholder}</div>
+            {provided.placeholder}
           </div>
         )}
       </Droppable>
-      <Droppable droppableId={`sidebar-folder-${folder.id}`} type="FILE">
-        {(provided) => (
-          <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: 'none' }}>
+      <Droppable droppableId={`sidebar-file-${folder.id}`} type="FILE">
+        {(provided, snapshot) => (
+          <div 
+            ref={provided.innerRef} 
+            {...provided.droppableProps}
+            className={`${snapshot.isDraggingOver ? 'bg-green-50 border-l-4 border-green-400 py-0.5' : ''}`}
+            style={{ 
+              minHeight: snapshot.isDraggingOver ? '8px' : '0px',
+              transition: 'all 0.2s'
+            }}
+          >
             {provided.placeholder}
           </div>
         )}
@@ -218,13 +226,21 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
                   <Folder className="w-4 h-4 text-gray-500" fill="currentColor" />
                   <span className="truncate flex-1 text-left">Meu Drive</span>
                 </button>
-                <div style={{ display: 'none' }}>{provided.placeholder}</div>
+                {provided.placeholder}
               </div>
             )}
           </Droppable>
-          <Droppable droppableId="sidebar-folder-root" type="FILE">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: 'none' }}>
+          <Droppable droppableId="sidebar-file-root" type="FILE">
+            {(provided, snapshot) => (
+              <div 
+                ref={provided.innerRef} 
+                {...provided.droppableProps}
+                className={`${snapshot.isDraggingOver ? 'bg-green-50 border-l-4 border-green-400 py-0.5' : ''}`}
+                style={{ 
+                  minHeight: snapshot.isDraggingOver ? '8px' : '0px',
+                  transition: 'all 0.2s'
+                }}
+              >
                 {provided.placeholder}
               </div>
             )}
