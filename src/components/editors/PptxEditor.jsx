@@ -654,7 +654,7 @@ export default function PptxEditor({ value, onChange }) {
           onMouseUp={() => setIsPanning(false)}
           onMouseLeave={() => setIsPanning(false)}
         >
-          <div className="inline-block p-[50vh]">
+          <div className="inline-block p-8">
             <div
               ref={slideRef}
               className="bg-white shadow-xl relative"
