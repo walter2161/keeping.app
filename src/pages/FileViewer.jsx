@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -45,6 +45,7 @@ export default function FileViewer() {
   const [localContent, setLocalContent] = useState(null);
   const [fileName, setFileName] = useState('');
   const [mediaPopup, setMediaPopup] = useState({ open: false, url: '', type: '' });
+  const pptxEditorRef = useRef(null);
   
   const queryClient = useQueryClient();
 
@@ -181,8 +182,9 @@ export default function FileViewer() {
       return;
     }
 
-    // Para pptx, o botão de exportar interno do editor cuida disso
-    if (file.type === 'pptx') {
+    // Para pptx, chamar a função de exportar do editor
+    if (file.type === 'pptx' && pptxEditorRef.current) {
+      pptxEditorRef.current.exportPptx();
       return;
     }
     
@@ -438,6 +440,7 @@ export default function FileViewer() {
 
         {file.type === 'pptx' && (
           <PptxEditor
+            ref={pptxEditorRef}
             value={typeof localContent === 'object' ? JSON.stringify(localContent) : (localContent || '')}
             onChange={handleContentChange}
             fileName={fileName}

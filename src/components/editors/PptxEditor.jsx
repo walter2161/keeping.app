@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,7 @@ import {
 import { base44 } from '@/api/base44Client';
 import PptxGenJS from 'pptxgenjs';
 
-export default function PptxEditor({ value, onChange, fileName = 'apresentacao' }) {
+const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, ref) => {
   const [slides, setSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedElement, setSelectedElement] = useState(null);
@@ -23,6 +23,10 @@ export default function PptxEditor({ value, onChange, fileName = 'apresentacao' 
   
   const canvasRef = useRef(null);
   const slideRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    exportPptx: handleExportPptx
+  }));
 
   useEffect(() => {
     if (value && value.trim()) {
@@ -637,10 +641,6 @@ export default function PptxEditor({ value, onChange, fileName = 'apresentacao' 
               title="Cor de fundo"
             />
             <div className="h-6 w-px bg-gray-300 mx-1" />
-            <Button size="sm" variant="ghost" onClick={handleExportPptx} className="h-8">
-              <Download className="w-4 h-4 mr-1.5" />
-              Exportar PPTX
-            </Button>
             <Button size="sm" variant="default" onClick={() => setPresentationMode(true)} className="h-8 bg-green-600 hover:bg-green-700">
               <Play className="w-4 h-4 mr-1.5" />
               Apresentar
@@ -818,4 +818,6 @@ export default function PptxEditor({ value, onChange, fileName = 'apresentacao' 
       </div>
     </div>
   );
-}
+});
+
+export default PptxEditor;
