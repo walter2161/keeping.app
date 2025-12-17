@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,8 @@ export default function Toolbar({
   onPaste,
   sidebarOpen,
   onToggleSidebar,
-  viewFilter
+  viewFilter,
+  onRefresh
 }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -196,6 +197,17 @@ export default function Toolbar({
             className="pl-8 w-48 h-8 text-sm"
           />
         </div>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8" onClick={onRefresh}>
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Atualizar</p>
+          </TooltipContent>
+        </Tooltip>
 
         <Link to={createPageUrl('Trash')}>
           <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">

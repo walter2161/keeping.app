@@ -708,6 +708,16 @@ export default function Drive() {
     });
   };
 
+  const handleLeaveShare = async (item, type) => {
+    if (!user) return;
+    const mutation = type === 'folder' ? updateFolderMutation : updateFileMutation;
+    const currentShared = item.shared_with || [];
+    await mutation.mutateAsync({
+      id: item.id,
+      data: { shared_with: currentShared.filter(e => e !== user.email) }
+    });
+  };
+
   // Handle view change loading
   useEffect(() => {
     if (viewFilter) {
@@ -765,6 +775,10 @@ export default function Drive() {
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         viewFilter={viewFilter}
+        onRefresh={() => {
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
+          queryClient.invalidateQueries({ queryKey: ['files'] });
+        }}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -860,6 +874,7 @@ export default function Drive() {
                               onExport={() => handleExportFolder(folder)}
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
                               onShare={() => handleShareItem(folder, 'folder')}
+                              onLeaveShare={() => handleLeaveShare(folder, 'folder')}
                               isOwner={folder.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
@@ -912,6 +927,7 @@ export default function Drive() {
                               onExport={() => handleExportFile(file)}
                               onCopy={() => handleCopyFile(file)}
                               onShare={() => handleShareItem(file, 'file')}
+                              onLeaveShare={() => handleLeaveShare(file, 'file')}
                               isOwner={file.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
