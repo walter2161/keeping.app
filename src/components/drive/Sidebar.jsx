@@ -104,8 +104,9 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
   );
 }
 
-export default function Sidebar({ folders, teams, currentFolderId, selectedTeamId, onFolderSelect, onTeamSelect, onTeamEdit, isOpen, onToggleSidebar, currentUserEmail }) {
+export default function Sidebar({ folders, teams, currentFolderId, onFolderSelect, onTeamSelect, onTeamEdit, isOpen, onToggleSidebar, currentUserEmail }) {
   const [expandedFolders, setExpandedFolders] = React.useState(new Set());
+  const [expandedTeams, setExpandedTeams] = React.useState(new Set());
 
   const toggleFolder = (folderId) => {
     setExpandedFolders(prev => {
@@ -114,6 +115,18 @@ export default function Sidebar({ folders, teams, currentFolderId, selectedTeamI
         next.delete(folderId);
       } else {
         next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  const toggleTeam = (teamId) => {
+    setExpandedTeams(prev => {
+      const next = new Set(prev);
+      if (next.has(teamId)) {
+        next.delete(teamId);
+      } else {
+        next.add(teamId);
       }
       return next;
     });
@@ -149,6 +162,32 @@ export default function Sidebar({ folders, teams, currentFolderId, selectedTeamI
     if (!teams) return [];
     return teams.filter(t => t.members && t.members.includes(currentUserEmail));
   }, [teams, currentUserEmail]);
+
+  const getTeamFolders = (teamId) => {
+    const buildTree = (parentId = null, level = 0) => {
+      return folders
+        .filter(f => !f.deleted)
+        .filter(f => f.team_id === teamId)
+        .filter(f => f.parent_id === parentId)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(folder => {
+          const children = buildTree(folder.id, level + 1);
+          return (
+            <FolderTreeItem
+              key={folder.id}
+              folder={folder}
+              level={level}
+              isExpanded={expandedFolders.has(folder.id)}
+              onToggle={toggleFolder}
+              onSelect={onFolderSelect}
+              currentFolderId={currentFolderId}
+              children={children}
+            />
+          );
+        });
+    };
+    return buildTree();
+  };
 
   if (!isOpen) return null;
 
@@ -216,21 +255,34 @@ export default function Sidebar({ folders, teams, currentFolderId, selectedTeamI
           </div>
           {myTeams && myTeams.length > 0 ? (
             myTeams.map(team => {
+              const teamFolders = getTeamFolders(team.id);
+              const hasRootFolders = teamFolders.length > 0;
               const TeamIcon = iconComponents[team.icon] || Users;
               const teamColor = teamColors[team.color] || teamColors.purple;
               return (
                 <div key={team.id} className="mb-2">
                   <div className="flex items-center group">
-                    <Link to={createPageUrl(`Drive?team=${team.id}`)} className="flex-1">
-                      <button
-                        className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
-                          selectedTeamId === team.id && !currentFolderId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                        }`}
-                      >
-                        <TeamIcon className={`w-4 h-4 ${teamColor}`} />
-                        <span className="truncate flex-1 text-left">{team.name}</span>
-                      </button>
-                    </Link>
+                    <button
+                      onClick={() => {
+                        if (hasRootFolders) {
+                          toggleTeam(team.id);
+                        }
+                        onTeamSelect?.(team.id);
+                      }}
+                      className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm text-gray-700"
+                    >
+                      {hasRootFolders ? (
+                        expandedTeams.has(team.id) ? (
+                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        )
+                      ) : (
+                        <div className="w-4" />
+                      )}
+                      <TeamIcon className={`w-4 h-4 ${teamColor}`} />
+                      <span className="truncate flex-1 text-left">{team.name}</span>
+                    </button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -243,6 +295,11 @@ export default function Sidebar({ folders, teams, currentFolderId, selectedTeamI
                       <Settings className="w-3.5 h-3.5 text-gray-500" />
                     </Button>
                   </div>
+                  {expandedTeams.has(team.id) && hasRootFolders && (
+                    <div>
+                      {teamFolders}
+                    </div>
+                  )}
                 </div>
               );
             })

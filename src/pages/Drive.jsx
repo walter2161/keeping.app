@@ -34,9 +34,8 @@ import MoveDialog from '../components/drive/MoveDialog';
 export default function Drive() {
   const urlParams = new URLSearchParams(window.location.search);
   const folderParam = urlParams.get('folder');
-  const teamParam = urlParams.get('team');
   const [currentFolderId, setCurrentFolderId] = useState(folderParam);
-  const [selectedTeamId, setSelectedTeamId] = useState(teamParam);
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
   const [teamDialog, setTeamDialog] = useState({ open: false, team: null });
@@ -174,44 +173,28 @@ export default function Drive() {
   // Build breadcrumb path
   const breadcrumbPath = useMemo(() => {
     const path = [];
-    
-    // Se tem equipe selecionada, adiciona no início
-    if (selectedTeamId) {
-      const team = teams.find(t => t.id === selectedTeamId);
-      if (team) {
-        path.push({ id: `team-${selectedTeamId}`, name: team.name, isTeam: true });
-      }
-    }
-    
     let current = currentFolderId;
     while (current) {
       const folder = folders.find(f => f.id === current);
       if (folder) {
-        path.push(folder);
+        path.unshift(folder);
         current = folder.parent_id;
       } else {
         break;
       }
     }
     return path;
-  }, [currentFolderId, selectedTeamId, folders, teams]);
+  }, [currentFolderId, folders]);
 
   // Filter items for current folder
   const currentFolders = useMemo(() => {
     if (!user) return [];
     return folders
       .filter(f => !f.deleted)
-      .filter(f => {
-        // Se está visualizando uma equipe (sem pasta específica)
-        if (selectedTeamId && !currentFolderId) {
-          return f.team_id === selectedTeamId && !f.parent_id;
-        }
-        // Filtro normal por pasta
-        return f.parent_id === currentFolderId;
-      })
+      .filter(f => f.parent_id === currentFolderId)
       .filter(f => {
         // Se está na raiz (Meu Drive), mostrar apenas pastas sem team_id
-        if (currentFolderId === null && !selectedTeamId) {
+        if (currentFolderId === null) {
           return !f.team_id && f.owner === user.email;
         }
         // Se está dentro de uma pasta, mostrar apenas se tiver acesso
@@ -219,23 +202,16 @@ export default function Drive() {
       })
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [folders, currentFolderId, selectedTeamId, searchQuery, user]);
+  }, [folders, currentFolderId, searchQuery, user]);
 
   const currentFiles = useMemo(() => {
     if (!user) return [];
     return files
       .filter(f => !f.deleted)
-      .filter(f => {
-        // Se está visualizando uma equipe (sem pasta específica)
-        if (selectedTeamId && !currentFolderId) {
-          return f.team_id === selectedTeamId && !f.folder_id;
-        }
-        // Filtro normal por pasta
-        return f.folder_id === currentFolderId;
-      })
+      .filter(f => f.folder_id === currentFolderId)
       .filter(f => {
         // Se está na raiz (Meu Drive), mostrar apenas arquivos sem team_id
-        if (currentFolderId === null && !selectedTeamId) {
+        if (currentFolderId === null) {
           return !f.team_id && f.owner === user.email;
         }
         // Se está dentro de uma pasta, mostrar apenas se tiver acesso
@@ -243,7 +219,7 @@ export default function Drive() {
       })
       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [files, currentFolderId, selectedTeamId, searchQuery, user]);
+  }, [files, currentFolderId, searchQuery, user]);
 
   // Handlers
   const logTeamActivity = async (teamId, actionType, itemName, itemId) => {
@@ -272,7 +248,7 @@ export default function Drive() {
     if (!user) return;
     try {
       let folderColor = color;
-      let teamId = selectedTeamId || null;
+      let teamId = null;
       
       if (currentFolderId) {
         const parentFolder = folders.find(f => f.id === currentFolderId);
@@ -317,8 +293,8 @@ export default function Drive() {
       pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
     };
 
-    // Herdar team_id da pasta pai ou usar selectedTeamId
-    const teamId = selectedTeamId || getFolderTeam(currentFolderId);
+    // Herdar team_id da pasta pai
+    const teamId = getFolderTeam(currentFolderId);
 
     try {
       const newFile = await createFileMutation.mutateAsync({
@@ -871,29 +847,8 @@ export default function Drive() {
           folders={folders}
           teams={userTeams}
           currentFolderId={currentFolderId}
-          selectedTeamId={selectedTeamId}
-          onFolderSelect={(folderId) => {
-            setCurrentFolderId(folderId);
-            const params = new URLSearchParams(window.location.search);
-            if (folderId) {
-              params.set('folder', folderId);
-              params.delete('team');
-              window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
-            } else if (selectedTeamId) {
-              params.delete('folder');
-              params.set('team', selectedTeamId);
-              window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
-            } else {
-              window.history.pushState({}, '', window.location.pathname);
-            }
-            if (folderId === null) {
-              setSelectedTeamId(null);
-            }
-          }}
-          onTeamSelect={(teamId) => {
-            setSelectedTeamId(teamId);
-            setCurrentFolderId(null);
-          }}
+          onFolderSelect={setCurrentFolderId}
+          onTeamSelect={setSelectedTeamId}
           onTeamEdit={(team) => setTeamDialog({ open: true, team })}
           isOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
@@ -907,17 +862,7 @@ export default function Drive() {
         >
           <Breadcrumb 
             path={breadcrumbPath} 
-            onNavigate={(folderId, teamId) => {
-              if (teamId) {
-                setSelectedTeamId(teamId);
-                setCurrentFolderId(null);
-              } else {
-                setCurrentFolderId(folderId);
-                if (folderId === null) {
-                  setSelectedTeamId(null);
-                }
-              }
-            }} 
+            onNavigate={setCurrentFolderId} 
           />
 
           <div className="flex-1 p-6 overflow-y-auto">
@@ -935,11 +880,7 @@ export default function Drive() {
           <ListView
             folders={currentFolders}
             files={currentFiles}
-            onFolderClick={(folderId) => {
-              setCurrentFolderId(folderId);
-              setSelectedTeamId(null);
-              window.history.pushState({}, '', createPageUrl(`Drive?folder=${folderId}`));
-            }}
+            onFolderClick={setCurrentFolderId}
             onFileClick={handleFileClick}
             onFolderDelete={handleDeleteFolder}
             onFolderRename={handleRenameFolder}
@@ -987,11 +928,7 @@ export default function Drive() {
                           {(provided, snapshot) => (
                             <FolderCard
                               folder={folder}
-                              onClick={() => {
-                                setCurrentFolderId(folder.id);
-                                setSelectedTeamId(null);
-                                window.history.pushState({}, '', createPageUrl(`Drive?folder=${folder.id}`));
-                              }}
+                              onClick={() => setCurrentFolderId(folder.id)}
                               onDelete={() => handleDeleteFolder(folder)}
                               onRename={() => handleRenameFolder(folder)}
                               onExport={() => handleExportFolder(folder)}

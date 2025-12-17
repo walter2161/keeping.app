@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight, Home } from 'lucide-react';
 
-export default function Breadcrumb({ path, onNavigate, onTeamNavigate }) {
+export default function Breadcrumb({ path, onNavigate }) {
   return (
     <div className="flex items-center gap-1 px-4 py-3 bg-gray-50 border-b overflow-x-auto">
       <button
@@ -12,18 +12,18 @@ export default function Breadcrumb({ path, onNavigate, onTeamNavigate }) {
         <span className="text-sm font-medium">Meu Drive</span>
       </button>
 
-      {path.map((item, index) => (
-        <React.Fragment key={item.id}>
+      {path.map((folder, index) => (
+        <React.Fragment key={folder.id}>
           <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
           <button
-            onClick={() => item.isTeam ? onNavigate(null, item.id.replace('team-', '')) : onNavigate(item.id)}
+            onClick={() => onNavigate(folder.id)}
             className={`px-2 py-1 rounded-md transition-colors text-sm font-medium truncate max-w-[200px] ${
               index === path.length - 1 
                 ? 'text-blue-600 bg-blue-50' 
                 : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
             }`}
           >
-            {item.name}
+            {folder.name}
           </button>
         </React.Fragment>
       ))}
