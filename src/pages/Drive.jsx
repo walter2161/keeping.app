@@ -232,6 +232,15 @@ export default function Drive() {
       pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
     };
 
+    // Herdar compartilhamento da pasta pai
+    let sharedWith = [];
+    if (currentFolderId) {
+      const parentFolder = folders.find(f => f.id === currentFolderId);
+      if (parentFolder && parentFolder.shared_with) {
+        sharedWith = [...parentFolder.shared_with];
+      }
+    }
+
     try {
       await createFileMutation.mutateAsync({
         name,
@@ -240,7 +249,7 @@ export default function Drive() {
         content: defaultContent[type] || '',
         order: currentFiles.length,
         owner: user.email,
-        shared_with: [],
+        shared_with: sharedWith,
       });
       setCreateDialog({ open: false, type: null });
     } catch (error) {
@@ -480,9 +489,21 @@ export default function Drive() {
       } else if (type === 'FILE') {
         const file = files.find(f => f.id === draggableId);
         if (file && file.folder_id !== finalFolderId) {
+          // Herdar compartilhamento da pasta de destino
+          let sharedWith = [];
+          if (finalFolderId) {
+            const targetFolder = folders.find(f => f.id === finalFolderId);
+            if (targetFolder && targetFolder.shared_with) {
+              sharedWith = [...targetFolder.shared_with];
+            }
+          }
+          
           await updateFileMutation.mutateAsync({
             id: draggableId,
-            data: { folder_id: finalFolderId }
+            data: { 
+              folder_id: finalFolderId,
+              shared_with: sharedWith
+            }
           });
         }
       }
@@ -578,6 +599,16 @@ export default function Drive() {
       { position: 'bottom-left' }
     );
 
+    // Herdar compartilhamento da pasta pai
+    let sharedWith = [];
+    const folderId = targetFolderId || currentFolderId;
+    if (folderId) {
+      const parentFolder = folders.find(f => f.id === folderId);
+      if (parentFolder && parentFolder.shared_with) {
+        sharedWith = [...parentFolder.shared_with];
+      }
+    }
+
     try {
       let successCount = 0;
       
@@ -591,9 +622,11 @@ export default function Drive() {
         await createFileMutation.mutateAsync({
           name: file.name,
           type: fileType,
-          folder_id: targetFolderId || currentFolderId,
+          folder_id: folderId,
           file_url: file_url,
           order: currentFiles.length + successCount,
+          owner: user.email,
+          shared_with: sharedWith,
         });
         
         successCount++;
