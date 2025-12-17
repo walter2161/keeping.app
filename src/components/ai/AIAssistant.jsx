@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
@@ -303,9 +304,9 @@ Converta o comando em uma ação estruturada.`;
           // Navegar para o item criado após invalidar queries
           setTimeout(() => {
             if (llmResult.action === 'create_file' && actionResult?.id) {
-              window.location.href = `/file-viewer?id=${actionResult.id}`;
+              window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
             } else if (llmResult.action === 'create_folder' && actionResult?.id) {
-              window.location.href = `/drive?folder=${actionResult.id}`;
+              window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
             } else {
               window.location.reload();
             }
