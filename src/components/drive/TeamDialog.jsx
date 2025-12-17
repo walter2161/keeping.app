@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Users, X, Plus, Trash2, LogOut } from 'lucide-react';
+import TeamIconPicker from './TeamIconPicker';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,8 @@ import {
 export default function TeamDialog({ open, onOpenChange, team, currentUserEmail }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('Users');
+  const [color, setColor] = useState('purple');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [members, setMembers] = useState([currentUserEmail]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -46,10 +49,14 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
       if (team && currentTeam) {
         setName(currentTeam.name || '');
         setDescription(currentTeam.description || '');
+        setIcon(currentTeam.icon || 'Users');
+        setColor(currentTeam.color || 'purple');
         setMembers(currentTeam.members || [currentUserEmail]);
       } else if (!team) {
         setName('');
         setDescription('');
+        setIcon('Users');
+        setColor('purple');
         setMembers([currentUserEmail]);
       }
       setNewMemberEmail('');
@@ -174,6 +181,8 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
     const data = {
       name: name.trim(),
       description: description.trim(),
+      icon: icon,
+      color: color,
       owner: currentUserEmail,
       members: members,
     };
@@ -194,17 +203,30 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
             {team ? 'Editar Equipe' : 'Nova Equipe'}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Nome da Equipe
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Marketing, Desenvolvimento, etc."
-            />
+          <div className="flex gap-3">
+            <div className="flex-shrink-0">
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Aparência
+              </label>
+              <TeamIconPicker
+                icon={icon}
+                color={color}
+                onIconChange={setIcon}
+                onColorChange={setColor}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Nome da Equipe
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Marketing, Desenvolvimento, etc."
+              />
+            </div>
           </div>
           
           <div>

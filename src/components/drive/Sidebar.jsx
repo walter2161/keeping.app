@@ -1,5 +1,9 @@
 import React, { useMemo } from 'react';
-import { Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard, Users, Settings } from 'lucide-react';
+import { 
+  Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard, Users, Settings,
+  Briefcase, Code, Palette, Heart, Zap, Star, Target, TrendingUp, Shield, 
+  Rocket, Coffee, Music, Camera, BookOpen, Globe, MessageCircle, Activity
+} from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -12,6 +16,23 @@ const folderColors = {
   orange: 'text-orange-500',
   purple: 'text-purple-500',
   red: 'text-red-500',
+};
+
+const teamColors = {
+  purple: 'text-purple-600',
+  blue: 'text-blue-600',
+  green: 'text-green-600',
+  orange: 'text-orange-600',
+  red: 'text-red-600',
+  pink: 'text-pink-600',
+  yellow: 'text-yellow-600',
+  teal: 'text-teal-600',
+};
+
+const iconComponents = {
+  Users, Briefcase, Code, Palette, Heart, Zap, Star, Target, 
+  TrendingUp, Shield, Rocket, Coffee, Music, Camera, BookOpen, 
+  Globe, MessageCircle, Activity
 };
 
 function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, currentFolderId, children }) {
@@ -204,6 +225,8 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
             myTeams.map(team => {
               const teamFolders = getTeamFolders(team.id);
               const hasRootFolders = teamFolders.length > 0;
+              const TeamIcon = iconComponents[team.icon] || Users;
+              const teamColor = teamColors[team.color] || teamColors.purple;
               return (
                 <div key={team.id} className="mb-2">
                   <div className="flex items-center group">
@@ -225,7 +248,7 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
                       ) : (
                         <div className="w-4" />
                       )}
-                      <Users className="w-4 h-4 text-purple-600" />
+                      <TeamIcon className={`w-4 h-4 ${teamColor}`} />
                       <span className="truncate flex-1 text-left">{team.name}</span>
                     </button>
                     <Button
