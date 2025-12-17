@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
-  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus, Download
+  Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus, Download, GripVertical
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PptxGenJS from 'pptxgenjs';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, ref) => {
   const [slides, setSlides] = useState([]);
@@ -94,6 +95,25 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     handleUpdate(newSlides);
     if (currentSlide >= newSlides.length) {
       setCurrentSlide(newSlides.length - 1);
+    }
+  };
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(slides);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    handleUpdate(items);
+    
+    // Atualizar o slide atual se ele foi movido
+    if (result.source.index === currentSlide) {
+      setCurrentSlide(result.destination.index);
+    } else if (result.source.index < currentSlide && result.destination.index >= currentSlide) {
+      setCurrentSlide(currentSlide - 1);
+    } else if (result.source.index > currentSlide && result.destination.index <= currentSlide) {
+      setCurrentSlide(currentSlide + 1);
     }
   };
 
@@ -436,31 +456,50 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
             <Plus className="w-4 h-4" />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-          {slides.map((slide, index) => (
-            <div
-              key={index}
-              className={`relative group rounded cursor-pointer border-2 transition-all ${
-                currentSlide === index
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-transparent hover:border-gray-300'
-              }`}
-              onClick={() => setCurrentSlide(index)}
-            >
-              <div className="p-2">
-                <div className="text-xs text-gray-500 mb-1 font-medium">
-                  {index + 1}
-                </div>
-                <div 
-                  className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
-                  style={{
-                    background: slide.background && slide.background.startsWith('url') 
-                      ? slide.background 
-                      : (slide.background || '#ffffff'),
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}
-                >
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="slides">
+            {(provided) => (
+              <div 
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="flex-1 overflow-y-auto p-2 space-y-2"
+              >
+                {slides.map((slide, index) => (
+                  <Draggable key={`slide-${index}`} draggableId={`slide-${index}`} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`relative group rounded cursor-pointer border-2 transition-all ${
+                          currentSlide === index
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-transparent hover:border-gray-300'
+                        } ${snapshot.isDragging ? 'shadow-lg' : ''}`}
+                        onClick={() => setCurrentSlide(index)}
+                      >
+                        <div className="p-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="text-xs text-gray-500 font-medium">
+                              {index + 1}
+                            </div>
+                            <div 
+                              {...provided.dragHandleProps}
+                              className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <GripVertical className="w-4 h-4 text-gray-400" />
+                            </div>
+                          </div>
+                          <div 
+                            className="w-full aspect-video bg-gray-100 rounded border border-gray-200 relative overflow-hidden"
+                            style={{
+                              background: slide.background && slide.background.startsWith('url') 
+                                ? slide.background 
+                                : (slide.background || '#ffffff'),
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center'
+                            }}
+                          >
                   {slide.elements.map(el => {
                     const scale = 0.15; // Escala fixa para miniaturas (1200px -> ~180px)
                     return (
@@ -515,24 +554,30 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                       </div>
                     );
                   })}
-                </div>
-              </div>
-              {slides.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 bg-white hover:bg-red-50"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSlide(index);
-                  }}
-                >
-                  <Trash2 className="w-3 h-3 text-red-500" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
+                  </div>
+                  </div>
+                  {slides.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 bg-white hover:bg-red-50 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSlide(index);
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3 text-red-500" />
+                  </Button>
+                  )}
+                  </div>
+                  )}
+                  </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  </div>
+                  )}
+                  </Droppable>
+                  </DragDropContext>
       </div>
 
       {/* Área Principal */}
