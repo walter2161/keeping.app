@@ -633,7 +633,7 @@ export default function PptxEditor({ value, onChange }) {
         {/* Canvas do Slide */}
         <div 
           ref={canvasRef}
-          className="flex-1 overflow-auto bg-gray-100"
+          className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center"
           style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onMouseDown={(e) => {
             if (e.button === 0 && (e.target === canvasRef.current || !slideRef.current.contains(e.target))) {
@@ -654,10 +654,9 @@ export default function PptxEditor({ value, onChange }) {
           onMouseUp={() => setIsPanning(false)}
           onMouseLeave={() => setIsPanning(false)}
         >
-          <div className="inline-block p-8">
             <div
               ref={slideRef}
-              className="bg-white shadow-xl relative"
+              className="bg-white shadow-xl relative m-8"
               style={{
                 width: '1200px',
                 height: '675px',
