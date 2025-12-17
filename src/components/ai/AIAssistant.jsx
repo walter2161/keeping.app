@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
@@ -17,6 +17,7 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const queryClient = useQueryClient();
   
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -237,13 +238,18 @@ Converta o comando em uma ação estruturada.`;
 
         if (llmResult && llmResult.action) {
           const actionResult = await executeAction(llmResult, folders, files);
+          
+          // Invalidar queries antes de navegar
+          await queryClient.invalidateQueries({ queryKey: ['files'] });
+          await queryClient.invalidateQueries({ queryKey: ['folders'] });
+          
           const successMessage = { 
             role: 'assistant', 
             content: `✓ ${getActionSuccessMessage(llmResult)}` 
           };
           setMessages(prev => [...prev, successMessage]);
           
-          // Navegar para o item criado
+          // Navegar para o item criado após invalidar queries
           setTimeout(() => {
             if (llmResult.action === 'create_file' && actionResult?.id) {
               window.location.href = `/file-viewer?id=${actionResult.id}`;
@@ -252,7 +258,7 @@ Converta o comando em uma ação estruturada.`;
             } else {
               window.location.reload();
             }
-          }, 800);
+          }, 1200);
         }
       } else {
         // Conversa normal
