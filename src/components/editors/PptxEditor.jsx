@@ -721,11 +721,12 @@ export default function PptxEditor({ value, onChange }) {
                   />
                 )}
               </div>
-            ))}
-            </div>
-            </div>
+              ))}
+              </div>
+              </div>
+              </div>
 
-            {/* Dialog de Templates */}
+              {/* Dialog de Templates */}
         {showTemplates && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTemplates(false)}>
             <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
