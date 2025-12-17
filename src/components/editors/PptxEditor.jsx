@@ -703,6 +703,7 @@ export default function PptxEditor({ value, onChange }) {
                 )}
               </div>
             ))}
+            </div>
           </div>
         </div>
         
