@@ -34,9 +34,9 @@ import MoveDialog from '../components/drive/MoveDialog';
 export default function Drive() {
   const urlParams = new URLSearchParams(window.location.search);
   const folderParam = urlParams.get('folder');
-  const [currentFolderId, setCurrentFolderId] = useState(folderParam);
-  const [selectedTeamId, setSelectedTeamId] = useState(null);
   const teamParam = urlParams.get('team');
+  const [currentFolderId, setCurrentFolderId] = useState(folderParam);
+  const [selectedTeamId, setSelectedTeamId] = useState(teamParam);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState({ open: false, type: null });
   const [teamDialog, setTeamDialog] = useState({ open: false, team: null });
@@ -874,11 +874,26 @@ export default function Drive() {
           selectedTeamId={selectedTeamId}
           onFolderSelect={(folderId) => {
             setCurrentFolderId(folderId);
+            const params = new URLSearchParams(window.location.search);
+            if (folderId) {
+              params.set('folder', folderId);
+              params.delete('team');
+              window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+            } else if (selectedTeamId) {
+              params.delete('folder');
+              params.set('team', selectedTeamId);
+              window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+            } else {
+              window.history.pushState({}, '', window.location.pathname);
+            }
             if (folderId === null) {
               setSelectedTeamId(null);
             }
           }}
-          onTeamSelect={setSelectedTeamId}
+          onTeamSelect={(teamId) => {
+            setSelectedTeamId(teamId);
+            setCurrentFolderId(null);
+          }}
           onTeamEdit={(team) => setTeamDialog({ open: true, team })}
           isOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
@@ -923,6 +938,7 @@ export default function Drive() {
             onFolderClick={(folderId) => {
               setCurrentFolderId(folderId);
               setSelectedTeamId(null);
+              window.history.pushState({}, '', createPageUrl(`Drive?folder=${folderId}`));
             }}
             onFileClick={handleFileClick}
             onFolderDelete={handleDeleteFolder}
@@ -974,6 +990,7 @@ export default function Drive() {
                               onClick={() => {
                                 setCurrentFolderId(folder.id);
                                 setSelectedTeamId(null);
+                                window.history.pushState({}, '', createPageUrl(`Drive?folder=${folder.id}`));
                               }}
                               onDelete={() => handleDeleteFolder(folder)}
                               onRename={() => handleRenameFolder(folder)}

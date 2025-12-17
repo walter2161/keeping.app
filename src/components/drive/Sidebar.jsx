@@ -221,18 +221,16 @@ export default function Sidebar({ folders, teams, currentFolderId, selectedTeamI
               return (
                 <div key={team.id} className="mb-2">
                   <div className="flex items-center group">
-                    <button
-                      onClick={() => {
-                        onTeamSelect?.(team.id);
-                        onFolderSelect(null);
-                      }}
-                      className={`flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
-                        selectedTeamId === team.id && !currentFolderId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                      }`}
-                    >
-                      <TeamIcon className={`w-4 h-4 ${teamColor}`} />
-                      <span className="truncate flex-1 text-left">{team.name}</span>
-                    </button>
+                    <Link to={createPageUrl(`Drive?team=${team.id}`)} className="flex-1">
+                      <button
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+                          selectedTeamId === team.id && !currentFolderId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <TeamIcon className={`w-4 h-4 ${teamColor}`} />
+                        <span className="truncate flex-1 text-left">{team.name}</span>
+                      </button>
+                    </Link>
                     <Button
                       variant="ghost"
                       size="icon"
