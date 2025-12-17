@@ -128,8 +128,10 @@ export default function Drive() {
     
     // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
     if (viewFilter === 'shared') {
+      // Compartilhado comigo: apenas itens que OUTROS compartilharam comigo
       filtered = filtered.filter(f => f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email));
     } else {
+      // Meu Drive: APENAS meus próprios itens (não mostrar itens compartilhados comigo)
       filtered = filtered.filter(f => f.owner === user.email);
     }
     
@@ -145,8 +147,10 @@ export default function Drive() {
     
     // Aplicar filtro de view (Meu Drive ou Compartilhado comigo)
     if (viewFilter === 'shared') {
+      // Compartilhado comigo: apenas itens que OUTROS compartilharam comigo
       filtered = filtered.filter(f => f.owner !== user.email && f.shared_with && f.shared_with.includes(user.email));
     } else {
+      // Meu Drive: APENAS meus próprios itens (não mostrar itens compartilhados comigo)
       filtered = filtered.filter(f => f.owner === user.email);
     }
     

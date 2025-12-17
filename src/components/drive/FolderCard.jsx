@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, MoreVertical, Trash2, Edit2, Copy, Download, Palette, Share2 } from 'lucide-react';
+import { Folder, MoreVertical, Trash2, Edit2, Copy, Download, Palette, Share2, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,8 +92,15 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
           onDragLeave={handleExternalDragLeave}
           onDrop={handleExternalDrop}
         >
-      <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
-        <Folder className="w-6 h-6" fill="currentColor" />
+      <div className="relative">
+        <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
+          <Folder className="w-6 h-6" fill="currentColor" />
+        </div>
+        {isOwner && folder.shared_with && folder.shared_with.length > 0 && (
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white">
+            <Users className="w-3 h-3 text-white" />
+          </div>
+        )}
       </div>
       
       <span className="flex-1 font-medium text-gray-800 truncate text-sm">

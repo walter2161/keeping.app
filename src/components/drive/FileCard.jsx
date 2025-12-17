@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight, Share2
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight, Share2, Users
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -62,43 +62,56 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
   };
 
   const renderThumbnail = () => {
-    if (file.type === 'img' && file.file_url) {
-      return (
-        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-          <img 
-            src={file.file_url} 
-            alt={file.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      );
-    }
-    
-    if (file.type === 'video' && file.file_url) {
-      return (
-        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
-          <video 
-            src={file.file_url}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <Video className="w-6 h-6 text-white" />
+    const thumbnailContent = () => {
+      if (file.type === 'img' && file.file_url) {
+        return (
+          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <img 
+              src={file.file_url} 
+              alt={file.name}
+              className="w-full h-full object-cover"
+            />
           </div>
-        </div>
-      );
-    }
-    
-    if (file.type === 'pdf' && file.file_url) {
+        );
+      }
+      
+      if (file.type === 'video' && file.file_url) {
+        return (
+          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
+            <video 
+              src={file.file_url}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <Video className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        );
+      }
+      
+      if (file.type === 'pdf' && file.file_url) {
+        return (
+          <div className="w-16 h-16 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-8 h-8 text-red-600" />
+          </div>
+        );
+      }
+      
       return (
-        <div className="w-16 h-16 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
-          <FileText className="w-8 h-8 text-red-600" />
+        <div className={`p-2 rounded-lg ${config.bg} ${config.color}`}>
+          <Icon className="w-6 h-6" />
         </div>
       );
-    }
-    
+    };
+
     return (
-      <div className={`p-2 rounded-lg ${config.bg} ${config.color}`}>
-        <Icon className="w-6 h-6" />
+      <div className="relative">
+        {thumbnailContent()}
+        {isOwner && file.shared_with && file.shared_with.length > 0 && (
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white">
+            <Users className="w-3 h-3 text-white" />
+          </div>
+        )}
       </div>
     );
   };
