@@ -32,6 +32,8 @@ export default function XlsxEditor({ value, onChange }) {
       meta: parsedData?.meta || {},
       style: parsedData?.style || {},
       mergeCells: parsedData?.merged || {},
+      columns: parsedData?.columns || [],
+      rows: parsedData?.rows || {},
       minDimensions: [26, 100],
       defaultColWidth: 120,
       defaultRowHeight: 32,
@@ -192,12 +194,16 @@ export default function XlsxEditor({ value, onChange }) {
           const meta = worksheetRef.current.getMeta();
           const style = worksheetRef.current.getStyle();
           const merged = worksheetRef.current.getMerge();
+          const columns = worksheetRef.current.getConfig().columns || [];
+          const rows = worksheetRef.current.getConfig().rows || {};
           
           onChange(JSON.stringify({
             data: data,
             meta: meta,
             style: style,
-            merged: merged
+            merged: merged,
+            columns: columns,
+            rows: rows
           }));
         }
       },
@@ -207,13 +213,59 @@ export default function XlsxEditor({ value, onChange }) {
           const meta = worksheetRef.current.getMeta();
           const style = worksheetRef.current.getStyle();
           const merged = worksheetRef.current.getMerge();
+          const columns = worksheetRef.current.getConfig().columns || [];
+          const rows = worksheetRef.current.getConfig().rows || {};
           
           onChange(JSON.stringify({
             data: data,
             meta: meta,
             style: style,
-            merged: merged
+            merged: merged,
+            columns: columns,
+            rows: rows
           }));
+        }
+      },
+      onresizecolumn: function(instance, cell, width, columnIndex) {
+        if (worksheetRef.current && onChange) {
+          setTimeout(() => {
+            const data = worksheetRef.current.getData();
+            const meta = worksheetRef.current.getMeta();
+            const style = worksheetRef.current.getStyle();
+            const merged = worksheetRef.current.getMerge();
+            const columns = worksheetRef.current.getConfig().columns || [];
+            const rows = worksheetRef.current.getConfig().rows || {};
+            
+            onChange(JSON.stringify({
+              data: data,
+              meta: meta,
+              style: style,
+              merged: merged,
+              columns: columns,
+              rows: rows
+            }));
+          }, 100);
+        }
+      },
+      onresizerow: function(instance, cell, height, rowIndex) {
+        if (worksheetRef.current && onChange) {
+          setTimeout(() => {
+            const data = worksheetRef.current.getData();
+            const meta = worksheetRef.current.getMeta();
+            const style = worksheetRef.current.getStyle();
+            const merged = worksheetRef.current.getMerge();
+            const columns = worksheetRef.current.getConfig().columns || [];
+            const rows = worksheetRef.current.getConfig().rows || {};
+            
+            onChange(JSON.stringify({
+              data: data,
+              meta: meta,
+              style: style,
+              merged: merged,
+              columns: columns,
+              rows: rows
+            }));
+          }, 100);
         }
       },
       onselection: function(instance, x1, y1, x2, y2) {
@@ -350,7 +402,9 @@ export default function XlsxEditor({ value, onChange }) {
                     const meta = worksheetRef.current.getMeta();
                     const style = worksheetRef.current.getStyle();
                     const merged = worksheetRef.current.getMerge();
-                    onChange(JSON.stringify({ data, meta, style, merged }));
+                    const columns = worksheetRef.current.getConfig().columns || [];
+                    const rows = worksheetRef.current.getConfig().rows || {};
+                    onChange(JSON.stringify({ data, meta, style, merged, columns, rows }));
                   }
                 }, 100);
               }
