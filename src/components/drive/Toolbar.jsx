@@ -28,7 +28,9 @@ import {
 
 export default function Toolbar({ 
   onNewFolder, 
-  onNewFile, 
+  onNewFile,
+  onNewTeam,
+  onNewTeamFolder,
   onUpload,
   onImport, 
   onExportAll,
@@ -39,7 +41,6 @@ export default function Toolbar({
   onPaste,
   sidebarOpen,
   onToggleSidebar,
-  viewFilter,
   onRefresh
 }) {
   const { data: user } = useQuery({
@@ -83,20 +84,31 @@ export default function Toolbar({
 
         <div className="h-6 w-px bg-gray-200 hidden sm:block" />
 
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button 
-              onClick={onNewFolder}
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex"
             >
               <FolderPlus className="w-3.5 h-3.5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Nova Pasta</p>
-          </TooltipContent>
-        </Tooltip>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={onNewFolder}>
+              <FolderPlus className="w-4 h-4 mr-2 text-gray-600" />
+              Nova Pasta
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onNewTeamFolder}>
+              <Users className="w-4 h-4 mr-2 text-purple-600" />
+              Pasta de Equipe
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onNewTeam}>
+              <Users className="w-4 h-4 mr-2 text-purple-600" />
+              Nova Equipe
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
