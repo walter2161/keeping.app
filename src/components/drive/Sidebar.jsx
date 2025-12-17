@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard, Users } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -81,20 +81,11 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
     });
   };
 
-  const folderTree = useMemo(() => {
+  const myDriveFolders = useMemo(() => {
     const buildTree = (parentId = null, level = 0) => {
       return folders
         .filter(f => !f.deleted)
-        .filter(f => {
-          // Filtrar pastas baseado na view atual
-          if (viewFilter === 'shared') {
-            // Compartilhado comigo: apenas pastas de outros usuários
-            return f.owner !== currentUserEmail && f.shared_with && f.shared_with.includes(currentUserEmail);
-          } else {
-            // Meu Drive: apenas minhas pastas
-            return f.owner === currentUserEmail;
-          }
-        })
+        .filter(f => f.owner === currentUserEmail)
         .filter(f => f.parent_id === parentId)
         .sort((a, b) => (a.order || 0) - (b.order || 0))
         .map(folder => {
@@ -114,7 +105,33 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
         });
     };
     return buildTree();
-  }, [folders, expandedFolders, currentFolderId, currentUserEmail, viewFilter]);
+  }, [folders, expandedFolders, currentFolderId, currentUserEmail]);
+
+  const sharedFolders = useMemo(() => {
+    const buildTree = (parentId = null, level = 0) => {
+      return folders
+        .filter(f => !f.deleted)
+        .filter(f => f.owner !== currentUserEmail && f.shared_with && f.shared_with.includes(currentUserEmail))
+        .filter(f => f.parent_id === parentId)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(folder => {
+          const children = buildTree(folder.id, level + 1);
+          return (
+            <FolderTreeItem
+              key={folder.id}
+              folder={folder}
+              level={level}
+              isExpanded={expandedFolders.has(folder.id)}
+              onToggle={toggleFolder}
+              onSelect={onFolderSelect}
+              currentFolderId={currentFolderId}
+              children={children}
+            />
+          );
+        });
+    };
+    return buildTree();
+  }, [folders, expandedFolders, currentFolderId, currentUserEmail]);
 
   if (!isOpen) return null;
 
@@ -139,25 +156,44 @@ export default function Sidebar({ folders, currentFolderId, onFolderSelect, isOp
         </div>
       </div>
       <div className="py-2">
-        <Droppable droppableId="sidebar-folder-root" type="FOLDER">
-          {(provided, snapshot) => (
-            <div ref={provided.innerRef} {...provided.droppableProps}>
-              <button
-                onClick={() => onFolderSelect(null)}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
-                  currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
-              >
-                <Folder className="w-4 h-4 text-gray-500" fill="currentColor" />
-                <span className="truncate flex-1 text-left">
-                  {viewFilter === 'shared' ? 'Compart. comigo' : 'Meu Drive'}
-                </span>
-              </button>
-              <div style={{ display: 'none' }}>{provided.placeholder}</div>
-            </div>
-          )}
-        </Droppable>
-        {folderTree}
+        {/* Meu Drive Section */}
+        <div className="mb-4">
+          <Link to={createPageUrl('Drive?view=myDrive')}>
+            <Droppable droppableId="sidebar-folder-root" type="FOLDER">
+              {(provided, snapshot) => (
+                <div ref={provided.innerRef} {...provided.droppableProps}>
+                  <button
+                    onClick={() => onFolderSelect(null)}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+                      currentFolderId === null && viewFilter === 'myDrive' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                    } ${snapshot.isDraggingOver ? 'bg-blue-100 border-2 border-blue-400' : ''}`}
+                  >
+                    <Folder className="w-4 h-4 text-gray-500" fill="currentColor" />
+                    <span className="truncate flex-1 text-left">Meu Drive</span>
+                  </button>
+                  <div style={{ display: 'none' }}>{provided.placeholder}</div>
+                </div>
+              )}
+            </Droppable>
+          </Link>
+          {myDriveFolders}
+        </div>
+
+        {/* Compartilhado comigo Section */}
+        <div>
+          <Link to={createPageUrl('Drive?view=shared')}>
+            <button
+              onClick={() => onFolderSelect(null)}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm ${
+                currentFolderId === null && viewFilter === 'shared' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+              }`}
+            >
+              <Users className="w-4 h-4 text-gray-500" />
+              <span className="truncate flex-1 text-left">Compart. comigo</span>
+            </button>
+          </Link>
+          {sharedFolders}
+        </div>
       </div>
     </div>
   );

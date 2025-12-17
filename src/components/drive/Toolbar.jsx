@@ -197,28 +197,6 @@ export default function Toolbar({
           />
         </div>
 
-        <div className="flex items-center gap-1 border border-gray-300 rounded-md p-0.5">
-          <Link to={createPageUrl('Drive?view=myDrive')}>
-            <Button
-              variant={viewFilter === 'myDrive' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs"
-            >
-              Meu Drive
-            </Button>
-          </Link>
-          <Link to={createPageUrl('Drive?view=shared')}>
-            <Button
-              variant={viewFilter === 'shared' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs gap-1"
-            >
-              <Users className="w-3 h-3" />
-              Compartilhados
-            </Button>
-          </Link>
-        </div>
-
         <Link to={createPageUrl('Trash')}>
           <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
             <Trash2 className="w-4 h-4" />
