@@ -307,27 +307,37 @@ Converta o comando em uma ação estruturada.`;
 
         if (llmResult && llmResult.action) {
           const actionResult = await executeAction(llmResult, folders, files);
-          
+
           // Invalidar queries antes de navegar
           await queryClient.invalidateQueries({ queryKey: ['files'] });
           await queryClient.invalidateQueries({ queryKey: ['folders'] });
-          
+
           const successMessage = { 
             role: 'assistant', 
             content: `✓ ${getActionSuccessMessage(llmResult)}` 
           };
           setMessages(prev => [...prev, successMessage]);
-          
-          // Navegar para o item criado após invalidar queries
-          setTimeout(() => {
-            if (llmResult.action === 'create_file' && actionResult?.id) {
+
+          // Para planilhas com conteúdo, editar após criar
+          if (llmResult.action === 'create_file' && llmResult.data.type === 'xlsx' && llmResult.data.content && actionResult?.id) {
+            setTimeout(async () => {
+              await base44.entities.File.update(actionResult.id, {
+                content: llmResult.data.content
+              });
               window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
-            } else if (llmResult.action === 'create_folder' && actionResult?.id) {
-              window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
-            } else {
-              window.location.reload();
-            }
-          }, 1200);
+            }, 500);
+          } else {
+            // Navegar para o item criado após invalidar queries
+            setTimeout(() => {
+              if (llmResult.action === 'create_file' && actionResult?.id) {
+                window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
+              } else if (llmResult.action === 'create_folder' && actionResult?.id) {
+                window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
+              } else {
+                window.location.reload();
+              }
+            }, 1200);
+          }
         }
       } else {
         // Conversa normal
@@ -404,13 +414,13 @@ Usuário: ${input}`;
         crn: JSON.stringify({ groups: [], items: [] }),
         flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
         docx: data.content || '',
-        xlsx: data.content || '',
+        xlsx: '', // Sempre criar planilha vazia primeiro
       };
       const result = await base44.entities.File.create({
         name: data.name,
         type: data.type,
         folder_id: data.folder_id || currentFolderId || null,
-        content: data.content || defaultContent[data.type] || '',
+        content: data.type === 'xlsx' ? '' : (data.content || defaultContent[data.type] || ''),
       });
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
