@@ -43,6 +43,17 @@ export default function PptxEditor({ value, onChange }) {
     }
   }, [value]);
 
+  // ESC para sair do modo apresentação
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && presentationMode) {
+        setPresentationMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [presentationMode]);
+
   const createEmptySlide = () => ({
     background: '#ffffff',
     elements: []
