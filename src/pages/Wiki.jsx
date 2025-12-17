@@ -258,6 +258,145 @@ export default function Wiki() {
               </AccordionContent>
             </AccordionItem>
 
+            {/* Equipes */}
+            <AccordionItem value="teams" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  👥 Equipes - Colaboração em Tempo Real
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Crie equipes para colaborar com outros usuários em pastas e arquivos compartilhados.
+                </p>
+                <h3 className="font-semibold text-lg">Como usar:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Criar equipe:</strong> Clique em "Nova Equipe", escolha nome, ícone, cor e adicione membros por email</li>
+                  <li><strong>Gerenciar membros:</strong> Adicione ou remova membros pelo menu da equipe na sidebar</li>
+                  <li><strong>Pastas de equipe:</strong> Arquivos/pastas criados dentro de equipes são automaticamente compartilhados</li>
+                  <li><strong>Permissões:</strong> Apenas o dono pode deletar pastas/arquivos, mas todos podem editar</li>
+                  <li><strong>Notificações:</strong> Receba alertas de atividades da equipe no sino de notificações</li>
+                </ul>
+                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                  <strong>💡 Dica:</strong> Use equipes para projetos colaborativos e Meu Drive para arquivos pessoais!
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Assistente Virtual */}
+            <AccordionItem value="assistant" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  🤖 Assistente Virtual AI
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Uma assistente AI personalizável que ajuda você a criar, editar e organizar arquivos por chat.
+                </p>
+                <h3 className="font-semibold text-lg">Recursos:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Personalização:</strong> Configure nome, avatar, papel, expertise e diretrizes nas configurações</li>
+                  <li><strong>Permissões:</strong> Controle o que a assistente pode fazer (criar, editar, deletar)</li>
+                  <li><strong>Criação automática:</strong> "Crie uma planilha de vendas", "Faça um kanban de tarefas"</li>
+                  <li><strong>Edição inteligente:</strong> "Adicione uma coluna de valores", "Mude o título para..."</li>
+                  <li><strong>Automações:</strong> Crie até 15 atalhos personalizados com palavras-chave e ações</li>
+                  <li><strong>Contexto:</strong> Entende onde você está (pasta, equipe) e cria arquivos no lugar certo</li>
+                </ul>
+                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                  <strong>💡 Exemplo:</strong> Dentro de uma pasta de equipe, diga "Crie um documento de política" e a assistente criará automaticamente compartilhado com a equipe!
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Colaboração */}
+            <AccordionItem value="collaboration" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  💬 Colaboração em Tempo Real
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Trabalhe simultaneamente com sua equipe em arquivos compartilhados.
+                </p>
+                <h3 className="font-semibold text-lg">Recursos:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Presença em tempo real:</strong> Veja quem está editando o arquivo com avatares no topo</li>
+                  <li><strong>Chat integrado:</strong> Converse com a equipe sem sair do arquivo</li>
+                  <li><strong>Histórico:</strong> Acompanhe todas as atividades da equipe pelo feed de atividades</li>
+                  <li><strong>Auto-refresh:</strong> Configure intervalo de atualização automática nas configurações</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Upload */}
+            <AccordionItem value="upload" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  📤 Upload de Arquivos
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Importe arquivos do seu computador diretamente para o Keeping.
+                </p>
+                <h3 className="font-semibold text-lg">Métodos:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Botão Upload:</strong> Selecione múltiplos arquivos de uma vez</li>
+                  <li><strong>Arrastar e soltar:</strong> Arraste arquivos do PC para o Drive ou dentro de pastas</li>
+                  <li><strong>Formatos suportados:</strong> Imagens (JPG, PNG, GIF), vídeos (MP4, MOV), PDFs, Office (DOCX, XLSX, PPTX)</li>
+                </ul>
+                <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                  <strong>💡 Dica:</strong> Arraste arquivos diretamente para pastas específicas para organizá-los automaticamente!
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Dashboard */}
+            <AccordionItem value="dashboard" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  📊 Dashboard - Visão Geral
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Acompanhe estatísticas e acesse rapidamente seus arquivos recentes.
+                </p>
+                <h3 className="font-semibold text-lg">Informações exibidas:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li>Total de pastas ativas</li>
+                  <li>Total de arquivos por tipo (Kanbans, Documentos, Planilhas, etc.)</li>
+                  <li>5 arquivos mais recentemente atualizados</li>
+                  <li>Ações rápidas para criar novos itens</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Apresentações */}
+            <AccordionItem value="presentations" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  🎬 Apresentações (PPTX)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Crie apresentações profissionais com slides personalizáveis.
+                </p>
+                <h3 className="font-semibold text-lg">Recursos:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Elementos:</strong> Adicione textos, títulos, imagens e formas</li>
+                  <li><strong>Formatação:</strong> Customize fontes, cores, tamanhos e posições</li>
+                  <li><strong>Layouts:</strong> Escolha orientação (landscape/portrait)</li>
+                  <li><strong>Backgrounds:</strong> Adicione cores ou imagens de fundo aos slides</li>
+                  <li><strong>Modo apresentação:</strong> Visualize em tela cheia com navegação</li>
+                  <li><strong>Exportar:</strong> Baixe como PowerPoint (.pptx) ou PDF</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
             {/* Atalhos */}
             <AccordionItem value="shortcuts" className="border rounded-lg px-4">
               <AccordionTrigger className="text-xl font-semibold">
@@ -279,6 +418,8 @@ export default function Wiki() {
                   <li>Crie uma estrutura de pastas lógica desde o início</li>
                   <li>Faça backups regulares usando a função de exportar</li>
                   <li>Use o assistente AI para ajudar com tarefas complexas</li>
+                  <li>Configure automações personalizadas para tarefas repetitivas</li>
+                  <li>Use equipes para projetos colaborativos</li>
                 </ul>
               </AccordionContent>
             </AccordionItem>

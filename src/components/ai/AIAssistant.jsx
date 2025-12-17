@@ -169,11 +169,23 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
     setLoading(true);
 
     try {
-      // Buscar todas as pastas e arquivos para contexto
+      // Buscar todas as pastas, arquivos e equipes para contexto
       const folders = await base44.entities.Folder.list();
       const files = await base44.entities.File.list();
+      const teams = await base44.entities.Team.list();
       
       const currentFolder = folders.find(f => f.id === currentFolderId);
+      
+      // Determinar o team_id da pasta atual (herdado)
+      const getFolderTeam = (folderId) => {
+        if (!folderId) return null;
+        const folder = folders.find(f => f.id === folderId);
+        if (!folder) return null;
+        if (folder.team_id) return folder.team_id;
+        return getFolderTeam(folder.parent_id);
+      };
+      
+      const currentTeamId = getFolderTeam(currentFolderId);
       
       // Verificar se é uma automação personalizada
       const automations = user?.assistant_automations || [];
@@ -191,11 +203,17 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
           const actionPrompt = `Você é uma assistente que executa comandos.
 
 Contexto:
-- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz'}
+- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz (Meu Drive)'}
 - ID da pasta: ${currentFolderId || null}
+- Localização: ${currentTeamId ? `Equipe (team_id: ${currentTeamId})` : 'Meu Drive (sem equipe)'}
 
-Pastas existentes: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name })))}
-Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type })))}
+IMPORTANTE SOBRE EQUIPES:
+- Se estiver em "Meu Drive" (sem team_id): Criar arquivos/pastas SEM team_id
+- Se estiver dentro de uma pasta de equipe (tem team_id): SEMPRE incluir team_id ao criar arquivos/pastas
+
+Equipes disponíveis: ${JSON.stringify(teams.map(t => ({ id: t.id, name: t.name })))}
+Pastas existentes: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, team_id: f.team_id || null })))}
+Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type, team_id: f.team_id || null })))}
 
 AUTOMAÇÃO ATIVADA: "${matchedAutomation.keyword}"
 Descrição: ${matchedAutomation.description || 'Não especificada'}
@@ -226,6 +244,7 @@ Converta a ação em uma estrutura JSON executável.`;
                   content: { type: "string" },
                   folder_id: { type: "string" },
                   parent_id: { type: "string" },
+                  team_id: { type: "string" },
                   color: { type: "string" },
                   file_id: { type: "string" },
                   id: { type: "string" }
@@ -295,12 +314,18 @@ Histórico da conversa:
 ${conversationHistory}
 
 Contexto:
-- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz'}
+- Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz (Meu Drive)'}
 - ID da pasta: ${currentFolderId || null}
+- Localização: ${currentTeamId ? `Equipe (team_id: ${currentTeamId})` : 'Meu Drive (sem equipe)'}
 ${currentFile ? `\n- ARQUIVO ABERTO: "${currentFile.name}" (ID: ${currentFile.id}, Tipo: ${currentFile.type})\n- CONTEÚDO ATUAL DO ARQUIVO:\n${currentFile.content || '(vazio)'}` : ''}
 
-Pastas existentes: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name })))}
-Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type })))}
+IMPORTANTE SOBRE EQUIPES:
+- Se estiver em "Meu Drive" (sem team_id): Criar arquivos/pastas SEM team_id
+- Se estiver dentro de uma pasta de equipe (tem team_id): SEMPRE incluir team_id ao criar arquivos/pastas
+
+Equipes disponíveis: ${JSON.stringify(teams.map(t => ({ id: t.id, name: t.name })))}
+Pastas existentes: ${JSON.stringify(folders.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, team_id: f.team_id || null })))}
+Arquivos existentes: ${JSON.stringify(files.filter(f => !f.deleted).map(f => ({ id: f.id, name: f.name, type: f.type, team_id: f.team_id || null })))}
 
 Permissões:
 - Criar pastas: ${user?.assistant_can_create_folders !== false}
@@ -546,7 +571,9 @@ Usuário: ${input}`;
       const result = await base44.entities.Folder.create({
         name: data.name,
         parent_id: data.parent_id || currentFolderId || null,
+        team_id: data.team_id || null,
         color: data.color || 'bg-blue-500',
+        owner: user.email,
       });
       return result;
     } else if (action === 'create_file' && user?.assistant_can_create_files !== false) {
@@ -563,7 +590,9 @@ Usuário: ${input}`;
         name: data.name,
         type: data.type,
         folder_id: data.folder_id || currentFolderId || null,
+        team_id: data.team_id || null,
         content: data.content || defaultContent[data.type] || '',
+        owner: user.email,
       });
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
