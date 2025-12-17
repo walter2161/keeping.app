@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video, Palette, Presentation
+  MoreVertical, Trash2, Edit2, Download, ChevronRight, Copy, Image, Video, Palette, Presentation, ArrowRight
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -44,13 +44,16 @@ export default function ListView({
   onFolderCopy,
   onFolderExport,
   onFolderColorChange,
+  onFolderMove,
   onFileDelete,
   onFileRename,
   onFileExport,
   onFileCopy,
+  onFileMove,
   level = 0,
   allFolders = [],
-  allFiles = []
+  allFiles = [],
+  currentUserEmail
 }) {
   const [colorPickerState, setColorPickerState] = React.useState({ open: false, folder: null });
   const [expandedFolders, setExpandedFolders] = React.useState({});
@@ -155,10 +158,18 @@ export default function ListView({
                   <Download className="w-4 h-4 mr-2" />
                   Exportar (.zip)
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); onFolderDelete?.(folder); }}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir
-                </DropdownMenuItem>
+                {folder.owner === currentUserEmail && (
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderMove?.(folder); }}>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Mover
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); onFolderDelete?.(folder); }}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -175,13 +186,16 @@ export default function ListView({
             onFolderCopy={onFolderCopy}
             onFolderExport={onFolderExport}
             onFolderColorChange={onFolderColorChange}
+            onFolderMove={onFolderMove}
             onFileDelete={onFileDelete}
             onFileRename={onFileRename}
             onFileExport={onFileExport}
             onFileCopy={onFileCopy}
+            onFileMove={onFileMove}
             level={level + 1}
             allFolders={allFolders}
             allFiles={allFiles}
+            currentUserEmail={currentUserEmail}
           />
         )}
       </React.Fragment>
@@ -229,10 +243,18 @@ export default function ListView({
                     <Download className="w-4 h-4 mr-2" />
                     Exportar
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); handleFileDelete(file); }}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Excluir
-                  </DropdownMenuItem>
+                  {file.owner === currentUserEmail && (
+                    <>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileMove?.(file); }}>
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        Mover
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); handleFileDelete(file); }}>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
