@@ -194,9 +194,25 @@ Você pode ajudar com navegação, organização de arquivos, e responder pergun
       );
 
       if (matchedAutomation) {
-        // Detectar se é uma ação ou resposta simples
-        const actionWords = ['criar', 'crie', 'gerar', 'gere', 'adicionar', 'adicione', 'editar', 'edite', 'deletar', 'delete', 'arquivo', 'pasta', 'kanban', 'documento', 'planilha'];
-        const isActionAutomation = actionWords.some(word => matchedAutomation.action.toLowerCase().includes(word));
+        // Detectar o tipo de ação baseado em palavras-chave
+        const actionTypes = {
+          create: ['criar', 'crie', 'gerar', 'gere', 'adicionar', 'adicione', 'novo', 'nova'],
+          search: ['pesquisar', 'pesquise', 'buscar', 'busque', 'encontrar', 'encontre', 'procurar', 'procure', 'listar', 'liste'],
+          write: ['escrever', 'escreva', 'redigir', 'redija', 'compor', 'componha', 'formular', 'formule'],
+          edit: ['editar', 'edite', 'modificar', 'modifique', 'alterar', 'altere', 'atualizar', 'atualize', 'mudar', 'mude'],
+          delete: ['deletar', 'delete', 'excluir', 'exclua', 'remover', 'remova', 'apagar', 'apague'],
+          analyze: ['analisar', 'analise', 'avaliar', 'avalie', 'revisar', 'revise', 'verificar', 'verifique'],
+        };
+
+        let detectedType = null;
+        for (const [type, keywords] of Object.entries(actionTypes)) {
+          if (keywords.some(word => matchedAutomation.action.toLowerCase().includes(word))) {
+            detectedType = type;
+            break;
+          }
+        }
+
+        const isActionAutomation = detectedType !== null;
 
         if (isActionAutomation) {
           // Executar automação com ação
