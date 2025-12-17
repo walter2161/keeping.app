@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight, Share2, Users
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, Copy, ArrowRight, Share2, Users, X, Presentation
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50', label: 'Documento' },
   xlsx: { icon: FileSpreadsheet, color: 'text-green-600', bg: 'bg-green-50', label: 'Planilha' },
+  pptx: { icon: Presentation, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Apresentação' },
   kbn: { icon: LayoutGrid, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Kanban' },
   gnt: { icon: GanttChart, color: 'text-orange-600', bg: 'bg-orange-50', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', bg: 'bg-pink-50', label: 'Cronograma' },
@@ -30,7 +31,7 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy, onShare, isOwner, provided, isDragging }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onCopy, onShare, onLeaveShare, isOwner, provided, isDragging }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
   const [clickCount, setClickCount] = React.useState(0);
@@ -152,10 +153,12 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             <Edit2 className="w-4 h-4 mr-2" />
             Renomear
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare?.(file); }}>
-            <Share2 className="w-4 h-4 mr-2" />
-            Compartilhar
-          </DropdownMenuItem>
+          {isOwner && (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare?.(file); }}>
+              <Share2 className="w-4 h-4 mr-2" />
+              Compartilhar
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(file); }}>
             <Copy className="w-4 h-4 mr-2" />
             Copiar
@@ -171,6 +174,15 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Excluir
+            </DropdownMenuItem>
+          )}
+          {!isOwner && (
+            <DropdownMenuItem 
+              className="text-red-600" 
+              onClick={(e) => { e.stopPropagation(); onLeaveShare?.(file); }}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Remover compartilhamento
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

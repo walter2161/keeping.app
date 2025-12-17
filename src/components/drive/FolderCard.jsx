@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, MoreVertical, Trash2, Edit2, Copy, Download, Palette, Share2, Users } from 'lucide-react';
+import { Folder, MoreVertical, Trash2, Edit2, Copy, Download, Palette, Share2, Users, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ const folderColors = {
   red: 'text-red-500',
 };
 
-export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange, onShare, isOwner, provided, isDragging, onExternalDrop }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy, onExport, onColorChange, onShare, onLeaveShare, isOwner, provided, isDragging, onExternalDrop }) {
   const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
   const [clickCount, setClickCount] = React.useState(0);
   const clickTimer = React.useRef(null);
@@ -124,10 +124,12 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
               Mudar Cor
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare?.(folder); }}>
-            <Share2 className="w-4 h-4 mr-2" />
-            Compartilhar
-          </DropdownMenuItem>
+          {isOwner && (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare?.(folder); }}>
+              <Share2 className="w-4 h-4 mr-2" />
+              Compartilhar
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy?.(folder); }}>
             <Copy className="w-4 h-4 mr-2" />
             Copiar
@@ -143,6 +145,15 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onCopy
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Excluir
+            </DropdownMenuItem>
+          )}
+          {!isOwner && (
+            <DropdownMenuItem 
+              className="text-red-600" 
+              onClick={(e) => { e.stopPropagation(); onLeaveShare?.(folder); }}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Remover compartilhamento
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
