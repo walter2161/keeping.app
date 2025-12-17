@@ -299,9 +299,9 @@ export default function PptxEditor({ value, onChange }) {
           <X className="w-6 h-6" />
         </Button>
         
-        <div className="relative min-w-full min-h-full flex items-center justify-center p-8">
+        <div className="relative p-[50vh] inline-block">
           <div 
-            className="w-full h-full max-w-7xl max-h-[90vh] rounded-lg shadow-2xl relative"
+            className="w-[1200px] h-[675px] rounded-lg shadow-2xl relative"
             style={{
               background: currentSlideData.background.startsWith('url') 
                 ? currentSlideData.background 
