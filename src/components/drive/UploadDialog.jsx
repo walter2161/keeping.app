@@ -17,11 +17,12 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
 
   const detectFileType = (file) => {
     const ext = file.name.split('.').pop().toLowerCase();
-    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
-    const videoExts = ['mp4', 'webm', 'mov', 'avi'];
+    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
+    const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv'];
     
     if (ext === 'docx' || ext === 'doc') return 'docx';
     if (ext === 'xlsx' || ext === 'xls') return 'xlsx';
+    if (ext === 'pdf') return 'pdf';
     if (imageExts.includes(ext)) return 'img';
     if (videoExts.includes(ext)) return 'video';
     return 'other';
@@ -105,7 +106,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
               multiple
               className="hidden"
               onChange={handleFileSelect}
-              accept="image/*,video/*,.doc,.docx,.xls,.xlsx"
+              accept="image/*,video/*,.doc,.docx,.xls,.xlsx,.pdf"
               disabled={uploading}
             />
           </label>
