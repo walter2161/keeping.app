@@ -633,7 +633,7 @@ export default function PptxEditor({ value, onChange }) {
         {/* Canvas do Slide */}
         <div 
           ref={canvasRef}
-          className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center"
+          className="flex-1 overflow-auto bg-gray-100"
           style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onMouseDown={(e) => {
             if (e.button === 0 && (e.target === canvasRef.current || !slideRef.current.contains(e.target))) {
@@ -654,23 +654,24 @@ export default function PptxEditor({ value, onChange }) {
           onMouseUp={() => setIsPanning(false)}
           onMouseLeave={() => setIsPanning(false)}
         >
+          <div className="flex items-center justify-center min-h-full p-8">
             <div
               ref={slideRef}
-              className="bg-white shadow-xl relative m-8"
+              className="bg-white shadow-xl relative"
               style={{
                 width: '1200px',
                 height: '675px',
                 transform: `scale(${zoom})`,
                 transformOrigin: 'center center',
-               background: currentSlideData.background.startsWith('url') 
-                 ? currentSlideData.background 
-                 : currentSlideData.background,
-               backgroundSize: 'cover',
-               backgroundPosition: 'center'
+                background: currentSlideData.background.startsWith('url') 
+                  ? currentSlideData.background 
+                  : currentSlideData.background,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
               }}
               onClick={() => setSelectedElement(null)}
-              >
-            {currentSlideData.elements.map(element => (
+            >
+              {currentSlideData.elements.map(element => (
               <div
                 key={element.id}
                 onMouseDown={(e) => handleMouseDown(e, element.id)}
