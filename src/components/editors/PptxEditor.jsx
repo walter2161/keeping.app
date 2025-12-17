@@ -614,7 +614,7 @@ export default function PptxEditor({ value, onChange }) {
         {/* Canvas do Slide */}
         <div 
           ref={canvasRef}
-          className="flex-1 overflow-auto bg-gray-100 p-8"
+          className="flex-1 overflow-auto bg-gray-100"
           style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onMouseDown={(e) => {
             if (e.button === 0 && (e.target === canvasRef.current || !slideRef.current.contains(e.target))) {
