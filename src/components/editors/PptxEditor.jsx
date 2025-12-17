@@ -654,14 +654,15 @@ export default function PptxEditor({ value, onChange }) {
           onMouseUp={() => setIsPanning(false)}
           onMouseLeave={() => setIsPanning(false)}
         >
-          <div
-            ref={slideRef}
-            className="bg-white shadow-xl relative m-0"
-            style={{
-              width: '1200px',
-              height: '675px',
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top left',
+          <div className="inline-block p-[50vh]">
+            <div
+              ref={slideRef}
+              className="bg-white shadow-xl relative"
+              style={{
+                width: '1200px',
+                height: '675px',
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
               background: currentSlideData.background.startsWith('url') 
                 ? currentSlideData.background 
                 : currentSlideData.background,
