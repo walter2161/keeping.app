@@ -15,11 +15,13 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const [selectedElement, setSelectedElement] = useState(null);
   const [presentationMode, setPresentationMode] = useState(false);
   const [dragging, setDragging] = useState(null);
+  const [resizing, setResizing] = useState(null);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [hoveredElement, setHoveredElement] = useState(null);
   
   const canvasRef = useRef(null);
   const slideRef = useRef(null);
@@ -160,6 +162,17 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
         x: dragging.initialX + deltaX,
         y: dragging.initialY + deltaY
       });
+    } else if (resizing) {
+      const deltaX = (e.clientX - resizing.startX) / zoom;
+      const deltaY = (e.clientY - resizing.startY) / zoom;
+      
+      const newWidth = Math.max(50, resizing.initialWidth + deltaX);
+      const newHeight = Math.max(30, resizing.initialHeight + deltaY);
+      
+      updateElement(resizing.elementId, {
+        width: newWidth,
+        height: newHeight
+      });
     } else if (isPanning) {
       const deltaX = e.clientX - panStart.x;
       const deltaY = e.clientY - panStart.y;
@@ -173,11 +186,12 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
 
   const handleMouseUp = () => {
     setDragging(null);
+    setResizing(null);
     setIsPanning(false);
   };
 
   useEffect(() => {
-    if (dragging || isPanning) {
+    if (dragging || resizing || isPanning) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
@@ -185,7 +199,7 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [dragging, isPanning, panOffset, panStart, zoom]);
+  }, [dragging, resizing, isPanning, panOffset, panStart, zoom]);
 
   const handleImageUpload = async (elementId) => {
     const input = document.createElement('input');
@@ -519,9 +533,51 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
             <ImageIcon className="w-4 h-4 mr-1.5" />
             Imagem
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => addElement('shape')} className="h-8">
+          <Button size="sm" variant="ghost" onClick={() => {
+            const newSlides = [...slides];
+            const newElement = {
+              id: Date.now().toString(),
+              type: 'shape',
+              x: 100,
+              y: 100,
+              width: 200,
+              height: 200,
+              content: '',
+              fontSize: 24,
+              fontWeight: 'normal',
+              color: '#ffffff',
+              backgroundColor: '#3b82f6',
+              shapeType: 'rectangle'
+            };
+            newSlides[currentSlide].elements.push(newElement);
+            handleUpdate(newSlides);
+            setSelectedElement(newElement.id);
+          }} className="h-8">
             <Square className="w-4 h-4 mr-1.5" />
-            Forma
+            Retângulo
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => {
+            const newSlides = [...slides];
+            const newElement = {
+              id: Date.now().toString(),
+              type: 'shape',
+              x: 100,
+              y: 100,
+              width: 200,
+              height: 200,
+              content: '',
+              fontSize: 24,
+              fontWeight: 'normal',
+              color: '#ffffff',
+              backgroundColor: '#10b981',
+              shapeType: 'circle'
+            };
+            newSlides[currentSlide].elements.push(newElement);
+            handleUpdate(newSlides);
+            setSelectedElement(newElement.id);
+          }} className="h-8">
+            <Circle className="w-4 h-4 mr-1.5" />
+            Círculo
           </Button>
 
           <div className="h-6 w-px bg-gray-300" />
@@ -608,13 +664,49 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                     className="w-8 h-8 rounded cursor-pointer border"
                     title="Cor do texto"
                   />
+                  <div className="h-6 w-px bg-gray-300" />
+                  <Input
+                    type="number"
+                    value={Math.round(selectedEl.width)}
+                    onChange={(e) => updateElement(selectedEl.id, { width: parseInt(e.target.value) })}
+                    className="w-16 h-8 text-xs"
+                    min="50"
+                    placeholder="L"
+                  />
+                  <Input
+                    type="number"
+                    value={Math.round(selectedEl.height)}
+                    onChange={(e) => updateElement(selectedEl.id, { height: parseInt(e.target.value) })}
+                    className="w-16 h-8 text-xs"
+                    min="30"
+                    placeholder="A"
+                  />
                 </>
               )}
               {selectedEl.type === 'image' && (
-                <Button size="sm" variant="ghost" onClick={() => handleImageUpload(selectedEl.id)} className="h-8">
-                  <Upload className="w-4 h-4 mr-1.5" />
-                  Trocar
-                </Button>
+                <>
+                  <Button size="sm" variant="ghost" onClick={() => handleImageUpload(selectedEl.id)} className="h-8">
+                    <Upload className="w-4 h-4 mr-1.5" />
+                    Trocar Imagem
+                  </Button>
+                  <div className="h-6 w-px bg-gray-300" />
+                  <Input
+                    type="number"
+                    value={Math.round(selectedEl.width)}
+                    onChange={(e) => updateElement(selectedEl.id, { width: parseInt(e.target.value) })}
+                    className="w-16 h-8 text-xs"
+                    min="50"
+                    placeholder="L"
+                  />
+                  <Input
+                    type="number"
+                    value={Math.round(selectedEl.height)}
+                    onChange={(e) => updateElement(selectedEl.id, { height: parseInt(e.target.value) })}
+                    className="w-16 h-8 text-xs"
+                    min="30"
+                    placeholder="A"
+                  />
+                </>
               )}
               <Button
                 size="icon"
@@ -746,7 +838,9 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                 <div
                   key={element.id}
                   onMouseDown={(e) => handleMouseDown(e, element.id)}
-                  className={`absolute cursor-move ${
+                  onMouseEnter={() => setHoveredElement(element.id)}
+                  onMouseLeave={() => setHoveredElement(null)}
+                  className={`absolute cursor-move group ${
                     selectedElement === element.id ? 'ring-2 ring-blue-500' : ''
                   }`}
                   style={{
@@ -758,65 +852,136 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
                 >
                   {element.type === 'image' && (
                     element.imageUrl ? (
-                      <img 
-                        src={element.imageUrl} 
-                        alt="" 
-                        className="w-full h-full object-contain pointer-events-none"
-                      />
+                      <>
+                        <img 
+                          src={element.imageUrl} 
+                          alt="" 
+                          className="w-full h-full object-contain pointer-events-none"
+                        />
+                        {(hoveredElement === element.id || selectedElement === element.id) && (
+                          <>
+                            <button
+                              className="absolute top-2 left-2 w-8 h-8 bg-white/90 hover:bg-white rounded shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                              style={{ cursor: 'move' }}
+                              title="Mover"
+                            >
+                              <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                              </svg>
+                            </button>
+                            <button
+                              className="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleImageUpload(element.id);
+                              }}
+                              title="Trocar imagem"
+                            >
+                              <Upload className="w-4 h-4 text-gray-700" />
+                            </button>
+                          </>
+                        )}
+                      </>
                     ) : (
                       <div 
-                        className="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+                        className="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleImageUpload(element.id);
                         }}
                       >
-                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                        <div className="text-center">
+                          <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-xs text-gray-500">Clique para adicionar</p>
+                        </div>
                       </div>
                     )
                   )}
                   {element.type === 'shape' && (
-                    <div
-                      className="w-full h-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: element.backgroundColor,
-                        borderRadius: element.shapeType === 'circle' ? '50%' : '8px',
-                        color: element.color,
-                        fontSize: element.fontSize,
-                        fontWeight: element.fontWeight,
-                        padding: '8px'
-                      }}
-                    >
-                      <Input
+                    <>
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{
+                          backgroundColor: element.backgroundColor,
+                          borderRadius: element.shapeType === 'circle' ? '50%' : '8px',
+                          color: element.color,
+                          fontSize: element.fontSize,
+                          fontWeight: element.fontWeight,
+                          padding: '8px'
+                        }}
+                      >
+                        <Input
+                          value={element.content}
+                          onChange={(e) => updateElement(element.id, { content: e.target.value })}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full h-full border-none bg-transparent text-center focus-visible:ring-0 p-0"
+                          style={{
+                            color: element.color,
+                            fontSize: element.fontSize,
+                            fontWeight: element.fontWeight
+                          }}
+                        />
+                      </div>
+                      {(hoveredElement === element.id || selectedElement === element.id) && (
+                        <button
+                          className="absolute top-2 left-2 w-8 h-8 bg-white/90 hover:bg-white rounded shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          style={{ cursor: 'move' }}
+                          title="Mover"
+                        >
+                          <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {(element.type === 'text' || element.type === 'title') && (
+                    <>
+                      <Textarea
                         value={element.content}
                         onChange={(e) => updateElement(element.id, { content: e.target.value })}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full h-full border-none bg-transparent text-center focus-visible:ring-0 p-0"
+                        className="w-full h-full resize-none border-none bg-transparent focus-visible:ring-0 p-2"
                         style={{
-                          color: element.color,
                           fontSize: element.fontSize,
-                          fontWeight: element.fontWeight
+                          fontWeight: element.fontWeight,
+                          fontStyle: element.fontStyle,
+                          textDecoration: element.textDecoration,
+                          color: element.color
                         }}
                       />
-                    </div>
+                      {(hoveredElement === element.id || selectedElement === element.id) && (
+                        <button
+                          className="absolute top-2 left-2 w-8 h-8 bg-white/90 hover:bg-white rounded shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          style={{ cursor: 'move' }}
+                          title="Mover"
+                        >
+                          <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        </button>
+                      )}
+                    </>
                   )}
-                  {(element.type === 'text' || element.type === 'title') && (
-                    <Textarea
-                      value={element.content}
-                      onChange={(e) => updateElement(element.id, { content: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full h-full resize-none border-none bg-transparent focus-visible:ring-0 p-2"
-                      style={{
-                        fontSize: element.fontSize,
-                        fontWeight: element.fontWeight,
-                        fontStyle: element.fontStyle,
-                        textDecoration: element.textDecoration,
-                        color: element.color
+
+                  {/* Resize Handle */}
+                  {selectedElement === element.id && (
+                    <div
+                      className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize rounded-tl"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setResizing({
+                          elementId: element.id,
+                          startX: e.clientX,
+                          startY: e.clientY,
+                          initialWidth: element.width,
+                          initialHeight: element.height
+                        });
                       }}
                     />
                   )}
-                </div>
-              ))}
+                  </div>
+                  ))}
             </div>
           </div>
         </div>
