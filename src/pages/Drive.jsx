@@ -7,6 +7,16 @@ import { Loader2, FolderOpen, AlertCircle, Upload as UploadIcon } from 'lucide-r
 import JSZip from 'jszip';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Toaster } from 'react-hot-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import Toolbar from '../components/drive/Toolbar';
 import Breadcrumb from '../components/drive/Breadcrumb';
