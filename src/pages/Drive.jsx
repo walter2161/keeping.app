@@ -505,6 +505,7 @@ export default function Drive() {
     };
 
     const handleConfirmMove = async () => {
+      if (!moveConfirmDialog.data) return;
       const { type, item, targetFolderId } = moveConfirmDialog.data;
       
       try {
