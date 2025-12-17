@@ -328,6 +328,24 @@ export default function AssistantSettings() {
               automations={formData.assistant_automations}
               onChange={(automations) => setFormData({ ...formData, assistant_automations: automations })}
             />
+            
+            <Button 
+              onClick={handleSave} 
+              disabled={saving}
+              className="w-full bg-purple-600 hover:bg-purple-700 mt-4"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar Automações
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
       </div>
