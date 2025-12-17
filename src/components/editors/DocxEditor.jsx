@@ -1,8 +1,6 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { Printer, FileDown } from 'lucide-react';
-import { Button } from "@/components/ui/button";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -15,9 +13,15 @@ const Font = Quill.import('attributors/style/font');
 Font.whitelist = ['arial', 'comic-sans', 'courier-new', 'georgia', 'helvetica', 'lucida', 'times-new-roman', 'verdana'];
 Quill.register(Font, true);
 
-export default function DocxEditor({ value, onChange }) {
+const DocxEditor = forwardRef(({ value, onChange }, ref) => {
   const quillRef = useRef(null);
   const [orientation, setOrientation] = useState('portrait'); // 'portrait' or 'landscape'
+  
+  useImperativeHandle(ref, () => ({
+    setOrientation,
+    getOrientation: () => orientation,
+    print: handlePrint
+  }));
 
   const imageHandler = () => {
     const input = document.createElement('input');
@@ -134,35 +138,6 @@ export default function DocxEditor({ value, onChange }) {
 
   return (
     <div className="bg-gray-100 h-full flex flex-col">
-      {/* Toolbar adicional */}
-      <div className="bg-white border-b px-4 py-2 flex items-center gap-2">
-        <Button
-          size="sm"
-          variant={orientation === 'portrait' ? 'default' : 'outline'}
-          onClick={() => setOrientation('portrait')}
-          className="h-8"
-        >
-          A4 Vertical
-        </Button>
-        <Button
-          size="sm"
-          variant={orientation === 'landscape' ? 'default' : 'outline'}
-          onClick={() => setOrientation('landscape')}
-          className="h-8"
-        >
-          A4 Horizontal
-        </Button>
-        <div className="flex-1" />
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handlePrint}
-          className="h-8"
-        >
-          <Printer className="w-4 h-4 mr-1.5" />
-          Imprimir
-        </Button>
-      </div>
       <style>{`
         .ql-container {
           font-family: 'Montserrat', Arial, sans-serif;
@@ -395,4 +370,6 @@ export default function DocxEditor({ value, onChange }) {
       />
     </div>
   );
-}
+});
+
+export default DocxEditor;

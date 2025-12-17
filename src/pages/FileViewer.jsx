@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { 
         ArrowLeft, Save, Download, FileText, FileSpreadsheet,
         LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
-        Image as ImageIcon, Video, ArrowRight, Upload, Presentation
+        Image as ImageIcon, Video, ArrowRight, Upload, Presentation, Printer,
+        FileImage, FileType
       } from 'lucide-react';
 import {
   Dialog,
@@ -46,6 +47,10 @@ export default function FileViewer() {
   const [fileName, setFileName] = useState('');
   const [mediaPopup, setMediaPopup] = useState({ open: false, url: '', type: '' });
   const pptxEditorRef = useRef(null);
+  const docxEditorRef = useRef(null);
+  const xlsxEditorRef = useRef(null);
+  const [docOrientation, setDocOrientation] = useState('portrait');
+  const [slideOrientation, setSlideOrientation] = useState('landscape');
   
   const queryClient = useQueryClient();
 
@@ -388,6 +393,78 @@ export default function FileViewer() {
               Alterações não salvas
             </span>
           )}
+          
+          {/* Orientação para Documento */}
+          {file.type === 'docx' && (
+            <>
+              <Button
+                size="icon"
+                variant={docOrientation === 'portrait' ? 'default' : 'outline'}
+                onClick={() => {
+                  setDocOrientation('portrait');
+                  docxEditorRef.current?.setOrientation('portrait');
+                }}
+                className="h-9 w-9"
+                title="A4 Vertical"
+              >
+                <FileType className="w-4 h-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant={docOrientation === 'landscape' ? 'default' : 'outline'}
+                onClick={() => {
+                  setDocOrientation('landscape');
+                  docxEditorRef.current?.setOrientation('landscape');
+                }}
+                className="h-9 w-9"
+                title="A4 Horizontal"
+              >
+                <FileImage className="w-4 h-4 rotate-90" />
+              </Button>
+            </>
+          )}
+          
+          {/* Orientação para Apresentação */}
+          {file.type === 'pptx' && (
+            <>
+              <Button
+                size="icon"
+                variant={slideOrientation === 'landscape' ? 'default' : 'outline'}
+                onClick={() => setSlideOrientation('landscape')}
+                className="h-9 w-9"
+                title="Slide Horizontal"
+              >
+                <FileImage className="w-4 h-4 rotate-90" />
+              </Button>
+              <Button
+                size="icon"
+                variant={slideOrientation === 'portrait' ? 'default' : 'outline'}
+                onClick={() => setSlideOrientation('portrait')}
+                className="h-9 w-9"
+                title="Slide Vertical"
+              >
+                <FileType className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+          
+          {/* Botão de Impressão */}
+          {(file.type === 'docx' || file.type === 'xlsx' || file.type === 'pptx') && (
+            <Button 
+              size="icon" 
+              variant="outline"
+              onClick={() => {
+                if (file.type === 'docx') docxEditorRef.current?.print();
+                else if (file.type === 'xlsx') xlsxEditorRef.current?.print();
+                else if (file.type === 'pptx') pptxEditorRef.current?.print();
+              }}
+              className="h-9 w-9"
+              title="Imprimir"
+            >
+              <Printer className="w-4 h-4" />
+            </Button>
+          )}
+          
           <input
             type="file"
             accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.pptx,.ppt' : '.json'}
@@ -461,6 +538,7 @@ export default function FileViewer() {
         {file.type === 'docx' && (
           <div className="p-6 max-w-5xl mx-auto">
             <DocxEditor
+              ref={docxEditorRef}
               value={typeof localContent === 'string' ? localContent : ''}
               onChange={handleContentChange}
             />
@@ -469,6 +547,7 @@ export default function FileViewer() {
 
         {file.type === 'xlsx' && (
           <XlsxEditor
+            ref={xlsxEditorRef}
             value={localContent || ''}
             onChange={handleContentChange}
           />

@@ -1,13 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import jspreadsheet from 'jspreadsheet-ce';
 import 'jspreadsheet-ce/dist/jspreadsheet.css';
 import 'jsuites/dist/jsuites.css';
-import { Printer } from 'lucide-react';
-import { Button } from "@/components/ui/button";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-export default function XlsxEditor({ value, onChange }) {
+const XlsxEditor = forwardRef(({ value, onChange }, ref) => {
   const jssRef = useRef(null);
   const tableRef = useRef(null);
   const worksheetRef = useRef(null);
@@ -46,6 +44,10 @@ export default function XlsxEditor({ value, onChange }) {
       alert('Erro ao preparar planilha para impressão');
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    print: handlePrint
+  }));
   
   useEffect(() => {
     if (!jssRef.current || !jspreadsheet) return;
@@ -409,19 +411,6 @@ export default function XlsxEditor({ value, onChange }) {
     <div className="w-full h-full bg-white">
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
       
-      {/* Toolbar adicional */}
-      <div className="bg-white border-b px-4 py-2 flex items-center justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handlePrint}
-          className="h-8"
-        >
-          <Printer className="w-4 h-4 mr-1.5" />
-          Imprimir
-        </Button>
-      </div>
-      
       {/* Barra de Fórmulas */}
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
         <div className="flex items-center gap-2">
@@ -724,4 +713,6 @@ export default function XlsxEditor({ value, onChange }) {
       <div ref={jssRef} className="w-full" />
     </div>
   );
-}
+});
+
+export default XlsxEditor;

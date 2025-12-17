@@ -34,7 +34,10 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
   const slideHeight = slideOrientation === 'landscape' ? 675 : 1200;
 
   useImperativeHandle(ref, () => ({
-    exportPptx: handleExportPptx
+    exportPptx: handleExportPptx,
+    print: handlePrint,
+    setOrientation: setSlideOrientation,
+    getOrientation: () => slideOrientation
   }));
 
   useEffect(() => {
@@ -504,31 +507,11 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
     <div className="flex h-full bg-gray-50">
       {/* Sidebar de Slides */}
       <div className="w-56 bg-white border-r flex flex-col flex-shrink-0">
-        <div className="p-3 border-b space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm text-gray-700">Slides</h3>
-            <Button size="sm" variant="ghost" onClick={addSlide} className="h-7 w-7 p-0">
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              variant={slideOrientation === 'landscape' ? 'default' : 'outline'}
-              onClick={() => setSlideOrientation('landscape')}
-              className="h-7 flex-1 text-xs"
-            >
-              Horizontal
-            </Button>
-            <Button
-              size="sm"
-              variant={slideOrientation === 'portrait' ? 'default' : 'outline'}
-              onClick={() => setSlideOrientation('portrait')}
-              className="h-7 flex-1 text-xs"
-            >
-              Vertical
-            </Button>
-          </div>
+        <div className="p-3 border-b flex items-center justify-between">
+          <h3 className="font-semibold text-sm text-gray-700">Slides</h3>
+          <Button size="sm" variant="ghost" onClick={addSlide} className="h-7 w-7 p-0">
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="slides">
@@ -876,10 +859,6 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
               title="Cor de fundo"
             />
             <div className="h-6 w-px bg-gray-300 mx-1" />
-            <Button size="sm" variant="outline" onClick={handlePrint} className="h-8">
-              <Printer className="w-4 h-4 mr-1.5" />
-              Imprimir
-            </Button>
             <Button size="sm" variant="default" onClick={() => setPresentationMode(true)} className="h-8 bg-green-600 hover:bg-green-700">
               <Play className="w-4 h-4 mr-1.5" />
               Apresentar
