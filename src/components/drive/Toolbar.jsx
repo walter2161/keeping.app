@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,10 +43,83 @@ export default function Toolbar({
   onToggleSidebar,
   onRefresh
 }) {
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef(null);
+  
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  const { data: allFolders = [] } = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => base44.entities.Folder.list(),
+    enabled: !!user,
+  });
+
+  const { data: allFiles = [] } = useQuery({
+    queryKey: ['files'],
+    queryFn: () => base44.entities.File.list(),
+    enabled: !!user,
+  });
+
+  // Filtrar resultados de busca
+  const searchResults = React.useMemo(() => {
+    if (!searchQuery || !searchQuery.trim()) return { folders: [], files: [] };
+
+    const query = searchQuery.toLowerCase();
+    const folders = allFolders
+      .filter(f => !f.deleted && f.name.toLowerCase().includes(query))
+      .slice(0, 5);
+    const files = allFiles
+      .filter(f => !f.deleted && f.name.toLowerCase().includes(query))
+      .slice(0, 5);
+
+    return { folders, files };
+  }, [searchQuery, allFolders, allFiles]);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearchFocus = () => {
+    if (searchQuery && searchQuery.trim()) {
+      setShowSearchResults(true);
+    }
+  };
+
+  const handleSearchChange = (value) => {
+    onSearchChange?.(value);
+    setShowSearchResults(value.trim().length > 0);
+  };
+
+  const handleResultClick = (type, id) => {
+    setShowSearchResults(false);
+    onSearchChange?.('');
+    if (type === 'folder') {
+      window.location.href = createPageUrl(`Drive?folder=${id}`);
+    } else {
+      window.location.href = createPageUrl(`FileViewer?id=${id}`);
+    }
+  };
+
+  const fileTypeConfig = {
+    docx: { icon: FileText, color: 'text-blue-600' },
+    xlsx: { icon: FileSpreadsheet, color: 'text-green-600' },
+    pptx: { icon: Presentation, color: 'text-amber-600' },
+    kbn: { icon: LayoutGrid, color: 'text-purple-600' },
+    gnt: { icon: GanttChart, color: 'text-orange-600' },
+    crn: { icon: Calendar, color: 'text-pink-600' },
+    flux: { icon: ArrowRight, color: 'text-teal-600' },
+  };
 
   return (
     <TooltipProvider>
@@ -196,14 +269,60 @@ export default function Toolbar({
 
       {/* Right Section */}
       <div className="flex items-center gap-2">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+        <div className="relative hidden md:block" ref={searchRef}>
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 z-10" />
           <Input
             placeholder="Buscar..."
             value={searchQuery}
-            onChange={(e) => onSearchChange?.(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={handleSearchFocus}
             className="pl-8 w-48 h-8 text-sm"
           />
+          
+          {/* Search Results Dropdown */}
+          {showSearchResults && (searchResults.folders.length > 0 || searchResults.files.length > 0) && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50">
+              {searchResults.folders.length > 0 && (
+                <div className="p-2">
+                  <div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase">
+                    Pastas
+                  </div>
+                  {searchResults.folders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      onClick={() => handleResultClick('folder', folder.id)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-left transition-colors"
+                    >
+                      <Folder className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" />
+                      <span className="text-sm text-gray-800 truncate">{folder.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {searchResults.files.length > 0 && (
+                <div className="p-2 border-t border-gray-100">
+                  <div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase">
+                    Arquivos
+                  </div>
+                  {searchResults.files.map((file) => {
+                    const config = fileTypeConfig[file.type] || { icon: File, color: 'text-gray-600' };
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={file.id}
+                        onClick={() => handleResultClick('file', file.id)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-left transition-colors"
+                      >
+                        <Icon className={`w-4 h-4 ${config.color} flex-shrink-0`} />
+                        <span className="text-sm text-gray-800 truncate">{file.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <NotificationBell currentUserEmail={user?.email} />
