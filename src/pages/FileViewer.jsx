@@ -181,23 +181,8 @@ export default function FileViewer() {
       return;
     }
 
-    // Para pptx, exportar como JSON
+    // Para pptx, o botão de exportar interno do editor cuida disso
     if (file.type === 'pptx') {
-      const exportData = {
-        type: 'single_file',
-        file: {
-          name: file.name,
-          type: file.type,
-          content: JSON.stringify(localContent),
-        }
-      };
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${file.name}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
       return;
     }
     
@@ -250,26 +235,32 @@ export default function FileViewer() {
       return;
     }
 
-    // Para arquivos pptx (JSON)
-    if (file.type === 'pptx' && fileName.endsWith('.json')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const importedData = JSON.parse(event.target.result);
-          if (importedData.type === 'single_file' && importedData.file && importedData.file.type === 'pptx') {
-            const content = JSON.parse(importedData.file.content);
-            setLocalContent(content);
-            setHasChanges(true);
-          } else {
-            alert('Formato de arquivo inválido!');
+    // Para arquivos pptx
+    if (file.type === 'pptx' && (fileName.endsWith('.pptx') || fileName.endsWith('.ppt') || fileName.endsWith('.json'))) {
+      if (fileName.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const importedData = JSON.parse(event.target.result);
+            if (importedData.type === 'single_file' && importedData.file && importedData.file.type === 'pptx') {
+              const content = JSON.parse(importedData.file.content);
+              setLocalContent(content);
+              setHasChanges(true);
+            } else {
+              alert('Formato de arquivo inválido!');
+            }
+          } catch (error) {
+            alert('Erro ao ler o arquivo.');
           }
-        } catch (error) {
-          alert('Erro ao ler o arquivo.');
-        }
-      };
-      reader.readAsText(importFile);
-      e.target.value = '';
-      return;
+        };
+        reader.readAsText(importFile);
+        e.target.value = '';
+        return;
+      } else {
+        alert('Importação de arquivos .pptx/.ppt nativos ainda não suportada. Por favor, exporte primeiro como JSON usando esta ferramenta.');
+        e.target.value = '';
+        return;
+      }
     }
 
     // Para outros tipos (JSON)
@@ -361,7 +352,7 @@ export default function FileViewer() {
           )}
           <input
             type="file"
-            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.json' : '.json'}
+            accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.pptx,.ppt,.json' : '.json'}
             onChange={handleImportFile}
             className="hidden"
             id="import-file"
@@ -449,6 +440,7 @@ export default function FileViewer() {
           <PptxEditor
             value={typeof localContent === 'object' ? JSON.stringify(localContent) : (localContent || '')}
             onChange={handleContentChange}
+            fileName={fileName}
           />
         )}
 

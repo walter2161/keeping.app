@@ -9,7 +9,7 @@ import {
 import { base44 } from '@/api/base44Client';
 import PptxGenJS from 'pptxgenjs';
 
-export default function PptxEditor({ value, onChange }) {
+export default function PptxEditor({ value, onChange, fileName = 'apresentacao' }) {
   const [slides, setSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedElement, setSelectedElement] = useState(null);
@@ -235,12 +235,12 @@ export default function PptxEditor({ value, onChange }) {
         const imageUrl = slide.background.match(/url\((.*?)\)/)[1];
         pptxSlide.background = { data: imageUrl };
       } else if (slide.background.startsWith('#')) {
-        pptxSlide.background = { color: slide.background };
+        pptxSlide.background = { color: slide.background.replace('#', '') };
       }
       
       // Elements
       for (const element of slide.elements) {
-        const x = element.x / 1200 * 10; // Convert to inches
+        const x = element.x / 1200 * 10;
         const y = element.y / 675 * 5.625;
         const w = element.width / 1200 * 10;
         const h = element.height / 675 * 5.625;
@@ -277,11 +277,8 @@ export default function PptxEditor({ value, onChange }) {
       }
     }
     
-    await pptx.writeFile({ fileName: 'apresentacao.pptx' });
-  };
-
-  const handleImportPptx = () => {
-    alert('Importação de .pptx ainda não suportada. Use arquivos JSON exportados desta ferramenta.');
+    const cleanFileName = fileName.replace(/\.(pptx|json)$/i, '');
+    await pptx.writeFile({ fileName: `${cleanFileName}.pptx` });
   };
 
   const currentSlideData = slides[currentSlide];
