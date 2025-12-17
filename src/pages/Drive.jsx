@@ -674,6 +674,7 @@ export default function Drive() {
           currentFolderId={currentFolderId}
           onFolderSelect={setCurrentFolderId}
           onTeamSelect={setSelectedTeamId}
+          onTeamEdit={(team) => setTeamDialog({ open: true, team })}
           isOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           currentUserEmail={user?.email}

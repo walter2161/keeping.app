@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard, Users } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard, Users, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -66,7 +66,7 @@ function FolderTreeItem({ folder, level, isExpanded, onToggle, onSelect, current
   );
 }
 
-export default function Sidebar({ folders, teams, currentFolderId, onFolderSelect, onTeamSelect, isOpen, onToggleSidebar, currentUserEmail }) {
+export default function Sidebar({ folders, teams, currentFolderId, onFolderSelect, onTeamSelect, onTeamEdit, isOpen, onToggleSidebar, currentUserEmail }) {
   const [expandedFolders, setExpandedFolders] = React.useState(new Set());
   const [expandedTeams, setExpandedTeams] = React.useState(new Set());
 
@@ -206,24 +206,37 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
               const hasRootFolders = teamFolders.length > 0;
               return (
                 <div key={team.id} className="mb-2">
-                  <button
-                    onClick={() => {
-                      toggleTeam(team.id);
-                      onTeamSelect?.(team.id);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm text-gray-700"
-                  >
-                    {hasRootFolders && (
-                      expandedTeams.has(team.id) ? (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      )
-                    )}
-                    {!hasRootFolders && <div className="w-4" />}
-                    <Users className="w-4 h-4 text-purple-600" />
-                    <span className="truncate flex-1 text-left">{team.name}</span>
-                  </button>
+                  <div className="flex items-center gap-1 group">
+                    <button
+                      onClick={() => {
+                        toggleTeam(team.id);
+                        onTeamSelect?.(team.id);
+                      }}
+                      className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 transition-colors text-sm text-gray-700"
+                    >
+                      {hasRootFolders && (
+                        expandedTeams.has(team.id) ? (
+                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        )
+                      )}
+                      {!hasRootFolders && <div className="w-4" />}
+                      <Users className="w-4 h-4 text-purple-600" />
+                      <span className="truncate flex-1 text-left">{team.name}</span>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTeamEdit?.(team);
+                      }}
+                    >
+                      <Settings className="w-3.5 h-3.5 text-gray-500" />
+                    </Button>
+                  </div>
                   {expandedTeams.has(team.id) && teamFolders}
                 </div>
               );
