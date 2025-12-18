@@ -289,20 +289,30 @@ ${specificPrompt}
 Ação a executar: ${matchedAutomation.action}
 
 IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
-Quando houver indentação ou traços mostrando hierarquia, você DEVE:
-1. Interpretar a estrutura corretamente (indentação = hierarquia)
-2. Criar na ordem certa: pasta pai ANTES de subpastas e arquivos
-3. Usar temp_ref para referenciar pastas
+Quando houver indentação ou traços mostrando hierarquia, INTERPRETE ASSIM:
 
-Exemplo:
-- Marketing                    → { action: "create_folder", temp_ref: "Marketing_folder", data: { name: "Marketing" } }
-  - Planejamento              → { action: "create_folder", temp_ref: "Planejamento_folder", data: { name: "Planejamento", parent_id: "Marketing_folder" } }
-    - Plano.docx              → { action: "create_file", data: { name: "Plano.docx", type: "docx", folder_id: "Planejamento_folder" } }
+EXEMPLO:
+- Vendas
+  - Clientes
+    - cliente1.docx
+  - Propostas
+    - proposta.xlsx
+
+INTERPRETAÇÃO CORRETA:
+[
+  { "action": "create_folder", "temp_ref": "Vendas_folder", "data": { "name": "Vendas" } },
+  { "action": "create_folder", "temp_ref": "Clientes_folder", "data": { "name": "Clientes", "parent_id": "Vendas_folder" } },
+  { "action": "create_file", "data": { "name": "cliente1.docx", "type": "docx", "folder_id": "Clientes_folder" } },
+  { "action": "create_folder", "temp_ref": "Propostas_folder", "data": { "name": "Propostas", "parent_id": "Vendas_folder" } },
+  { "action": "create_file", "data": { "name": "proposta.xlsx", "type": "xlsx", "folder_id": "Propostas_folder" } }
+]
 
 REGRAS:
-- Pastas: use temp_ref no formato "NomePasta_folder"
-- Subpastas: use parent_id com temp_ref da pasta pai
-- Arquivos: use folder_id com temp_ref da pasta onde deve estar
+- Pastas: temp_ref = "NomeSemEspacos_folder"
+- Subpastas: parent_id = temp_ref da pasta pai
+- Arquivos: folder_id = temp_ref da pasta
+- Indentação = hierarquia (mais espaços = mais dentro)
+- Criar pastas ANTES de conteúdos
 
 IMPORTANTE:
 - Execute EXATAMENTE a ação descrita
@@ -463,22 +473,39 @@ Permissões:
 Comando do usuário: "${input}"
 
 IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
-Quando o usuário usar indentação ou traços para mostrar hierarquia de pastas/arquivos, você DEVE:
-1. Interpretar a estrutura corretamente (indentação = hierarquia)
-2. Criar na ordem certa: pasta pai ANTES de subpastas
-3. Usar temp_ref para referenciar pastas que ainda não existem no banco
+Quando o usuário usar indentação ou traços (-) mostrando hierarquia, INTERPRETE ASSIM:
 
-Exemplo de interpretação:
-- Marketing                    → criar pasta "Marketing" (temp_ref: "Marketing_folder")
-  - Planejamento              → criar pasta "Planejamento" com parent_id: "Marketing_folder"
-    - Plano.docx              → criar arquivo em folder_id: "Planejamento_folder"
-  - Campanhas                 → criar pasta "Campanhas" com parent_id: "Marketing_folder"
+EXEMPLO DE ESTRUTURA:
+- Projetos
+  - Projeto A
+    - Documentos
+      - Proposta.docx
+      - Contrato.docx
+    - Planilhas
+      - Orcamento.xlsx
+  - Projeto B
+    - arquivo.pptx
+
+INTERPRETAÇÃO CORRETA (ordem de criação):
+[
+  { "action": "create_folder", "temp_ref": "Projetos_folder", "data": { "name": "Projetos", "parent_id": null } },
+  { "action": "create_folder", "temp_ref": "ProjetoA_folder", "data": { "name": "Projeto A", "parent_id": "Projetos_folder" } },
+  { "action": "create_folder", "temp_ref": "Documentos_folder", "data": { "name": "Documentos", "parent_id": "ProjetoA_folder" } },
+  { "action": "create_file", "data": { "name": "Proposta.docx", "type": "docx", "folder_id": "Documentos_folder" } },
+  { "action": "create_file", "data": { "name": "Contrato.docx", "type": "docx", "folder_id": "Documentos_folder" } },
+  { "action": "create_folder", "temp_ref": "Planilhas_folder", "data": { "name": "Planilhas", "parent_id": "ProjetoA_folder" } },
+  { "action": "create_file", "data": { "name": "Orcamento.xlsx", "type": "xlsx", "folder_id": "Planilhas_folder" } },
+  { "action": "create_folder", "temp_ref": "ProjetoB_folder", "data": { "name": "Projeto B", "parent_id": "Projetos_folder" } },
+  { "action": "create_file", "data": { "name": "arquivo.pptx", "type": "pptx", "folder_id": "ProjetoB_folder" } }
+]
 
 REGRAS OBRIGATÓRIAS:
-- Use temp_ref no formato "NomePasta_folder" para cada pasta criada
-- Pastas pai devem vir ANTES de pastas filhas no array de ações
-- Use parent_id com o temp_ref da pasta pai
-- Use folder_id com o temp_ref da pasta para arquivos
+1. Cada PASTA precisa de temp_ref único (formato: "NomeSemEspacos_folder")
+2. Subpastas usam parent_id com o temp_ref da pasta pai
+3. Arquivos usam folder_id com o temp_ref da pasta onde estão
+4. A indentação define o nível: mais espaços = mais dentro
+5. SEMPRE crie pastas ANTES de seus conteúdos no array
+6. Se termina com extensão (.docx, .xlsx, etc) = arquivo, senão = pasta
 
 IMPORTANTE:
 - Planilha/Excel = type: "xlsx", SEMPRE preencha com dados CSV se o usuário pediu dados
