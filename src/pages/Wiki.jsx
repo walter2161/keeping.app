@@ -303,8 +303,45 @@ export default function Wiki() {
                   <li><strong>Automações:</strong> Crie até 15 atalhos personalizados com palavras-chave e ações</li>
                   <li><strong>Contexto:</strong> Entende onde você está (pasta, equipe) e cria arquivos no lugar certo</li>
                 </ul>
-                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                  <strong>💡 Exemplo:</strong> Dentro de uma pasta de equipe, diga "Crie um documento de política" e a assistente criará automaticamente compartilhado com a equipe!
+
+                <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border-2 border-blue-200">
+                  <h4 className="font-bold text-blue-900 mb-3 text-lg flex items-center gap-2">
+                    ✨ Criar Estruturas Hierárquicas Completas
+                  </h4>
+                  <p className="text-gray-700 mb-3">
+                    A assistente entende <strong>indentação</strong>! Você pode criar várias pastas e arquivos organizados de uma só vez usando espaços ou traços:
+                  </p>
+                  <div className="bg-white p-4 rounded-lg border-2 border-blue-300 shadow-sm">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Exemplo de comando:</p>
+                    <div className="font-mono text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
+                      <div className="text-blue-600 mb-2">Crie essa estrutura:</div>
+                      <div>- Marketing</div>
+                      <div>&nbsp;&nbsp;- Campanhas</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Social Media.pptx</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Email Marketing.docx</div>
+                      <div>&nbsp;&nbsp;- Budget</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Planejamento.xlsx</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Analises</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Relatorio Q1.docx</div>
+                      <div>- Projetos</div>
+                      <div>&nbsp;&nbsp;- Projeto A</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Workflow.kbn</div>
+                      <div>&nbsp;&nbsp;- Projeto B</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Timeline.gnt</div>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-600 space-y-1">
+                      <p>📌 <strong>Regras:</strong></p>
+                      <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li>Mais espaços = mais dentro da pasta</li>
+                        <li>Sem extensão = pasta, com extensão = arquivo</li>
+                        <li>A assistente cria tudo na ordem certa automaticamente!</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500 mt-4">
+                  <strong>💡 Exemplo simples:</strong> Dentro de uma pasta de equipe, diga "Crie um documento de política" e a assistente criará automaticamente compartilhado com a equipe!
                 </div>
               </AccordionContent>
             </AccordionItem>
