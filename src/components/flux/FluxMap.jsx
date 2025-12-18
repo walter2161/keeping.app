@@ -34,6 +34,7 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [isDraggingNew, setIsDraggingNew] = useState(false);
   const [dragNodeType, setDragNodeType] = useState(null);
   const dragStartPosRef = useRef(null);
+  const [dragPreviewPos, setDragPreviewPos] = useState({ x: 0, y: 0 });
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
@@ -198,8 +199,8 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const handleMouseMove = (e) => {
     if (isDraggingNew && dragNodeType) {
-      // Visual feedback durante o arrasto (opcional)
       document.body.style.cursor = 'grabbing';
+      setDragPreviewPos({ x: e.clientX, y: e.clientY });
     }
   };
 
@@ -220,6 +221,7 @@ export default function FluxMap({ data, onChange, onImport }) {
     setIsDraggingNew(false);
     setDragNodeType(null);
     dragStartPosRef.current = null;
+    setDragPreviewPos({ x: 0, y: 0 });
     document.body.style.cursor = 'default';
   };
 
@@ -505,8 +507,52 @@ export default function FluxMap({ data, onChange, onImport }) {
     setImportDialog({ open: false, data: null });
   };
 
+  const getDragPreviewContent = () => {
+    const previewStyles = {
+      'sticky-note': { emoji: '📝', bg: '#fef3c7', border: '#fbbf24', text: 'Sticky Note' },
+      'card-kanban': { emoji: '🎯', bg: '#dbeafe', border: '#3b82f6', text: 'Card' },
+      'rectangle-shape': { emoji: '▭', bg: '#e0f2fe', border: '#0284c7', text: 'Retângulo' },
+      'circle-shape': { emoji: '●', bg: '#fef9c3', border: '#eab308', text: 'Círculo' },
+      'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
+      'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
+    };
+
+    const style = previewStyles[dragNodeType];
+    if (!style) return null;
+
+    return (
+      <div
+        style={{
+          background: style.bg,
+          borderColor: style.border,
+          padding: '8px 10px',
+          borderRadius: '6px',
+          border: '1.5px solid',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          minWidth: '120px',
+        }}
+      >
+        <span style={{ fontSize: '18px' }}>{style.emoji}</span>
+        <span style={{ fontSize: '11px', fontWeight: '600' }}>{style.text}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="h-screen flex">
+      {isDraggingNew && dragNodeType && (
+        <div
+          className="drag-preview"
+          style={{
+            left: dragPreviewPos.x,
+            top: dragPreviewPos.y,
+          }}
+        >
+          {getDragPreviewContent()}
+        </div>
+      )}
       <style>{`
         #drawflow {
           background: #f8fafc;
@@ -701,6 +747,14 @@ export default function FluxMap({ data, onChange, onImport }) {
 
         .drag-drawflow:active {
           cursor: grabbing;
+        }
+
+        .drag-preview {
+          position: fixed;
+          pointer-events: none;
+          z-index: 9999;
+          opacity: 0.5;
+          transform: translate(-50%, -50%);
         }
       `}</style>
 
