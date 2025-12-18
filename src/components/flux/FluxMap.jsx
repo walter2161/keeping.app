@@ -44,8 +44,8 @@ export default function FluxMap({ data, onChange, onImport }) {
     switch (name) {
       case 'sticky-note':
         html = `
-          <div style="width: 180px; min-height: 180px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative;">
-            <textarea style="width: 100%; height: 140px; border: none; background: transparent; resize: none; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif;" placeholder="Escreva aqui...">Nota</textarea>
+          <div style="width: 180px; min-height: 180px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; resize: both; overflow: auto;">
+            <textarea style="width: 100%; height: 140px; border: none; background: transparent; resize: vertical; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif;" placeholder="Escreva aqui...">${nodeData.text || 'Nota'}</textarea>
           </div>
         `;
         break;
@@ -103,7 +103,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'rectangle-shape':
         html = `
           <div style="width: 180px; height: 100px; background: #93c5fd; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-            <input type="text" value="Passo" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #1e40af; font-family: 'Montserrat', sans-serif;" />
+            <input type="text" value="${nodeData.text || 'Passo'}" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #1e40af; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
         break;
@@ -111,7 +111,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'circle-shape':
         html = `
           <div style="width: 140px; height: 140px; background: #fde047; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-            <input type="text" value="Círculo" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #854d0e; font-family: 'Montserrat', sans-serif;" />
+            <input type="text" value="${nodeData.text || 'Círculo'}" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #854d0e; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
         break;
@@ -119,7 +119,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'name-bubble':
         html = `
           <div style="background: white; border: 3px solid #a855f7; border-radius: 50px; padding: 12px 24px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <input type="text" value="Nome" style="border: none; background: transparent; text-align: center; font-size: 15px; font-weight: 600; color: #6b21a8; width: 100px; font-family: 'Montserrat', sans-serif;" />
+            <input type="text" value="${nodeData.text || 'Nome'}" style="border: none; background: transparent; text-align: center; font-size: 15px; font-weight: 600; color: #6b21a8; width: 100px; font-family: 'Montserrat', sans-serif;" />
           </div>
         `;
         break;
@@ -127,7 +127,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'text-box':
         html = `
           <div style="background: transparent; padding: 8px;">
-            <input type="text" value="Texto" style="border: none; background: transparent; font-size: 16px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; min-width: 120px;" />
+            <input type="text" value="${nodeData.text || 'Texto'}" style="border: none; background: transparent; font-size: 16px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; min-width: 120px;" />
           </div>
         `;
         break;
@@ -154,26 +154,28 @@ export default function FluxMap({ data, onChange, onImport }) {
     const { html, inputs, outputs } = createNodeHTML(name);
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, {}, html);
 
-    // Add edit icon to the node
-    setTimeout(() => {
-      const nodeElement = document.getElementById(`node-${nodeId}`);
-      if (nodeElement) {
-        const editIcon = document.createElement('div');
-        editIcon.className = 'edit-icon';
-        editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-        editIcon.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const nodeData = editor.getNodeFromId(nodeId);
-          setEditDialog({ 
-            open: true, 
-            nodeId: nodeId, 
-            data: nodeData.data || {},
-            nodeType: nodeData.name
+    // Add edit icon only to card-kanban nodes
+    if (name === 'card-kanban') {
+      setTimeout(() => {
+        const nodeElement = document.getElementById(`node-${nodeId}`);
+        if (nodeElement) {
+          const editIcon = document.createElement('div');
+          editIcon.className = 'edit-icon';
+          editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+          editIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const nodeData = editor.getNodeFromId(nodeId);
+            setEditDialog({ 
+              open: true, 
+              nodeId: nodeId, 
+              data: nodeData.data || {},
+              nodeType: nodeData.name
+            });
           });
-        });
-        nodeElement.appendChild(editIcon);
-      }
-    }, 10);
+          nodeElement.appendChild(editIcon);
+        }
+      }, 10);
+    }
 
     if (onChange) {
       onChange(editor.export());
@@ -241,25 +243,28 @@ export default function FluxMap({ data, onChange, onImport }) {
       editorRef.current.clear();
       editorRef.current.import(data);
       
-      // Re-add edit icons after import
+      // Re-add edit icons after import (only for card-kanban)
       setTimeout(() => {
         Object.keys(data.drawflow.Home.data).forEach(nodeId => {
-          const nodeElement = document.getElementById(`node-${nodeId}`);
-          if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
-            const editIcon = document.createElement('div');
-            editIcon.className = 'edit-icon';
-            editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-            editIcon.addEventListener('click', (e) => {
-              e.stopPropagation();
-              const nodeData = editorRef.current.getNodeFromId(nodeId);
-              setEditDialog({ 
-                open: true, 
-                nodeId: nodeId, 
-                data: nodeData.data || {},
-                nodeType: nodeData.name
+          const nodeData = data.drawflow.Home.data[nodeId];
+          if (nodeData.name === 'card-kanban') {
+            const nodeElement = document.getElementById(`node-${nodeId}`);
+            if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
+              const editIcon = document.createElement('div');
+              editIcon.className = 'edit-icon';
+              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+              editIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const nodeData = editorRef.current.getNodeFromId(nodeId);
+                setEditDialog({ 
+                  open: true, 
+                  nodeId: nodeId, 
+                  data: nodeData.data || {},
+                  nodeType: nodeData.name
+                });
               });
-            });
-            nodeElement.appendChild(editIcon);
+              nodeElement.appendChild(editIcon);
+            }
           }
         });
       }, 100);
@@ -280,25 +285,28 @@ export default function FluxMap({ data, onChange, onImport }) {
       try {
         editor.import(data);
 
-        // Add edit icons to all existing nodes
+        // Add edit icons to card-kanban nodes only
         setTimeout(() => {
           Object.keys(data.drawflow.Home.data).forEach(nodeId => {
-            const nodeElement = document.getElementById(`node-${nodeId}`);
-            if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
-              const editIcon = document.createElement('div');
-              editIcon.className = 'edit-icon';
-              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-              editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const nodeData = editor.getNodeFromId(nodeId);
-                setEditDialog({ 
-                  open: true, 
-                  nodeId: nodeId, 
-                  data: nodeData.data || {},
-                  nodeType: nodeData.name
+            const nodeData = data.drawflow.Home.data[nodeId];
+            if (nodeData.name === 'card-kanban') {
+              const nodeElement = document.getElementById(`node-${nodeId}`);
+              if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
+                const editIcon = document.createElement('div');
+                editIcon.className = 'edit-icon';
+                editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+                editIcon.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  const nodeData = editor.getNodeFromId(nodeId);
+                  setEditDialog({ 
+                    open: true, 
+                    nodeId: nodeId, 
+                    data: nodeData.data || {},
+                    nodeType: nodeData.name
+                  });
                 });
-              });
-              nodeElement.appendChild(editIcon);
+                nodeElement.appendChild(editIcon);
+              }
             }
           });
         }, 100);
