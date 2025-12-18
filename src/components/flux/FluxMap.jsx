@@ -31,6 +31,9 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [importDialog, setImportDialog] = useState({ open: false, data: null });
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [isDraggingNew, setIsDraggingNew] = useState(false);
+  const [dragNodeType, setDragNodeType] = useState(null);
+  const dragStartPosRef = useRef(null);
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
@@ -185,6 +188,51 @@ export default function FluxMap({ data, onChange, onImport }) {
     
     addNodeToDrawFlow(nodeType, centerX, centerY);
   };
+
+  const handleMouseDownOnButton = (e, nodeType) => {
+    e.preventDefault();
+    setIsDraggingNew(true);
+    setDragNodeType(nodeType);
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDraggingNew && dragNodeType) {
+      // Visual feedback durante o arrasto (opcional)
+      document.body.style.cursor = 'grabbing';
+    }
+  };
+
+  const handleMouseUp = (e) => {
+    if (isDraggingNew && dragNodeType && drawflowRef.current) {
+      const rect = drawflowRef.current.getBoundingClientRect();
+      const isOverCanvas = 
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
+
+      if (isOverCanvas) {
+        addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
+      }
+    }
+    
+    setIsDraggingNew(false);
+    setDragNodeType(null);
+    dragStartPosRef.current = null;
+    document.body.style.cursor = 'default';
+  };
+
+  useEffect(() => {
+    if (isDraggingNew) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDraggingNew, dragNodeType]);
 
   useEffect(() => {
     if (data && editorRef.current && data.drawflow) {
@@ -664,7 +712,10 @@ export default function FluxMap({ data, onChange, onImport }) {
             className="drag-drawflow"
             draggable="true"
             data-node="sticky-note"
-            onClick={() => handleClickToAdd('sticky-note')}
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'sticky-note')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('sticky-note');
+            }}
             style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
           >
             <span style={{ fontSize: '18px' }}>📝</span>
@@ -675,7 +726,10 @@ export default function FluxMap({ data, onChange, onImport }) {
             className="drag-drawflow"
             draggable="true"
             data-node="card-kanban"
-            onClick={() => handleClickToAdd('card-kanban')}
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'card-kanban')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('card-kanban');
+            }}
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
           >
             <span style={{ fontSize: '18px' }}>🎯</span>
@@ -686,7 +740,10 @@ export default function FluxMap({ data, onChange, onImport }) {
             className="drag-drawflow"
             draggable="true"
             data-node="rectangle-shape"
-            onClick={() => handleClickToAdd('rectangle-shape')}
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'rectangle-shape')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('rectangle-shape');
+            }}
             style={{ background: '#e0f2fe', borderColor: '#0284c7' }}
           >
             <span style={{ fontSize: '18px' }}>▭</span>
@@ -697,7 +754,10 @@ export default function FluxMap({ data, onChange, onImport }) {
             className="drag-drawflow"
             draggable="true"
             data-node="circle-shape"
-            onClick={() => handleClickToAdd('circle-shape')}
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'circle-shape')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('circle-shape');
+            }}
             style={{ background: '#fef9c3', borderColor: '#eab308' }}
           >
             <span style={{ fontSize: '18px' }}>●</span>
@@ -708,7 +768,10 @@ export default function FluxMap({ data, onChange, onImport }) {
             className="drag-drawflow"
             draggable="true"
             data-node="name-bubble"
-            onClick={() => handleClickToAdd('name-bubble')}
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'name-bubble')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('name-bubble');
+            }}
             style={{ background: '#f3e8ff', borderColor: '#a855f7' }}
           >
             <span style={{ fontSize: '18px' }}>👤</span>
@@ -719,7 +782,10 @@ export default function FluxMap({ data, onChange, onImport }) {
             className="drag-drawflow"
             draggable="true"
             data-node="text-box"
-            onClick={() => handleClickToAdd('text-box')}
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'text-box')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('text-box');
+            }}
             style={{ background: '#f1f5f9', borderColor: '#64748b' }}
           >
             <span style={{ fontSize: '18px' }}>T</span>
