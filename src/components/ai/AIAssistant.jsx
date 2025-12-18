@@ -639,7 +639,13 @@ IMPORTANTE:
 - Você sabe a qual equipe cada item pertence
 - Use essas informações para responder perguntas sobre organização, localização e conteúdo
 
-Responda de forma natural e amigável em português. Não execute ações, apenas converse e forneça informações baseadas nos dados acima.
+FORMATO DE RESPOSTA COM LINKS:
+- Quando mencionar uma PASTA, use: [PASTA:id:nome]
+- Quando mencionar um ARQUIVO, use: [ARQUIVO:id:nome]
+- Exemplo: "Encontrei a pasta [PASTA:${foldersInfo[0]?.id || 'id'}:Marketing] com 3 arquivos"
+- Exemplo: "O arquivo [ARQUIVO:${filesInfo[0]?.id || 'id'}:Relatório Vendas] está na pasta X"
+
+Responda de forma natural e amigável em português. Use o formato de links sempre que mencionar pastas ou arquivos específicos.
 
 Usuário: ${input}`;
 
@@ -649,7 +655,9 @@ Usuário: ${input}`;
 
         const assistantMessage = { 
           role: 'assistant', 
-          content: chatResult || 'Desculpe, não consegui processar sua mensagem.'
+          content: chatResult || 'Desculpe, não consegui processar sua mensagem.',
+          folders: foldersInfo,
+          files: filesInfo
         };
         setMessages(prev => [...prev, assistantMessage]);
       }
@@ -728,6 +736,79 @@ Usuário: ${input}`;
     } else {
       throw new Error('Permissão negada para esta ação');
     }
+  };
+
+  const renderMessageContent = (message) => {
+    if (!message.content) return null;
+    
+    let content = message.content;
+    const parts = [];
+    let lastIndex = 0;
+
+    // Regex para encontrar [PASTA:id:nome] e [ARQUIVO:id:nome]
+    const regex = /\[(PASTA|ARQUIVO):([^:]+):([^\]]+)\]/g;
+    let match;
+
+    while ((match = regex.exec(content)) !== null) {
+      // Adicionar texto antes do match
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: content.substring(lastIndex, match.index)
+        });
+      }
+
+      // Adicionar link
+      const [, type, id, name] = match;
+      parts.push({
+        type: 'link',
+        linkType: type,
+        id,
+        name
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Adicionar texto restante
+    if (lastIndex < content.length) {
+      parts.push({
+        type: 'text',
+        content: content.substring(lastIndex)
+      });
+    }
+
+    if (parts.length === 0) {
+      return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+    }
+
+    return (
+      <p className="text-sm whitespace-pre-wrap">
+        {parts.map((part, idx) => {
+          if (part.type === 'text') {
+            return <span key={idx}>{part.content}</span>;
+          } else {
+            const url = part.linkType === 'PASTA' 
+              ? createPageUrl(`Drive?folder=${part.id}`)
+              : createPageUrl(`FileViewer?id=${part.id}`);
+            
+            return (
+              <a
+                key={idx}
+                href={url}
+                className="text-blue-600 hover:text-blue-800 underline font-medium"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = url;
+                }}
+              >
+                {part.name}
+              </a>
+            );
+          }
+        })}
+      </p>
+    );
   };
 
   const handleKeyPress = (e) => {
@@ -811,7 +892,7 @@ Usuário: ${input}`;
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {renderMessageContent(msg)}
                 </div>
               </div>
             ))}
