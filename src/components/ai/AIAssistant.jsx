@@ -588,29 +588,42 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
           response_json_schema: actionSchema
         });
 
-        if (llmResult && llmResult.action) {
-          const actionResult = await executeAction(llmResult, folders, files);
+        if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
+          const results = [];
+          for (const actionItem of llmResult.actions) {
+            const result = await executeAction(actionItem, folders, files);
+            results.push({ action: actionItem, result });
+          }
 
           // Invalidar queries antes de navegar
           await queryClient.invalidateQueries({ queryKey: ['files'] });
           await queryClient.invalidateQueries({ queryKey: ['folders'] });
 
+          const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
           const successMessage = { 
             role: 'assistant', 
-            content: `✓ ${getActionSuccessMessage(llmResult)}` 
+            content: `✓ ${successMessages}` 
           };
           setMessages(prev => [...prev, successMessage]);
 
-          // Navegar para o item criado após invalidar queries
-          setTimeout(() => {
-            if (llmResult.action === 'create_file' && actionResult?.id) {
-              window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
-            } else if (llmResult.action === 'create_folder' && actionResult?.id) {
-              window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
-            } else {
+          // Só navegar se for uma única ação
+          if (results.length === 1) {
+            const singleAction = results[0];
+            setTimeout(() => {
+              if (singleAction.action.action === 'create_file' && singleAction.result?.id) {
+                window.location.href = createPageUrl(`FileViewer?id=${singleAction.result.id}`);
+              } else if (singleAction.action.action === 'create_folder' && singleAction.result?.id) {
+                window.location.href = createPageUrl(`Drive?folder=${singleAction.result.id}`);
+              } else {
+                window.location.reload();
+              }
+            }, 1200);
+          } else {
+            // Múltiplas ações: apenas recarregar
+            setTimeout(() => {
               window.location.reload();
-            }
-          }, 1200);
+            }, 1500);
+          }
         }
       } else {
         // Conversa normal
