@@ -431,6 +431,24 @@ Permissões:
 
 Comando do usuário: "${input}"
 
+IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
+Quando o usuário usar indentação ou traços para mostrar hierarquia de pastas/arquivos, você DEVE:
+1. Interpretar a estrutura corretamente (indentação = hierarquia)
+2. Criar na ordem certa: pasta pai ANTES de subpastas
+3. Usar temp_ref para referenciar pastas que ainda não existem no banco
+
+Exemplo de interpretação:
+- Marketing                    → criar pasta "Marketing" (temp_ref: "Marketing_folder")
+  - Planejamento              → criar pasta "Planejamento" com parent_id: "Marketing_folder"
+    - Plano.docx              → criar arquivo em folder_id: "Planejamento_folder"
+  - Campanhas                 → criar pasta "Campanhas" com parent_id: "Marketing_folder"
+
+REGRAS OBRIGATÓRIAS:
+- Use temp_ref no formato "NomePasta_folder" para cada pasta criada
+- Pastas pai devem vir ANTES de pastas filhas no array de ações
+- Use parent_id com o temp_ref da pasta pai
+- Use folder_id com o temp_ref da pasta para arquivos
+
 IMPORTANTE:
 - Planilha/Excel = type: "xlsx", SEMPRE preencha com dados CSV se o usuário pediu dados
 - Documento/Word/Texto = type: "docx", SEMPRE use HTML formatado no content
@@ -564,6 +582,7 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
                     type: "string",
                     enum: ["create_folder", "create_file", "edit_file", "delete_item"]
                   },
+                  temp_ref: { type: "string" },
                   data: {
                     type: "object",
                     properties: {
@@ -592,9 +611,25 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
 
         if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
           const results = [];
+          const tempRefs = {}; // Armazena ID real de pastas criadas
+          
           for (const actionItem of llmResult.actions) {
+            // Substituir referências temporárias por IDs reais
+            if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
+              actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
+            }
+            
+            if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
+              actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
+            }
+            
             const result = await executeAction(actionItem, folders, files);
             results.push({ action: actionItem, result });
+            
+            // Armazenar ID real da pasta criada
+            if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
+              tempRefs[actionItem.temp_ref] = result.id;
+            }
           }
 
           // Invalidar queries antes de navegar
