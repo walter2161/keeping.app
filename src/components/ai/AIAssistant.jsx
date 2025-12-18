@@ -295,31 +295,43 @@ IMPORTANTE:
 - Para planilhas, sempre preencha com dados exemplo se não especificado
 - Para documentos, use HTML formatado
 
-Converta a ação em uma estrutura JSON executável.`;
+IMPORTANTE: Se o usuário pedir múltiplos itens (ex: "crie 3 pastas", "crie pasta X e arquivo Y"), retorne um array com múltiplas ações.
+Se for apenas um item, ainda assim retorne um array com 1 ação.
+
+Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`;
 
           const actionSchema = {
             type: "object",
             properties: {
-              action: {
-                type: "string",
-                enum: ["create_folder", "create_file", "edit_file", "delete_item"]
-              },
-              data: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
-                  content: { type: "string" },
-                  folder_id: { type: "string" },
-                  parent_id: { type: "string" },
-                  team_id: { type: "string" },
-                  color: { type: "string" },
-                  file_id: { type: "string" },
-                  id: { type: "string" }
+              actions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    action: {
+                      type: "string",
+                      enum: ["create_folder", "create_file", "edit_file", "delete_item"]
+                    },
+                    data: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
+                        content: { type: "string" },
+                        folder_id: { type: "string" },
+                        parent_id: { type: "string" },
+                        team_id: { type: "string" },
+                        color: { type: "string" },
+                        file_id: { type: "string" },
+                        id: { type: "string" }
+                      }
+                    }
+                  },
+                  required: ["action", "data"]
                 }
               }
             },
-            required: ["action", "data"]
+            required: ["actions"]
           };
 
           const llmResult = await base44.integrations.Core.InvokeLLM({
@@ -327,27 +339,41 @@ Converta a ação em uma estrutura JSON executável.`;
             response_json_schema: actionSchema
           });
 
-          if (llmResult && llmResult.action) {
-            const actionResult = await executeAction(llmResult, folders, files);
+          if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
+            const results = [];
+            for (const actionItem of llmResult.actions) {
+              const result = await executeAction(actionItem, folders, files);
+              results.push({ action: actionItem, result });
+            }
 
             await queryClient.invalidateQueries({ queryKey: ['files'] });
             await queryClient.invalidateQueries({ queryKey: ['folders'] });
 
+            const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
             const successMessage = { 
               role: 'assistant', 
-              content: `✓ Automação executada: ${getActionSuccessMessage(llmResult)}` 
+              content: `✓ Automação executada:\n${successMessages}` 
             };
             setMessages(prev => [...prev, successMessage]);
 
-            setTimeout(() => {
-              if (llmResult.action === 'create_file' && actionResult?.id) {
-                window.location.href = createPageUrl(`FileViewer?id=${actionResult.id}`);
-              } else if (llmResult.action === 'create_folder' && actionResult?.id) {
-                window.location.href = createPageUrl(`Drive?folder=${actionResult.id}`);
-              } else {
+            // Só navegar se for uma única ação
+            if (results.length === 1) {
+              const singleAction = results[0];
+              setTimeout(() => {
+                if (singleAction.action.action === 'create_file' && singleAction.result?.id) {
+                  window.location.href = createPageUrl(`FileViewer?id=${singleAction.result.id}`);
+                } else if (singleAction.action.action === 'create_folder' && singleAction.result?.id) {
+                  window.location.href = createPageUrl(`Drive?folder=${singleAction.result.id}`);
+                } else {
+                  window.location.reload();
+                }
+              }, 1200);
+            } else {
+              // Múltiplas ações: apenas recarregar
+              setTimeout(() => {
                 window.location.reload();
-              }
-            }, 1200);
+              }, 1200);
+            }
           }
         } else {
           // Resposta simples de automação
@@ -519,30 +545,42 @@ IMPORTANTE para apresentações:
 - Use cores harmônicas
 - Posicione elementos de forma organizada
 
-Converta o comando em uma ação estruturada.`;
+IMPORTANTE: Se o usuário pedir múltiplos itens (ex: "crie 3 pastas", "crie pasta X e arquivo Y"), retorne um array com múltiplas ações.
+Se for apenas um item, ainda assim retorne um array com 1 ação.
+
+Converta o comando em uma ou mais ações estruturadas em formato array.`;
 
         const actionSchema = {
           type: "object",
           properties: {
-            action: {
-              type: "string",
-              enum: ["create_folder", "create_file", "edit_file", "delete_item"]
-            },
-            data: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
-                content: { type: "string" },
-                folder_id: { type: "string" },
-                parent_id: { type: "string" },
-                color: { type: "string" },
-                file_id: { type: "string" },
-                id: { type: "string" }
+            actions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  action: {
+                    type: "string",
+                    enum: ["create_folder", "create_file", "edit_file", "delete_item"]
+                  },
+                  data: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      type: { type: "string", enum: ["docx", "xlsx", "pptx", "kbn", "gnt", "crn", "flux", "pdf", "img", "video"] },
+                      content: { type: "string" },
+                      folder_id: { type: "string" },
+                      parent_id: { type: "string" },
+                      color: { type: "string" },
+                      file_id: { type: "string" },
+                      id: { type: "string" }
+                    }
+                  }
+                },
+                required: ["action", "data"]
               }
             }
           },
-          required: ["action", "data"]
+          required: ["actions"]
         };
 
         const llmResult = await base44.integrations.Core.InvokeLLM({
