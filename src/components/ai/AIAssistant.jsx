@@ -503,39 +503,76 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
             const results = [];
             const tempRefs = {};
 
+            // Pegar o team_id da pasta atual se houver
+            const currentTeamId = getFolderTeam(currentFolderId);
+
             for (const actionItem of llmResult.actions) {
+              // Substituir referências temporárias por IDs reais
               if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
                 actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
+              } else if (!actionItem.data.parent_id) {
+                // Se não tem parent_id, usar a pasta atual
+                actionItem.data.parent_id = currentFolderId;
               }
 
               if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
                 actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
+              } else if (!actionItem.data.folder_id && actionItem.action === 'create_file') {
+                // Se não tem folder_id, usar a pasta atual
+                actionItem.data.folder_id = currentFolderId;
               }
 
-              const result = await executeAction(actionItem, folders, files);
-              results.push({ action: actionItem, result });
+              // Adicionar team_id se estiver em uma pasta de equipe
+              if (currentTeamId) {
+                actionItem.data.team_id = currentTeamId;
+              }
 
-              if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
-                tempRefs[actionItem.temp_ref] = result.id;
+              // Adicionar owner
+              actionItem.data.owner = user.email;
+
+              try {
+                const result = await executeAction(actionItem, folders, files);
+                results.push({ action: actionItem, result, success: true });
+
+                if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
+                  tempRefs[actionItem.temp_ref] = result.id;
+                }
+              } catch (error) {
+                console.error('Erro ao executar ação:', error);
+                results.push({ action: actionItem, error: error.message, success: false });
               }
             }
 
             await queryClient.invalidateQueries({ queryKey: ['files'] });
             await queryClient.invalidateQueries({ queryKey: ['folders'] });
 
-            const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
+            const successCount = results.filter(r => r.success).length;
+            const errorCount = results.filter(r => !r.success).length;
+
+            let message = `✓ XML executado: ${successCount} item(ns) criado(s)`;
+            if (errorCount > 0) {
+              message += `\n⚠️ ${errorCount} erro(s) encontrado(s)`;
+            }
+
             const successMessage = { 
               role: 'assistant', 
-              content: `✓ Estrutura XML criada com sucesso:\n${successMessages}` 
+              content: message
             };
             setMessages(prev => [...prev, successMessage]);
 
             setTimeout(() => window.location.reload(), 1500);
+          } else {
+            const errorMessage = { 
+              role: 'assistant', 
+              content: '❌ XML vazio ou inválido.' 
+            };
+            setMessages(prev => [...prev, errorMessage]);
           }
         } catch (error) {
+          console.error('Erro ao processar XML:', error);
           const errorMessage = { 
             role: 'assistant', 
-            content: '❌ Erro ao processar XML. Verifique a formatação.' 
+            content: `❌ Erro ao processar XML: ${error.message}` 
           };
           setMessages(prev => [...prev, errorMessage]);
         }
@@ -967,15 +1004,18 @@ Usuário: ${input}`;
     const { action, data } = actionData;
 
     if (action === 'create_folder' && user?.assistant_can_create_folders !== false) {
+      console.log('Criando pasta:', data);
       const result = await base44.entities.Folder.create({
         name: data.name,
-        parent_id: data.parent_id || currentFolderId || null,
+        parent_id: data.parent_id || null,
         team_id: data.team_id || null,
         color: data.color || 'bg-blue-500',
-        owner: user.email,
+        owner: data.owner || user.email,
       });
+      console.log('Pasta criada:', result);
       return result;
     } else if (action === 'create_file' && user?.assistant_can_create_files !== false) {
+      console.log('Criando arquivo:', data);
       const defaultContent = {
         kbn: JSON.stringify({ columns: [], cards: [] }),
         gnt: JSON.stringify({ tasks: [] }),
@@ -988,17 +1028,17 @@ Usuário: ${input}`;
       const result = await base44.entities.File.create({
         name: data.name,
         type: data.type,
-        folder_id: data.folder_id || currentFolderId || null,
+        folder_id: data.folder_id || null,
         team_id: data.team_id || null,
         content: data.content || defaultContent[data.type] || '',
-        owner: user.email,
+        owner: data.owner || user.email,
       });
+      console.log('Arquivo criado:', result);
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
       const result = await base44.entities.File.update(data.file_id, {
         content: typeof data.content === 'object' ? JSON.stringify(data.content) : data.content,
       });
-      // Forçar reload da página para mostrar as alterações
       setTimeout(() => window.location.reload(), 800);
       return result;
     } else if (action === 'delete_item' && user?.assistant_can_delete_items !== false) {
