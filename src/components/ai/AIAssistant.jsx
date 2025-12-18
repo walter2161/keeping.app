@@ -323,9 +323,11 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
                         team_id: { type: "string" },
                         color: { type: "string" },
                         file_id: { type: "string" },
-                        id: { type: "string" }
+                        id: { type: "string" },
+                        temp_ref: { type: "string" }
                       }
-                    }
+                    },
+                    temp_ref: { type: "string" }
                   },
                   required: ["action", "data"]
                 }
