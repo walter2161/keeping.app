@@ -288,14 +288,29 @@ ${specificPrompt}
 
 Ação a executar: ${matchedAutomation.action}
 
+IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
+Quando houver indentação ou traços mostrando hierarquia, você DEVE:
+1. Interpretar a estrutura corretamente (indentação = hierarquia)
+2. Criar na ordem certa: pasta pai ANTES de subpastas e arquivos
+3. Usar temp_ref para referenciar pastas
+
+Exemplo:
+- Marketing                    → { action: "create_folder", temp_ref: "Marketing_folder", data: { name: "Marketing" } }
+  - Planejamento              → { action: "create_folder", temp_ref: "Planejamento_folder", data: { name: "Planejamento", parent_id: "Marketing_folder" } }
+    - Plano.docx              → { action: "create_file", data: { name: "Plano.docx", type: "docx", folder_id: "Planejamento_folder" } }
+
+REGRAS:
+- Pastas: use temp_ref no formato "NomePasta_folder"
+- Subpastas: use parent_id com temp_ref da pasta pai
+- Arquivos: use folder_id com temp_ref da pasta onde deve estar
+
 IMPORTANTE:
 - Execute EXATAMENTE a ação descrita
 - Se precisar criar um arquivo, use o formato apropriado (docx, xlsx, pptx, kbn, gnt, crn)
-- Se a ação mencionar um arquivo específico (ex: "kanban X"), busque nos arquivos existentes
 - Para planilhas, sempre preencha com dados exemplo se não especificado
 - Para documentos, use HTML formatado
 
-IMPORTANTE: Se o usuário pedir múltiplos itens (ex: "crie 3 pastas", "crie pasta X e arquivo Y"), retorne um array com múltiplas ações.
+IMPORTANTE: Se o usuário pedir múltiplos itens, retorne um array com múltiplas ações.
 Se for apenas um item, ainda assim retorne um array com 1 ação.
 
 Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`;
@@ -343,9 +358,25 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
 
           if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
             const results = [];
+            const tempRefs = {}; // Armazena ID real de pastas criadas
+            
             for (const actionItem of llmResult.actions) {
+              // Substituir referências temporárias por IDs reais
+              if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
+                actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
+              }
+              
+              if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
+                actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
+              }
+              
               const result = await executeAction(actionItem, folders, files);
               results.push({ action: actionItem, result });
+              
+              // Armazenar ID real da pasta criada
+              if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
+                tempRefs[actionItem.temp_ref] = result.id;
+              }
             }
 
             await queryClient.invalidateQueries({ queryKey: ['files'] });
