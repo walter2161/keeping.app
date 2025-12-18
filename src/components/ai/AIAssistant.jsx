@@ -83,20 +83,75 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
     return labels[type] || 'arquivos';
   }
 
+  const parseXMLStructure = (xmlString) => {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+    const actions = [];
+    const tempRefs = {};
+
+    const processNode = (node, parentRef = null) => {
+      if (node.nodeType !== 1) return; // Only process element nodes
+
+      const tagName = node.tagName.toLowerCase();
+      const name = node.getAttribute('name');
+
+      if (tagName === 'folder') {
+        const tempRef = name.replace(/\s+/g, '') + '_folder';
+        actions.push({
+          action: 'create_folder',
+          temp_ref: tempRef,
+          data: {
+            name: name,
+            parent_id: parentRef
+          }
+        });
+
+        // Process children
+        Array.from(node.children).forEach(child => processNode(child, tempRef));
+      } else if (tagName === 'file') {
+        const extension = name.split('.').pop();
+        const typeMap = {
+          'docx': 'docx', 'doc': 'docx',
+          'xlsx': 'xlsx', 'xls': 'xlsx',
+          'pptx': 'pptx', 'ppt': 'pptx',
+          'kbn': 'kbn', 'gnt': 'gnt', 'crn': 'crn', 'flux': 'flux',
+          'pdf': 'pdf', 'jpg': 'img', 'jpeg': 'img', 'png': 'img', 'gif': 'img',
+          'mp4': 'video', 'mov': 'video', 'avi': 'video'
+        };
+
+        actions.push({
+          action: 'create_file',
+          data: {
+            name: name,
+            type: typeMap[extension] || 'other',
+            folder_id: parentRef
+          }
+        });
+      }
+    };
+
+    const rootNode = xmlDoc.querySelector('root');
+    if (rootNode) {
+      Array.from(rootNode.children).forEach(child => processNode(child, null));
+    }
+
+    return { actions };
+  };
+
   const getSystemPrompt = () => {
     const assistantName = user?.assistant_name || 'Assistente Virtual';
     const assistantRole = user?.assistant_role || 'Assistente Executiva';
     const assistantExpertise = user?.assistant_expertise || 'Gestão de projetos, organização e produtividade';
     const assistantGuidelines = user?.assistant_guidelines || 'Seja sempre prestativa, objetiva e profissional.';
-    
-    let basePrompt = `Você é ${assistantName}, uma ${assistantRole}. 
-Suas áreas de conhecimento incluem: ${assistantExpertise}
 
-Diretrizes de comportamento: ${assistantGuidelines}`;
+    let basePrompt = `Você é ${assistantName}, uma ${assistantRole}. 
+  Suas áreas de conhecimento incluem: ${assistantExpertise}
+
+  Diretrizes de comportamento: ${assistantGuidelines}`;
 
     if (!fileContext || !fileType) {
       return basePrompt + `\nVocê é a assistente virtual global do Keeping, um sistema de organização empresarial.
-Você pode ajudar com navegação, organização de arquivos, e responder perguntas estratégicas sobre projetos e tarefas.`;
+  Você pode ajudar com navegação, organização de arquivos, e responder perguntas estratégicas sobre projetos e tarefas.`;
     }
 
     const contextPrompts = {
@@ -288,6 +343,12 @@ ${specificPrompt}
 
 Ação a executar: ${matchedAutomation.action}
 
+FORMATO XML:
+Se a ação envolver criar múltiplas pastas/arquivos organizados, você pode usar XML:
+<root>
+  <folder name="Nome"><file name="arquivo.docx" /></folder>
+</root>
+
 IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
 Quando houver indentação ou traços mostrando hierarquia, INTERPRETE ASSIM:
 
@@ -430,8 +491,60 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
         return;
       }
       
+      // Detectar se é XML
+      const isXML = input.trim().startsWith('<root>') && input.trim().endsWith('</root>');
+
+      if (isXML) {
+        // Processar XML diretamente
+        try {
+          const llmResult = parseXMLStructure(input);
+
+          if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
+            const results = [];
+            const tempRefs = {};
+
+            for (const actionItem of llmResult.actions) {
+              if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
+                actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
+              }
+
+              if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
+                actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
+              }
+
+              const result = await executeAction(actionItem, folders, files);
+              results.push({ action: actionItem, result });
+
+              if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
+                tempRefs[actionItem.temp_ref] = result.id;
+              }
+            }
+
+            await queryClient.invalidateQueries({ queryKey: ['files'] });
+            await queryClient.invalidateQueries({ queryKey: ['folders'] });
+
+            const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
+            const successMessage = { 
+              role: 'assistant', 
+              content: `✓ Estrutura XML criada com sucesso:\n${successMessages}` 
+            };
+            setMessages(prev => [...prev, successMessage]);
+
+            setTimeout(() => window.location.reload(), 1500);
+          }
+        } catch (error) {
+          const errorMessage = { 
+            role: 'assistant', 
+            content: '❌ Erro ao processar XML. Verifique a formatação.' 
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        }
+        setLoading(false);
+        return;
+      }
+
       // Detectar se é uma ação ou conversa
-      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover', 'mude', 'mudar', 'altere', 'alterar', 'troque', 'trocar', 'substitua', 'substituir'];
+      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover', 'mude', 'mudar', 'altere', 'alterar', 'troque', 'trocar', 'substitua', 'substituir', 'monte', 'montar', 'estrutura', 'estruture'];
       const isAction = actionKeywords.some(keyword => input.toLowerCase().includes(keyword));
 
       // Histórico das últimas mensagens para contexto
@@ -471,6 +584,21 @@ Permissões:
 - Excluir itens: ${user?.assistant_can_delete_items !== false}
 
 Comando do usuário: "${input}"
+
+IMPORTANTE - FORMATO XML PARA ESTRUTURAS COMPLEXAS:
+Se o usuário pedir para "montar", "estruturar" ou "gerar código/xml", você deve PRIMEIRO criar um XML estruturado e retornar na conversa para o usuário visualizar, SEM executar ainda.
+
+Use este formato XML:
+<root>
+  <folder name="Nome da Pasta">
+    <file name="arquivo.docx" />
+    <folder name="Subpasta">
+      <file name="outro.xlsx" />
+    </folder>
+  </folder>
+</root>
+
+O XML será executado automaticamente quando o usuário colar de volta no chat.
 
 IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
 Quando o usuário usar indentação ou traços (-) mostrando hierarquia, INTERPRETE ASSIM:

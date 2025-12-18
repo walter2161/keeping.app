@@ -309,10 +309,12 @@ export default function Wiki() {
                     ✨ Criar Estruturas Hierárquicas Completas
                   </h4>
                   <p className="text-gray-700 mb-3">
-                    A assistente entende <strong>indentação</strong>! Você pode criar várias pastas e arquivos organizados de uma só vez usando espaços ou traços:
+                    A assistente entende <strong>indentação</strong> e <strong>código XML</strong>! Você pode criar várias pastas e arquivos organizados de uma só vez.
                   </p>
-                  <div className="bg-white p-4 rounded-lg border-2 border-blue-300 shadow-sm">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">Exemplo de comando:</p>
+                  
+                  {/* Método 1: Indentação */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-blue-300 shadow-sm mb-4">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Método 1: Indentação Simples</p>
                     <div className="font-mono text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
                       <div className="text-blue-600 mb-2">Crie essa estrutura:</div>
                       <div>- Marketing</div>
@@ -321,20 +323,49 @@ export default function Wiki() {
                       <div>&nbsp;&nbsp;&nbsp;&nbsp;- Email Marketing.docx</div>
                       <div>&nbsp;&nbsp;- Budget</div>
                       <div>&nbsp;&nbsp;&nbsp;&nbsp;- Planejamento.xlsx</div>
-                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Analises</div>
-                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Relatorio Q1.docx</div>
-                      <div>- Projetos</div>
-                      <div>&nbsp;&nbsp;- Projeto A</div>
-                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Workflow.kbn</div>
-                      <div>&nbsp;&nbsp;- Projeto B</div>
-                      <div>&nbsp;&nbsp;&nbsp;&nbsp;- Timeline.gnt</div>
+                    </div>
+                  </div>
+
+                  {/* Método 2: XML */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-green-300 shadow-sm">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">
+                      Método 2: Código XML (mais preciso) ⭐
+                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">
+                        1️⃣ Peça à assistente: <span className="font-semibold text-blue-700">"Monte o código XML para..."</span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        2️⃣ Ela vai gerar o XML estruturado para você revisar
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        3️⃣ Cole o XML de volta e ela criará tudo na ordem correta!
+                      </p>
+                    </div>
+                    <div className="font-mono text-xs text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto mt-3">
+                      <div className="text-green-600 mb-1">Exemplo de XML:</div>
+                      <div>&lt;root&gt;</div>
+                      <div>&nbsp;&nbsp;&lt;folder name="Marketing"&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;folder name="Campanhas"&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;file name="Social Media.pptx" /&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;file name="Email Marketing.docx" /&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;/folder&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;folder name="Budget"&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;file name="Planejamento.xlsx" /&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;/folder&gt;</div>
+                      <div>&nbsp;&nbsp;&lt;/folder&gt;</div>
+                      <div>&nbsp;&nbsp;&lt;folder name="Projetos"&gt;</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;file name="Cronograma.gnt" /&gt;</div>
+                      <div>&nbsp;&nbsp;&lt;/folder&gt;</div>
+                      <div>&lt;/root&gt;</div>
                     </div>
                     <div className="mt-3 text-sm text-gray-600 space-y-1">
-                      <p>📌 <strong>Regras:</strong></p>
+                      <p>✅ <strong>Vantagens do XML:</strong></p>
                       <ul className="list-disc list-inside ml-2 space-y-1">
-                        <li>Mais espaços = mais dentro da pasta</li>
-                        <li>Sem extensão = pasta, com extensão = arquivo</li>
-                        <li>A assistente cria tudo na ordem certa automaticamente!</li>
+                        <li>Estrutura visualmente clara e organizada</li>
+                        <li>Execução na ordem correta garantida</li>
+                        <li>Fácil de revisar antes de criar</li>
+                        <li>Pode ser salvo e reutilizado depois</li>
                       </ul>
                     </div>
                   </div>
