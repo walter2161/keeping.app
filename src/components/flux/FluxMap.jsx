@@ -57,6 +57,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         const coverColor = nodeData.coverColor || '#3b82f6';
         const coverImage = nodeData.coverImage || '';
         const attachments = nodeData.attachments || [];
+        const description = nodeData.description || '';
         
         const priorityBgMap = {
           low: '#f3f4f6',
@@ -72,23 +73,21 @@ export default function FluxMap({ data, onChange, onImport }) {
         
         const priorityLabel = priority === 'high' ? 'Alta' : priority === 'medium' ? 'Média' : 'Baixa';
         
-        const showPriorityBadge = title || coverType !== 'none' || attachments.length > 0;
-        
         const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
-                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; height: 120px; object-fit: cover;" />` : '';
+                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;" />` : '';
         
         html = `
-          <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
+          <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
             ${coverHTML}
             <div style="padding: 12px;">
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${showPriorityBadge ? '8px' : '0'}; min-height: 20px;">
-                ${title ? `<span style="font-family: 'Montserrat', sans-serif;">${title}</span>` : '<span style="color: #94a3b8; font-family: Montserrat, sans-serif;">Título do card</span>'}
+              <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${description ? '4px' : '8px'}; font-family: 'Montserrat', sans-serif;">
+                ${title || 'Título do card'}
+              </p>
+              ${description ? `<p style="font-size: 12px; color: #64748b; margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Montserrat', sans-serif;">${description}</p>` : ''}
+              <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                <span style="background: ${priorityBgMap[priority]}; color: ${priorityTextMap[priority]}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: 'Montserrat', sans-serif;">${priorityLabel}</span>
+                ${attachments.length > 0 ? `<span style="border: 1px solid #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px; font-family: 'Montserrat', sans-serif;"><span style="font-size: 14px;">📎</span> ${attachments.length}</span>` : ''}
               </div>
-              ${showPriorityBadge ? `
-              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                <span style="background: ${priorityBgMap[priority]}; color: ${priorityTextMap[priority]}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${priorityLabel}</span>
-                ${attachments.length > 0 ? `<span style="border: 1px solid #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px;">📎 ${attachments.length}</span>` : ''}
-              </div>` : ''}
             </div>
           </div>
         `;
