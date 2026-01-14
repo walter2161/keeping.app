@@ -58,12 +58,6 @@ export default function FluxMap({ data, onChange, onImport }) {
         const coverImage = nodeData.coverImage || '';
         const attachments = nodeData.attachments || [];
         
-        const priorityColorMap = {
-          low: 'bg-gray-100 text-gray-700',
-          medium: 'bg-yellow-100 text-yellow-700',
-          high: 'bg-red-100 text-red-700',
-        };
-        
         const priorityBgMap = {
           low: '#f3f4f6',
           medium: '#fef3c7',
@@ -81,17 +75,17 @@ export default function FluxMap({ data, onChange, onImport }) {
         const showPriorityBadge = title || coverType !== 'none' || attachments.length > 0;
         
         const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
-                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;" />` : '';
+                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; height: 120px; object-fit: cover;" />` : '';
         
         html = `
           <div style="width: 240px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; overflow: hidden;">
             ${coverHTML}
             <div style="padding: 12px;">
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${showPriorityBadge ? '8px' : '0'};">
-                <input type="text" value="${title}" placeholder="Título do card" style="width: 100%; border: none; font-size: 14px; font-weight: 600; font-family: 'Montserrat', sans-serif;" />
+              <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${showPriorityBadge ? '8px' : '0'}; min-height: 20px;">
+                ${title ? `<span style="font-family: 'Montserrat', sans-serif;">${title}</span>` : '<span style="color: #94a3b8; font-family: Montserrat, sans-serif;">Título do card</span>'}
               </div>
               ${showPriorityBadge ? `
-              <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 <span style="background: ${priorityBgMap[priority]}; color: ${priorityTextMap[priority]}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${priorityLabel}</span>
                 ${attachments.length > 0 ? `<span style="border: 1px solid #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px;">📎 ${attachments.length}</span>` : ''}
               </div>` : ''}
