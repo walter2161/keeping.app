@@ -45,6 +45,21 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     attachments: [],
   });
   
+  // Update editData when dialog opens with new data
+  React.useEffect(() => {
+    if (open && data) {
+      setEditData({
+        title: data.title || '',
+        description: data.description || '',
+        priority: data.priority || 'medium',
+        coverType: data.coverType || 'none',
+        coverColor: data.coverColor || coverColors[0],
+        coverImage: data.coverImage || '',
+        attachments: data.attachments || [],
+      });
+    }
+  }, [open, data]);
+  
   const [uploadingFile, setUploadingFile] = useState(false);
 
   const handleFileUpload = async (e) => {
