@@ -430,6 +430,11 @@ export default function FluxMap({ data, onChange, onImport }) {
     if (editorRef.current && editDialog.nodeId) {
       const node = editorRef.current.getNodeFromId(editDialog.nodeId);
       if (node) {
+        console.log('=== SALVANDO DADOS DO CARD ===');
+        console.log('Node ID:', editDialog.nodeId);
+        console.log('Dados anteriores:', node.data);
+        console.log('Novos dados:', newData);
+        
         // Update node data
         node.data = { ...newData };
         
@@ -440,6 +445,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           if (nodeElement) {
             // Clear and re-add HTML
             nodeElement.innerHTML = html.trim();
+            console.log('HTML do card atualizado');
           }
           
           // Re-add edit icon
@@ -487,8 +493,12 @@ export default function FluxMap({ data, onChange, onImport }) {
         // Update node data in drawflow
         editorRef.current.updateNodeDataFromId(editDialog.nodeId, newData);
         
+        const exportedData = editorRef.current.export();
+        console.log('Dados exportados após salvar:', exportedData);
+        console.log('Node específico no export:', exportedData.drawflow.Home.data[editDialog.nodeId]);
+        
         if (onChange) {
-          onChange(editorRef.current.export());
+          onChange(exportedData);
         }
       }
     }

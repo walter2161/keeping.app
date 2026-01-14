@@ -1,21 +1,21 @@
+import AssistantSettings from './pages/AssistantSettings';
+import Dashboard from './pages/Dashboard';
 import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
-import Trash from './pages/Trash';
-import Dashboard from './pages/Dashboard';
-import Wiki from './pages/Wiki';
 import Profile from './pages/Profile';
-import AssistantSettings from './pages/AssistantSettings';
+import Trash from './pages/Trash';
+import Wiki from './pages/Wiki';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AssistantSettings": AssistantSettings,
+    "Dashboard": Dashboard,
     "Drive": Drive,
     "FileViewer": FileViewer,
-    "Trash": Trash,
-    "Dashboard": Dashboard,
-    "Wiki": Wiki,
     "Profile": Profile,
-    "AssistantSettings": AssistantSettings,
+    "Trash": Trash,
+    "Wiki": Wiki,
 }
 
 export const pagesConfig = {

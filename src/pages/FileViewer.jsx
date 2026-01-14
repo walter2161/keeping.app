@@ -131,6 +131,17 @@ export default function FileViewer() {
   });
 
   const handleContentChange = (newContent) => {
+    console.log('=== CONTENT CHANGE DETECTADO ===');
+    console.log('Tipo de arquivo:', file?.type);
+    console.log('Novo conteúdo:', newContent);
+    if (file?.type === 'flux' && newContent?.drawflow?.Home?.data) {
+      console.log('Nodes do FluxMap:', Object.keys(newContent.drawflow.Home.data));
+      Object.entries(newContent.drawflow.Home.data).forEach(([id, node]) => {
+        if (node.name === 'card-kanban') {
+          console.log(`Card ${id} - dados:`, node.data);
+        }
+      });
+    }
     setLocalContent(newContent);
     setHasChanges(true);
   };
