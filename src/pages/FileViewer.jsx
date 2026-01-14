@@ -75,16 +75,16 @@ export default function FileViewer() {
     refetchOnMount: 'always',
     staleTime: 0,
     cacheTime: 0,
-    refetchInterval: 5000, // Auto-sync every 5 seconds
+    refetchInterval: hasChanges ? false : 5000, // CRÍTICO: Desabilitar auto-refresh quando houver mudanças não salvas
   });
 
   useEffect(() => {
-    if (file) {
+    if (file && !hasChanges) {
+      console.log('=== ATUALIZANDO CONTEÚDO DO ARQUIVO ===');
+      console.log('hasChanges:', hasChanges);
       setFileName(file.name);
       
-      // Only update content if user hasn't made local changes
-      if (!hasChanges) {
-        if (file.content) {
+      if (file.content) {
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent(file.content);
         } else if (file.type === 'pptx') {
@@ -113,9 +113,8 @@ export default function FileViewer() {
           setLocalContent({});
         }
       }
-      }
     }
-  }, [file, hasChanges]);
+  }, [file]);
 
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
@@ -155,14 +154,22 @@ export default function FileViewer() {
           ? JSON.stringify(localContent) 
           : (localContent || ''));
       
+      console.log('=== SALVANDO ARQUIVO ===');
+      console.log('Tipo:', file.type);
+      console.log('Conteúdo a salvar (primeiros 500 chars):', contentToSave.substring(0, 500));
+      
       await updateFileMutation.mutateAsync({ 
         name: fileName,
         content: contentToSave 
       });
       
-      queryClient.invalidateQueries({ queryKey: ['file', fileId] });
+      // CRÍTICO: Esperar um pouco antes de limpar hasChanges para evitar race condition
+      await new Promise(resolve => setTimeout(resolve, 100));
       setHasChanges(false);
+      
+      console.log('Arquivo salvo com sucesso');
     } catch (error) {
+      console.error('ERRO AO SALVAR:', error);
       alert('Erro ao salvar o arquivo: ' + error.message);
     } finally {
       setSaving(false);
