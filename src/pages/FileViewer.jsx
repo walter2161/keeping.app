@@ -82,9 +82,10 @@ export default function FileViewer() {
     if (file && !hasChanges) {
       console.log('=== ATUALIZANDO CONTEÚDO DO ARQUIVO ===');
       console.log('hasChanges:', hasChanges);
+      console.log('File content:', file.content);
       setFileName(file.name);
       
-      if (file.content) {
+      if (file.content && file.content.trim() !== '') {
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent(file.content);
         } else if (file.type === 'pptx') {
@@ -92,29 +93,35 @@ export default function FileViewer() {
             const parsed = JSON.parse(file.content);
             setLocalContent(parsed);
           } catch (e) {
+            console.error('Erro ao parsear pptx:', e);
             setLocalContent({ slides: [{ title: '', content: '' }] });
           }
         } else {
           try {
             const parsed = JSON.parse(file.content);
+            console.log('Conteúdo parseado com sucesso:', parsed);
             setLocalContent(parsed);
           } catch (e) {
+            console.error('Erro ao parsear JSON:', e);
             setLocalContent(file.content);
           }
         }
       } else {
+        console.log('Conteúdo vazio, inicializando valores padrão');
         if (file.type === 'docx' || file.type === 'xlsx') {
           setLocalContent('');
         } else if (file.type === 'pptx') {
           setLocalContent({ slides: [{ title: '', content: '' }] });
         } else if (file.type === 'flux') {
-          setLocalContent({ drawflow: { Home: { data: {} } } });
+          const defaultContent = { drawflow: { Home: { data: {} } } };
+          setLocalContent(defaultContent);
+          console.log('FluxMap inicializado com conteúdo padrão');
         } else {
           setLocalContent({});
         }
       }
     }
-  }, [file]);
+  }, [file, hasChanges]);
 
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
