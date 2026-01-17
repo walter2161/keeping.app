@@ -46,6 +46,9 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [isResizingArea, setIsResizingArea] = useState(false);
   const [dragAreaStart, setDragAreaStart] = useState({ x: 0, y: 0 });
   const [resizeAreaStart, setResizeAreaStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [isCreatingArea, setIsCreatingArea] = useState(false);
+  const [newAreaStart, setNewAreaStart] = useState({ x: 0, y: 0 });
+  const [newAreaEnd, setNewAreaEnd] = useState({ x: 0, y: 0 });
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
@@ -308,23 +311,6 @@ export default function FluxMap({ data, onChange, onImport }) {
   };
 
   const handleClickToAdd = (nodeType) => {
-    if (nodeType === 'area') {
-      // Add area instead of node
-      const newArea = {
-        id: Date.now().toString(),
-        title: 'Área',
-        x: 100,
-        y: 100,
-        width: 400,
-        height: 300,
-        color: 'rgba(59, 130, 246, 0.1)',
-      };
-      const newAreas = [...areas, newArea];
-      setAreas(newAreas);
-      saveAreasToData(newAreas);
-      return;
-    }
-    
     if (!drawflowRef.current) return;
     
     const rect = drawflowRef.current.getBoundingClientRect();
@@ -358,49 +344,15 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const handleMouseUp = (e) => {
     if (isDraggingNew && dragNodeType && drawflowRef.current) {
-      if (dragNodeType === 'area') {
-        const rect = drawflowRef.current.getBoundingClientRect();
-        const isOverCanvas = 
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom;
+      const rect = drawflowRef.current.getBoundingClientRect();
+      const isOverCanvas = 
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
 
-        if (isOverCanvas) {
-          const editor = editorRef.current;
-          const canvasRect = drawflowRef.current.getBoundingClientRect();
-          let x = e.clientX - canvasRect.left;
-          let y = e.clientY - canvasRect.top;
-          
-          if (editor) {
-            x = x / editor.zoom;
-            y = y / editor.zoom;
-          }
-          
-          const newArea = {
-            id: Date.now().toString(),
-            title: 'Área',
-            x: x - 200,
-            y: y - 150,
-            width: 400,
-            height: 300,
-            color: 'rgba(59, 130, 246, 0.1)',
-          };
-          const newAreas = [...areas, newArea];
-          setAreas(newAreas);
-          saveAreasToData(newAreas);
-        }
-      } else {
-        const rect = drawflowRef.current.getBoundingClientRect();
-        const isOverCanvas = 
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom;
-
-        if (isOverCanvas) {
-          addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
-        }
+      if (isOverCanvas) {
+        addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
       }
     }
     
@@ -468,6 +420,48 @@ export default function FluxMap({ data, onChange, onImport }) {
       window.removeEventListener('mouseup', handleAreaMouseUp);
     };
   }, [isDraggingArea, isResizingArea, selectedAreaId, dragAreaStart, resizeAreaStart, areas]);
+  
+  // Handle area creation
+  const handleAreaCreationMove = (e) => {
+    if (!isCreatingArea) return;
+    const editor = editorRef.current;
+    const rect = drawflowRef.current.getBoundingClientRect();
+    const scale = editor ? editor.zoom : 1;
+    const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
+    const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
+    
+    const x = (e.clientX - rect.left - translateX) / scale;
+    const y = (e.clientY - rect.top - translateY) / scale;
+    
+    setNewAreaEnd({ x, y });
+  };
+  
+  const handleAreaCreationEnd = () => {
+    document.removeEventListener('mousemove', handleAreaCreationMove);
+    document.removeEventListener('mouseup', handleAreaCreationEnd);
+    
+    const width = Math.abs(newAreaEnd.x - newAreaStart.x);
+    const height = Math.abs(newAreaEnd.y - newAreaStart.y);
+    
+    if (width > 50 && height > 50) {
+      const newArea = {
+        id: Date.now().toString(),
+        title: 'Área',
+        x: Math.min(newAreaStart.x, newAreaEnd.x),
+        y: Math.min(newAreaStart.y, newAreaEnd.y),
+        width,
+        height,
+        color: 'rgba(59, 130, 246, 0.1)',
+      };
+      const newAreas = [...areas, newArea];
+      setAreas(newAreas);
+      saveAreasToData(newAreas);
+    }
+    
+    setNewAreaStart({ x: 0, y: 0 });
+    setNewAreaEnd({ x: 0, y: 0 });
+    setIsCreatingArea(false);
+  };
 
   useEffect(() => {
     if (!drawflowRef.current) return;
@@ -936,7 +930,6 @@ export default function FluxMap({ data, onChange, onImport }) {
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
       'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link' },
-      'area': { emoji: '📦', bg: '#dcfce7', border: '#22c55e', text: 'Área' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -1248,6 +1241,11 @@ export default function FluxMap({ data, onChange, onImport }) {
           padding: 10px;
           overflow-y: auto;
         }
+        
+        .area-tool:hover {
+          transform: translateX(2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
 
         .drag-drawflow {
           cursor: grab;
@@ -1283,21 +1281,6 @@ export default function FluxMap({ data, onChange, onImport }) {
 
       <div className="sidebar-flux">
         <div className="mb-3">
-          <div
-            className="drag-drawflow"
-            draggable="true"
-            data-node="area"
-            onMouseDown={(e) => handleMouseDownOnButton(e, 'area')}
-            onClick={(e) => {
-              if (!isDraggingNew) handleClickToAdd('area');
-            }}
-            style={{ background: '#dcfce7', borderColor: '#22c55e' }}
-            title="Área"
-          >
-            <span style={{ fontSize: '18px' }}>📦</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#166534' }}>Área</span>
-          </div>
-
           <div
             className="drag-drawflow"
             draggable="true"
@@ -1414,8 +1397,34 @@ export default function FluxMap({ data, onChange, onImport }) {
               <Plus className="w-3 h-3" />
             </Button>
           </div>
+        </div>
 
-
+        <div className="pt-3 border-t border-gray-200 mt-3">
+          <div
+            className="area-tool"
+            style={{ 
+              background: isCreatingArea ? '#dcfce7' : '#f0fdf4',
+              borderColor: isCreatingArea ? '#16a34a' : '#22c55e',
+              padding: '10px',
+              borderRadius: '6px',
+              border: '2px solid',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              userSelect: 'none'
+            }}
+            onClick={() => setIsCreatingArea(!isCreatingArea)}
+          >
+            <span style={{ fontSize: '20px', display: 'block', marginBottom: '4px' }}>📦</span>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534', display: 'block' }}>
+              {isCreatingArea ? 'CANCELAR' : 'ÁREA'}
+            </span>
+            {!isCreatingArea && (
+              <span style={{ fontSize: '9px', color: '#16a34a', display: 'block', marginTop: '2px' }}>
+                Clique para ativar
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1507,10 +1516,45 @@ export default function FluxMap({ data, onChange, onImport }) {
         <div
           id="drawflow"
           ref={drawflowRef}
-          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+          style={{ position: 'absolute', inset: 0, zIndex: 1, cursor: isCreatingArea ? 'crosshair' : 'default' }}
           onDrop={(e) => e.preventDefault()}
           onDragOver={(e) => e.preventDefault()}
+          onMouseDown={(e) => {
+            if (isCreatingArea && e.button === 0) {
+              const editor = editorRef.current;
+              const rect = drawflowRef.current.getBoundingClientRect();
+              const scale = editor ? editor.zoom : 1;
+              const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
+              const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
+              
+              const x = (e.clientX - rect.left - translateX) / scale;
+              const y = (e.clientY - rect.top - translateY) / scale;
+              
+              setNewAreaStart({ x, y });
+              setNewAreaEnd({ x, y });
+              document.addEventListener('mousemove', handleAreaCreationMove);
+              document.addEventListener('mouseup', handleAreaCreationEnd);
+              e.preventDefault();
+            }
+          }}
         />
+        
+        {/* Preview da área sendo criada */}
+        {isCreatingArea && newAreaStart.x !== newAreaEnd.x && newAreaStart.y !== newAreaEnd.y && (
+          <div style={{
+            position: 'absolute',
+            left: Math.min(newAreaStart.x, newAreaEnd.x),
+            top: Math.min(newAreaStart.y, newAreaEnd.y),
+            width: Math.abs(newAreaEnd.x - newAreaStart.x),
+            height: Math.abs(newAreaEnd.y - newAreaStart.y),
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '2px dashed rgba(59, 130, 246, 0.6)',
+            borderRadius: '8px',
+            zIndex: 999,
+            pointerEvents: 'none',
+            transform: `translate(${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px'}, ${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0px' : '0px'}) scale(${editorRef.current ? editorRef.current.zoom : 1})`
+          }} />
+        )}
         
         {selectedNodeId && (
           <div className="absolute top-4 right-4 z-50">
