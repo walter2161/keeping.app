@@ -96,7 +96,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'rectangle-shape':
         html = `
           <div style="width: 180px; height: 100px; background: #93c5fd; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-            <input type="text" value="${nodeData.text || 'Passo'}" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #1e40af; font-family: 'Montserrat', sans-serif;" />
+            <span style="width: 100%; text-align: center; font-size: 14px; font-weight: 600; color: #1e40af; font-family: 'Montserrat', sans-serif;">${nodeData.text || 'Passo'}</span>
           </div>
         `;
         break;
@@ -104,7 +104,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'circle-shape':
         html = `
           <div style="width: 140px; height: 140px; background: #fde047; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-            <input type="text" value="${nodeData.text || 'Círculo'}" style="width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #854d0e; font-family: 'Montserrat', sans-serif;" />
+            <span style="width: 100%; text-align: center; font-size: 14px; font-weight: 600; color: #854d0e; font-family: 'Montserrat', sans-serif;">${nodeData.text || 'Círculo'}</span>
           </div>
         `;
         break;
@@ -112,7 +112,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'name-bubble':
         html = `
           <div style="background: white; border: 3px solid #a855f7; border-radius: 50px; padding: 12px 24px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <input type="text" value="${nodeData.text || 'Nome'}" style="border: none; background: transparent; text-align: center; font-size: 15px; font-weight: 600; color: #6b21a8; width: 100px; font-family: 'Montserrat', sans-serif;" />
+            <span style="text-align: center; font-size: 15px; font-weight: 600; color: #6b21a8; white-space: nowrap; font-family: 'Montserrat', sans-serif;">${nodeData.text || 'Nome'}</span>
           </div>
         `;
         break;
@@ -120,7 +120,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'text-box':
         html = `
           <div style="background: transparent; padding: 8px;">
-            <input type="text" value="${nodeData.text || 'Texto'}" style="border: none; background: transparent; font-size: 16px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; min-width: 120px;" />
+            <span style="font-size: 16px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif;">${nodeData.text || 'Texto'}</span>
           </div>
         `;
         break;
@@ -147,11 +147,12 @@ export default function FluxMap({ data, onChange, onImport }) {
     const { html, inputs, outputs } = createNodeHTML(name);
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, {}, html);
 
-    // Add edit icon only to card-kanban nodes
-    if (name === 'card-kanban') {
+    // Add edit icon to all editable nodes
+    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box'];
+    if (editableNodes.includes(name)) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
-        if (nodeElement) {
+        if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
           const editIcon = document.createElement('div');
           editIcon.className = 'edit-icon';
           editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
@@ -236,11 +237,12 @@ export default function FluxMap({ data, onChange, onImport }) {
       editorRef.current.clear();
       editorRef.current.import(data);
       
-      // Re-add edit icons after import (only for card-kanban)
+      // Re-add edit icons after import
       setTimeout(() => {
+        const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box'];
         Object.keys(data.drawflow.Home.data).forEach(nodeId => {
           const nodeData = data.drawflow.Home.data[nodeId];
-          if (nodeData.name === 'card-kanban') {
+          if (editableNodes.includes(nodeData.name)) {
             const nodeElement = document.getElementById(`node-${nodeId}`);
             if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
               const editIcon = document.createElement('div');
@@ -278,11 +280,12 @@ export default function FluxMap({ data, onChange, onImport }) {
       try {
         editor.import(data);
 
-        // Add edit icons to card-kanban nodes only
+        // Add edit icons to all editable nodes
         setTimeout(() => {
+          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box'];
           Object.keys(data.drawflow.Home.data).forEach(nodeId => {
             const nodeData = data.drawflow.Home.data[nodeId];
-            if (nodeData.name === 'card-kanban') {
+            if (editableNodes.includes(nodeData.name)) {
               const nodeElement = document.getElementById(`node-${nodeId}`);
               if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
                 const editIcon = document.createElement('div');
@@ -469,24 +472,12 @@ export default function FluxMap({ data, onChange, onImport }) {
             }
           }, 10);
         } else {
-          // For other nodes, update inputs/textareas
+          // For other nodes (rectangle, circle, name-bubble, text-box), regenerate HTML
+          const { html } = createNodeHTML(editDialog.nodeType, newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
-            const inputs = nodeElement.querySelectorAll('input, textarea');
-            if (newData.title) {
-              inputs.forEach((input, index) => {
-                if (index === 0 && input.tagName === 'INPUT') {
-                  input.value = newData.title;
-                }
-              });
-            }
-            if (newData.description) {
-              inputs.forEach((input, index) => {
-                if (input.tagName === 'TEXTAREA' || (index === 1 && input.tagName === 'INPUT')) {
-                  input.value = newData.description;
-                }
-              });
-            }
+            nodeElement.innerHTML = html.trim();
+            console.log('HTML do elemento atualizado');
           }
         }
         
@@ -936,20 +927,11 @@ export default function FluxMap({ data, onChange, onImport }) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Título</label>
+                <label className="text-sm font-medium mb-2 block">Texto</label>
                 <Input
-                  value={editDialog.data.title || ''}
-                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
-                  placeholder="Digite o título"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Descrição</label>
-                <Textarea
-                  value={editDialog.data.description || ''}
-                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, description: e.target.value } })}
-                  placeholder="Digite a descrição"
-                  rows={4}
+                  value={editDialog.data.text || ''}
+                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                  placeholder="Digite o texto"
                 />
               </div>
               <div className="flex justify-end gap-2">
