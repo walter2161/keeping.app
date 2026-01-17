@@ -135,6 +135,36 @@ export default function FluxMap({ data, onChange, onImport }) {
         `;
         break;
 
+      case 'url-link':
+        const linkUrl = nodeData.url || 'https://google.com';
+        const linkTitle = nodeData.title || 'Link';
+        html = `
+          <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden; cursor: pointer;" onclick="window.open('${linkUrl}', '_blank')">
+            <div style="height: 160px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; position: relative; overflow: hidden;">
+              <iframe src="${linkUrl}" style="width: 100%; height: 100%; border: none; pointer-events: none; transform: scale(1); transform-origin: 0 0;"></iframe>
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.05) 100%);"></div>
+            </div>
+            <div style="padding: 12px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="flex: 1; min-width: 0;">
+                <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 4px; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${linkTitle}
+                </p>
+                <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${linkUrl}
+                </p>
+              </div>
+              <div style="margin-left: 8px; background: #3b82f6; color: white; padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
       default:
         html = '<div style="padding: 12px;">Novo Item</div>';
         break;
@@ -164,11 +194,15 @@ export default function FluxMap({ data, onChange, onImport }) {
     else if (name === 'circle-shape') initialData.text = 'Círculo';
     else if (name === 'name-bubble') initialData.text = 'Nome';
     else if (name === 'text-box') initialData.text = 'Texto';
+    else if (name === 'url-link') {
+      initialData.url = 'https://google.com';
+      initialData.title = 'Link';
+    }
     
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
     // Add edit icon to all editable nodes and setup listeners for sticky-note
-    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note'];
+    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
     if (editableNodes.includes(name)) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
@@ -323,7 +357,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
         // Add edit icons to all editable nodes
         setTimeout(() => {
-          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note'];
+          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
           Object.keys(data.drawflow.Home.data).forEach(nodeId => {
             const nodeData = data.drawflow.Home.data[nodeId];
             if (editableNodes.includes(nodeData.name)) {
@@ -645,7 +679,7 @@ export default function FluxMap({ data, onChange, onImport }) {
             }
           }, 10);
         } else {
-          // rectangle, circle, name-bubble, text-box
+          // rectangle, circle, name-bubble, text-box, url-link
           const { html } = createNodeHTML(editDialog.nodeType, newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
@@ -711,6 +745,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       'circle-shape': { emoji: '●', bg: '#fef9c3', border: '#eab308', text: 'Círculo' },
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
+      'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link/URL' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -1041,6 +1076,20 @@ export default function FluxMap({ data, onChange, onImport }) {
             <span style={{ fontSize: '18px' }}>T</span>
             <span style={{ fontSize: '11px', fontWeight: '600', color: '#334155' }}>Texto</span>
           </div>
+
+          <div
+            className="drag-drawflow"
+            draggable="true"
+            data-node="url-link"
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'url-link')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('url-link');
+            }}
+            style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
+          >
+            <span style={{ fontSize: '18px' }}>🔗</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Link/URL</span>
+          </div>
         </div>
 
         <div className="pt-3 border-t border-gray-200">
@@ -1097,25 +1146,46 @@ export default function FluxMap({ data, onChange, onImport }) {
               <DialogTitle>Editar Elemento</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  {editDialog.nodeType === 'sticky-note' ? 'Nota' : 'Texto'}
-                </label>
-                {editDialog.nodeType === 'sticky-note' ? (
-                  <Textarea
-                    value={editDialog.data.text || ''}
-                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
-                    placeholder="Digite a nota..."
-                    rows={6}
-                  />
-                ) : (
-                  <Input
-                    value={editDialog.data.text || ''}
-                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
-                    placeholder="Digite o texto"
-                  />
-                )}
-              </div>
+              {editDialog.nodeType === 'url-link' ? (
+                <>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Título</label>
+                    <Input
+                      value={editDialog.data.title || ''}
+                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
+                      placeholder="Digite o título"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">URL</label>
+                    <Input
+                      value={editDialog.data.url || ''}
+                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, url: e.target.value } })}
+                      placeholder="https://exemplo.com"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    {editDialog.nodeType === 'sticky-note' ? 'Nota' : 'Texto'}
+                  </label>
+                  {editDialog.nodeType === 'sticky-note' ? (
+                    <Textarea
+                      value={editDialog.data.text || ''}
+                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                      placeholder="Digite a nota..."
+                      rows={6}
+                    />
+                  ) : (
+                    <Input
+                      value={editDialog.data.text || ''}
+                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                      placeholder="Digite o texto"
+                    />
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
                   Cancelar
