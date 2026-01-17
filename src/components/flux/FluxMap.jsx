@@ -145,14 +145,25 @@ export default function FluxMap({ data, onChange, onImport }) {
             editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom));
 
     const { html, inputs, outputs } = createNodeHTML(name);
-    const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, {}, html);
+    
+    // Initialize node data with default values
+    const initialData = {};
+    if (name === 'sticky-note') initialData.text = 'Nota';
+    else if (name === 'card-kanban') initialData.title = '';
+    else if (name === 'rectangle-shape') initialData.text = 'Passo';
+    else if (name === 'circle-shape') initialData.text = 'Círculo';
+    else if (name === 'name-bubble') initialData.text = 'Nome';
+    else if (name === 'text-box') initialData.text = 'Texto';
+    
+    const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
-    // Add edit icon to all editable nodes
-    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box'];
+    // Add edit icon to all editable nodes and setup listeners for sticky-note
+    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note'];
     if (editableNodes.includes(name)) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
         if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
+          // Add edit icon
           const editIcon = document.createElement('div');
           editIcon.className = 'edit-icon';
           editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
@@ -167,6 +178,20 @@ export default function FluxMap({ data, onChange, onImport }) {
             });
           });
           nodeElement.appendChild(editIcon);
+          
+          // For sticky-note, add blur listener to save textarea changes
+          if (name === 'sticky-note') {
+            const textarea = nodeElement.querySelector('textarea');
+            if (textarea) {
+              textarea.addEventListener('blur', () => {
+                const newText = textarea.value;
+                editor.updateNodeDataFromId(nodeId, { text: newText });
+                if (onChange) {
+                  onChange(editor.export());
+                }
+              });
+            }
+          }
         }
       }, 10);
     }
@@ -239,7 +264,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       
       // Re-add edit icons after import
       setTimeout(() => {
-        const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box'];
+        const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note'];
         Object.keys(data.drawflow.Home.data).forEach(nodeId => {
           const nodeData = data.drawflow.Home.data[nodeId];
           if (editableNodes.includes(nodeData.name)) {
@@ -259,6 +284,20 @@ export default function FluxMap({ data, onChange, onImport }) {
                 });
               });
               nodeElement.appendChild(editIcon);
+              
+              // For sticky-note, add blur listener
+              if (nodeData.name === 'sticky-note') {
+                const textarea = nodeElement.querySelector('textarea');
+                if (textarea) {
+                  textarea.addEventListener('blur', () => {
+                    const newText = textarea.value;
+                    editorRef.current.updateNodeDataFromId(nodeId, { text: newText });
+                    if (onChange) {
+                      onChange(editorRef.current.export());
+                    }
+                  });
+                }
+              }
             }
           }
         });
@@ -282,7 +321,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
         // Add edit icons to all editable nodes
         setTimeout(() => {
-          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box'];
+          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note'];
           Object.keys(data.drawflow.Home.data).forEach(nodeId => {
             const nodeData = data.drawflow.Home.data[nodeId];
             if (editableNodes.includes(nodeData.name)) {
@@ -302,6 +341,20 @@ export default function FluxMap({ data, onChange, onImport }) {
                   });
                 });
                 nodeElement.appendChild(editIcon);
+                
+                // For sticky-note, add blur listener
+                if (nodeData.name === 'sticky-note') {
+                  const textarea = nodeElement.querySelector('textarea');
+                  if (textarea) {
+                    textarea.addEventListener('blur', () => {
+                      const newText = textarea.value;
+                      editor.updateNodeDataFromId(nodeId, { text: newText });
+                      if (onChange) {
+                        onChange(editor.export());
+                      }
+                    });
+                  }
+                }
               }
             }
           });
@@ -471,6 +524,15 @@ export default function FluxMap({ data, onChange, onImport }) {
               nodeContainer.appendChild(editIcon);
             }
           }, 10);
+        } else if (editDialog.nodeType === 'sticky-note') {
+          // For sticky-note, update textarea value and data
+          const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
+          if (nodeElement) {
+            const textarea = nodeElement.querySelector('textarea');
+            if (textarea) {
+              textarea.value = newData.text || '';
+            }
+          }
         } else {
           // For other nodes (rectangle, circle, name-bubble, text-box), regenerate HTML
           const { html } = createNodeHTML(editDialog.nodeType, newData);
