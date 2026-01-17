@@ -46,9 +46,16 @@ export default function FluxMap({ data, onChange, onImport }) {
         const noteText = nodeData.text || 'Nota';
         const lineCount = noteText.split('\n').length;
         const minHeight = Math.max(180, lineCount * 24 + 40);
+        const noteWidth = nodeData.width || 180;
+        const noteHeight = nodeData.height || minHeight;
         html = `
-          <div style="width: 180px; min-height: ${minHeight}px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column;">
+          <div class="sticky-note-container" style="width: ${noteWidth}px; height: ${noteHeight}px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column; resize: both; overflow: auto;">
             <span style="width: 100%; border: none; background: transparent; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif; white-space: pre-wrap; word-wrap: break-word;">${noteText}</span>
+            <div style="position: absolute; bottom: 2px; right: 2px; width: 16px; height: 16px; cursor: nwse-resize;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
           </div>
         `;
         break;
@@ -460,6 +467,26 @@ export default function FluxMap({ data, onChange, onImport }) {
           if (nodeElement) {
             nodeElement.innerHTML = html.trim();
             console.log('✓ Sticky note atualizado');
+            
+            // Add resize observer to save dimensions
+            setTimeout(() => {
+              const stickyContainer = nodeElement.querySelector('.sticky-note-container');
+              if (stickyContainer) {
+                const resizeObserver = new ResizeObserver(() => {
+                  const width = stickyContainer.offsetWidth;
+                  const height = stickyContainer.offsetHeight;
+                  editorRef.current.updateNodeDataFromId(editDialog.nodeId, {
+                    ...newData,
+                    width: width,
+                    height: height
+                  });
+                  if (onChange) {
+                    onChange(editorRef.current.export());
+                  }
+                });
+                resizeObserver.observe(stickyContainer);
+              }
+            }, 50);
           }
           
           // Re-add edit icon
