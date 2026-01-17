@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import CardEditDialog from './CardEditDialog';
+import URLLinkEditDialog from './URLLinkEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -138,19 +139,34 @@ export default function FluxMap({ data, onChange, onImport }) {
       case 'url-link':
         const linkUrl = nodeData.url || 'https://google.com';
         const linkTitle = nodeData.title || 'Link';
+        const linkImage = nodeData.image || '';
+        const linkDescription = nodeData.description || '';
+        
+        const imageHTML = linkImage 
+          ? `<img src="${linkImage}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />`
+          : '';
+        
+        const fallbackIconHTML = `
+          <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: ${linkImage ? 'none' : 'flex'}; align-items: center; justify-content: center;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </div>
+        `;
+        
         html = `
           <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
-            <div style="height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center;">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-              </svg>
+            <div style="height: 160px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; position: relative; overflow: hidden;">
+              ${imageHTML}
+              ${fallbackIconHTML}
             </div>
             <div style="padding: 12px;">
               <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 4px; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${linkTitle}
               </p>
-              <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${linkDescription ? `<p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">${linkDescription}</p>` : ''}
+              <p style="font-size: 11px; color: #94a3b8; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 🔗 ${linkUrl}
               </p>
             </div>
@@ -1133,63 +1149,12 @@ export default function FluxMap({ data, onChange, onImport }) {
           onSave={handleEditSave}
         />
       ) : editDialog.nodeType === 'url-link' ? (
-        <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Editar Link/URL</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Título</label>
-                <Input
-                  value={editDialog.data.title || ''}
-                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
-                  placeholder="Digite o título"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">URL</label>
-                <div className="flex gap-2">
-                  <Input
-                    value={editDialog.data.url || ''}
-                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, url: e.target.value } })}
-                    placeholder="https://exemplo.com"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(editDialog.data.url || 'https://google.com', '_blank')}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                      <polyline points="15 3 21 3 21 9"></polyline>
-                      <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
-                    Abrir
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Preview</label>
-                <div className="border rounded-lg overflow-hidden" style={{ height: '400px' }}>
-                  <iframe
-                    src={editDialog.data.url || 'https://google.com'}
-                    className="w-full h-full"
-                    title="Preview"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
-                  Cancelar
-                </Button>
-                <Button onClick={() => handleEditSave(editDialog.data)}>
-                  Salvar
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <URLLinkEditDialog
+          open={editDialog.open}
+          onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
+          data={editDialog.data}
+          onSave={handleEditSave}
+        />
       ) : (
         <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
           <DialogContent>
