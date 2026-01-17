@@ -433,15 +433,22 @@ export default function FluxMap({ data, onChange, onImport }) {
     const x = (e.clientX - rect.left - translateX) / scale;
     const y = (e.clientY - rect.top - translateY) / scale;
     
+    console.log('Movendo área:', { x, y });
     setNewAreaEnd({ x, y });
   };
   
   const handleAreaCreationEnd = () => {
+    console.log('Finalizando criação de área');
+    console.log('Start:', newAreaStart);
+    console.log('End:', newAreaEnd);
+    
     document.removeEventListener('mousemove', handleAreaCreationMove);
     document.removeEventListener('mouseup', handleAreaCreationEnd);
     
     const width = Math.abs(newAreaEnd.x - newAreaStart.x);
     const height = Math.abs(newAreaEnd.y - newAreaStart.y);
+    
+    console.log('Dimensões:', { width, height });
     
     if (width > 50 && height > 50) {
       const newArea = {
@@ -453,9 +460,12 @@ export default function FluxMap({ data, onChange, onImport }) {
         height,
         color: 'rgba(59, 130, 246, 0.1)',
       };
+      console.log('Nova área criada:', newArea);
       const newAreas = [...areas, newArea];
       setAreas(newAreas);
       saveAreasToData(newAreas);
+    } else {
+      console.log('Área muito pequena, não foi criada');
     }
     
     setNewAreaStart({ x: 0, y: 0 });
@@ -1537,6 +1547,7 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: 'crosshair' }}
             onMouseDown={(e) => {
               if (e.button === 0) {
+                console.log('Iniciando criação de área');
                 const editor = editorRef.current;
                 const rect = drawflowRef.current.getBoundingClientRect();
                 const scale = editor ? editor.zoom : 1;
@@ -1546,6 +1557,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                 const x = (e.clientX - rect.left - translateX) / scale;
                 const y = (e.clientY - rect.top - translateY) / scale;
                 
+                console.log('Posição inicial:', { x, y });
                 setNewAreaStart({ x, y });
                 setNewAreaEnd({ x, y });
                 document.addEventListener('mousemove', handleAreaCreationMove);
