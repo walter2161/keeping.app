@@ -293,6 +293,7 @@ export default function FluxMap({ data, onChange, onImport }) {
               resizeHandle.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 isResizing = true;
                 startX = e.clientX;
                 startY = e.clientY;
@@ -300,10 +301,12 @@ export default function FluxMap({ data, onChange, onImport }) {
                 startHeight = container.offsetHeight;
                 document.body.style.cursor = 'nwse-resize';
                 editor.editor_mode = 'fixed';
-              });
+              }, true);
 
               const handleMouseMove = (e) => {
                 if (!isResizing) return;
+                e.preventDefault();
+                e.stopPropagation();
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
                 const minSize = name === 'area' ? 200 : 120;
@@ -498,6 +501,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                     resizeHandle.addEventListener('mousedown', (e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      e.stopImmediatePropagation();
                       isResizing = true;
                       startX = e.clientX;
                       startY = e.clientY;
@@ -505,10 +509,12 @@ export default function FluxMap({ data, onChange, onImport }) {
                       startHeight = container.offsetHeight;
                       document.body.style.cursor = 'nwse-resize';
                       editor.editor_mode = 'fixed';
-                    });
+                    }, true);
                     
                     const handleMouseMove = (e) => {
                       if (!isResizing) return;
+                      e.preventDefault();
+                      e.stopPropagation();
                       const deltaX = e.clientX - startX;
                       const deltaY = e.clientY - startY;
                       const minSize = nodeData.name === 'area' ? 200 : 120;
@@ -557,7 +563,20 @@ export default function FluxMap({ data, onChange, onImport }) {
 
     editor.on('nodeCreated', saveData);
     editor.on('nodeRemoved', saveData);
-    editor.on('nodeMoved', saveData);
+    editor.on('nodeMoved', (id) => {
+      // Keep areas on bottom layer when moved
+      setTimeout(() => {
+        const nodeElement = document.getElementById(`node-${id}`);
+        if (nodeElement && nodeElement.getAttribute('data-node-type') === 'area') {
+          nodeElement.style.zIndex = '0';
+          const parent = nodeElement.parentNode;
+          if (parent && parent.firstChild !== nodeElement) {
+            parent.insertBefore(nodeElement, parent.firstChild);
+          }
+        }
+      }, 0);
+      saveData();
+    });
     editor.on('connectionCreated', saveData);
     editor.on('connectionRemoved', saveData);
     
@@ -726,6 +745,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                 resizeHandle.addEventListener('mousedown', (e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  e.stopImmediatePropagation();
                   isResizing = true;
                   startX = e.clientX;
                   startY = e.clientY;
@@ -733,10 +753,12 @@ export default function FluxMap({ data, onChange, onImport }) {
                   startHeight = stickyContainer.offsetHeight;
                   document.body.style.cursor = 'nwse-resize';
                   editorRef.current.editor_mode = 'fixed';
-                });
+                }, true);
                 
                 const handleMouseMove = (e) => {
                   if (!isResizing) return;
+                  e.preventDefault();
+                  e.stopPropagation();
                   const deltaX = e.clientX - startX;
                   const deltaY = e.clientY - startY;
                   const newWidth = Math.max(120, startWidth + deltaX);
@@ -806,6 +828,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                 resizeHandle.addEventListener('mousedown', (e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  e.stopImmediatePropagation();
                   isResizing = true;
                   startX = e.clientX;
                   startY = e.clientY;
@@ -813,10 +836,12 @@ export default function FluxMap({ data, onChange, onImport }) {
                   startHeight = areaContainer.offsetHeight;
                   document.body.style.cursor = 'nwse-resize';
                   editorRef.current.editor_mode = 'fixed';
-                });
+                }, true);
                 
                 const handleMouseMove = (e) => {
                   if (!isResizing) return;
+                  e.preventDefault();
+                  e.stopPropagation();
                   const deltaX = e.clientX - startX;
                   const deltaY = e.clientY - startY;
                   const newWidth = Math.max(200, startWidth + deltaX);
