@@ -1030,6 +1030,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           background: rgba(255, 255, 255, 0.9);
           border-radius: 4px;
           border: 1px solid rgba(148, 163, 184, 0.3);
+          pointer-events: auto;
         }
         
         .flux-area-resize:hover {
@@ -1053,6 +1054,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           opacity: 0;
           transition: opacity 0.2s, background 0.2s;
           z-index: 10;
+          pointer-events: auto;
         }
         
         .flux-area:hover .flux-area-edit {
@@ -1079,6 +1081,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           opacity: 0;
           transition: opacity 0.2s, background 0.2s;
           z-index: 10;
+          pointer-events: auto;
         }
         
         .flux-area:hover .flux-area-delete {
@@ -1416,15 +1419,10 @@ export default function FluxMap({ data, onChange, onImport }) {
         </div>
       </div>
 
-      <div
-        id="drawflow"
-        ref={drawflowRef}
-        className="flex-1 relative"
-        onDrop={(e) => e.preventDefault()}
-        onDragOver={(e) => e.preventDefault()}
-      >
-        {/* Render areas in background */}
-        {areas.map((area) => {
+      <div className="flex-1 relative">
+        {/* Render areas BEHIND drawflow canvas */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          {areas.map((area) => {
           const editor = editorRef.current;
           const scale = editor ? editor.zoom : 1;
           const translateX = editor ? editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px';
@@ -1442,6 +1440,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                 background: area.color,
                 transform: 'translate(0, 0)',
                 zIndex: 0,
+                pointerEvents: 'auto',
               }}
               onMouseDown={(e) => {
                 if (e.target.classList.contains('flux-area') || e.target.classList.contains('flux-area-title')) {
@@ -1502,6 +1501,16 @@ export default function FluxMap({ data, onChange, onImport }) {
             </div>
           );
         })}
+        </div>
+
+        {/* Drawflow canvas on top */}
+        <div
+          id="drawflow"
+          ref={drawflowRef}
+          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+          onDrop={(e) => e.preventDefault()}
+          onDragOver={(e) => e.preventDefault()}
+        />
         
         {selectedNodeId && (
           <div className="absolute top-4 right-4 z-50">
