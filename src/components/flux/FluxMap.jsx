@@ -188,8 +188,27 @@ export default function FluxMap({ data, onChange, onImport }) {
             });
           });
           nodeElement.appendChild(editIcon);
-          
 
+          // Add resize observer for sticky notes
+          if (name === 'sticky-note') {
+            const stickyContainer = nodeElement.querySelector('.sticky-note-container');
+            if (stickyContainer) {
+              const resizeObserver = new ResizeObserver(() => {
+                const width = stickyContainer.offsetWidth;
+                const height = stickyContainer.offsetHeight;
+                const currentData = editor.getNodeFromId(nodeId);
+                editor.updateNodeDataFromId(nodeId, {
+                  ...currentData.data,
+                  width: width,
+                  height: height
+                });
+                if (onChange) {
+                  onChange(editor.export());
+                }
+              });
+              resizeObserver.observe(stickyContainer);
+            }
+          }
         }
       }, 10);
     }
@@ -292,7 +311,27 @@ export default function FluxMap({ data, onChange, onImport }) {
                   });
                 });
                 nodeElement.appendChild(editIcon);
-
+                
+                // Add resize observer for sticky notes
+                if (nodeData.name === 'sticky-note') {
+                  const stickyContainer = nodeElement.querySelector('.sticky-note-container');
+                  if (stickyContainer) {
+                    const resizeObserver = new ResizeObserver(() => {
+                      const width = stickyContainer.offsetWidth;
+                      const height = stickyContainer.offsetHeight;
+                      const currentData = editor.getNodeFromId(nodeId);
+                      editor.updateNodeDataFromId(nodeId, {
+                        ...currentData.data,
+                        width: width,
+                        height: height
+                      });
+                      if (onChange) {
+                        onChange(editor.export());
+                      }
+                    });
+                    resizeObserver.observe(stickyContainer);
+                  }
+                }
               }
             }
           });
