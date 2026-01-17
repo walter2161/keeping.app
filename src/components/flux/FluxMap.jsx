@@ -42,6 +42,12 @@ export default function FluxMap({ data, onChange, onImport }) {
     let html = '';
     let inputs = 2;
     let outputs = 2;
+    
+    // Areas don't have connections
+    if (name === 'area') {
+      inputs = 0;
+      outputs = 0;
+    }
 
     switch (name) {
       case 'sticky-note':
@@ -182,15 +188,17 @@ export default function FluxMap({ data, onChange, onImport }) {
         const areaColor = nodeData.color || 'rgba(59, 130, 246, 0.1)';
         
         html = `
-          <div class="area-container" style="width: ${areaWidth}px; height: ${areaHeight}px; background: ${areaColor}; border: 2px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; position: relative; display: flex; align-items: flex-start; justify-content: center; padding-top: 16px;">
-            <span style="font-size: 16px; font-weight: 600; color: rgba(30, 41, 59, 0.7); font-family: 'Montserrat', sans-serif; user-select: none;">${areaTitle}</span>
-            <div class="area-resize-handle" style="position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center;">
+          <div class="area-container" style="width: ${areaWidth}px; height: ${areaHeight}px; background: ${areaColor}; border: 2px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; position: relative; display: flex; align-items: flex-start; justify-content: center; padding-top: 16px; pointer-events: all;">
+            <span style="font-size: 16px; font-weight: 600; color: rgba(30, 41, 59, 0.7); font-family: 'Montserrat', sans-serif; user-select: none; pointer-events: none;">${areaTitle}</span>
+            <div class="area-resize-handle" style="position: absolute; bottom: 4px; right: 4px; width: 24px; height: 24px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.8); border-radius: 4px; pointer-events: all;">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </div>
           </div>
         `;
+        inputs = 0;
+        outputs = 0;
         break;
 
       default:
@@ -235,13 +243,18 @@ export default function FluxMap({ data, onChange, onImport }) {
     
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
-    // Set z-index for areas (background layer)
+    // Set z-index for areas (background layer) and ensure they stay on bottom
     if (name === 'area') {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
         if (nodeElement) {
           nodeElement.setAttribute('data-node-type', 'area');
-          nodeElement.style.zIndex = '0';
+          nodeElement.style.zIndex = '0 !important';
+          // Move area to the beginning of parent to render first (below other elements)
+          const parent = nodeElement.parentNode;
+          if (parent && parent.firstChild !== nodeElement) {
+            parent.insertBefore(nodeElement, parent.firstChild);
+          }
         }
       }, 10);
     }
@@ -915,14 +928,14 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const getDragPreviewContent = () => {
     const previewStyles = {
+      'area': { emoji: '📦', bg: '#dcfce7', border: '#22c55e', text: 'Área' },
       'sticky-note': { emoji: '📝', bg: '#fef3c7', border: '#fbbf24', text: 'Note' },
       'card-kanban': { emoji: '🎯', bg: '#dbeafe', border: '#3b82f6', text: 'Card' },
-      'rectangle-shape': { emoji: '▭', bg: '#e0f2fe', border: '#0284c7', text: 'Ret' },
-      'circle-shape': { emoji: '●', bg: '#fef9c3', border: '#eab308', text: 'Circ' },
+      'rectangle-shape': { emoji: '▭', bg: '#e0f2fe', border: '#0284c7', text: 'Retângulo' },
+      'circle-shape': { emoji: '●', bg: '#fef9c3', border: '#eab308', text: 'Círculo' },
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
       'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link' },
-      'area': { emoji: '📦', bg: '#dcfce7', border: '#22c55e', text: 'Área' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -975,14 +988,11 @@ export default function FluxMap({ data, onChange, onImport }) {
           min-height: auto !important;
           width: auto !important;
           height: auto !important;
+          z-index: 10 !important;
         }
 
         .drawflow .drawflow-node[data-node-type="area"] {
           z-index: 0 !important;
-        }
-        
-        .drawflow .drawflow-node:not([data-node-type="area"]) {
-          z-index: 10 !important;
         }
         
         .drawflow .drawflow-node .drawflow_content_node {
@@ -1135,10 +1145,10 @@ export default function FluxMap({ data, onChange, onImport }) {
         }
 
         .sidebar-flux {
-          width: 60px;
+          width: 140px;
           background: white;
           border-right: 1px solid #e2e8f0;
-          padding: 8px;
+          padding: 10px;
           overflow-y: auto;
         }
 
@@ -1146,19 +1156,18 @@ export default function FluxMap({ data, onChange, onImport }) {
           cursor: grab;
           user-select: none;
           margin-bottom: 6px;
-          padding: 6px;
+          padding: 8px 10px;
           border-radius: 6px;
           border: 1.5px solid;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
           transition: all 0.2s;
           font-family: 'Montserrat', sans-serif;
         }
 
         .drag-drawflow:hover {
-          transform: scale(1.05);
+          transform: translateX(2px);
           box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
@@ -1188,8 +1197,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dcfce7', borderColor: '#22c55e' }}
             title="Área"
           >
-            <span style={{ fontSize: '20px' }}>📦</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#166534' }}>Área</span>
+            <span style={{ fontSize: '18px' }}>📦</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#166534' }}>Área</span>
           </div>
 
           <div
@@ -1203,8 +1212,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
             title="Sticky Note"
           >
-            <span style={{ fontSize: '20px' }}>📝</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#92400e' }}>Note</span>
+            <span style={{ fontSize: '18px' }}>📝</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Note</span>
           </div>
 
           <div
@@ -1218,8 +1227,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
             title="Card"
           >
-            <span style={{ fontSize: '20px' }}>🎯</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#1e40af' }}>Card</span>
+            <span style={{ fontSize: '18px' }}>🎯</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Card</span>
           </div>
 
           <div
@@ -1233,8 +1242,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#e0f2fe', borderColor: '#0284c7' }}
             title="Retângulo"
           >
-            <span style={{ fontSize: '20px' }}>▭</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#075985' }}>Ret</span>
+            <span style={{ fontSize: '18px' }}>▭</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#075985' }}>Retângulo</span>
           </div>
 
           <div
@@ -1248,8 +1257,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#fef9c3', borderColor: '#eab308' }}
             title="Círculo"
           >
-            <span style={{ fontSize: '20px' }}>●</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#713f12' }}>Circ</span>
+            <span style={{ fontSize: '18px' }}>●</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#713f12' }}>Círculo</span>
           </div>
 
           <div
@@ -1263,8 +1272,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#f3e8ff', borderColor: '#a855f7' }}
             title="Nome"
           >
-            <span style={{ fontSize: '20px' }}>👤</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
+            <span style={{ fontSize: '18px' }}>👤</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
           </div>
 
           <div
@@ -1278,8 +1287,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#f1f5f9', borderColor: '#64748b' }}
             title="Texto"
           >
-            <span style={{ fontSize: '20px' }}>T</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#334155' }}>Texto</span>
+            <span style={{ fontSize: '18px' }}>T</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#334155' }}>Texto</span>
           </div>
 
           <div
@@ -1293,21 +1302,21 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
             title="Link"
           >
-            <span style={{ fontSize: '20px' }}>🔗</span>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#1e40af' }}>Link</span>
+            <span style={{ fontSize: '18px' }}>🔗</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Link</span>
           </div>
         </div>
 
         <div className="pt-2 border-t border-gray-200">
-          <div className="flex items-center gap-1 mb-2">
-            <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1 h-6 px-1" title="Zoom -">
+          <div className="flex items-center gap-2 mb-1">
+            <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1 h-7 px-2" title="Zoom -">
               <Minus className="w-3 h-3" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleZoomIn} className="flex-1 h-6 px-1" title="Zoom +">
+            <span className="text-xs font-medium w-10 text-center text-gray-600">{zoom}%</span>
+            <Button variant="outline" size="sm" onClick={handleZoomIn} className="flex-1 h-7 px-2" title="Zoom +">
               <Plus className="w-3 h-3" />
             </Button>
           </div>
-          <div className="text-[8px] text-center text-gray-500 mb-1">{zoom}%</div>
 
 
         </div>
