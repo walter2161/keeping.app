@@ -341,7 +341,9 @@ export default function FluxMap({ data, onChange, onImport }) {
       color: 'rgba(59, 130, 246, 0.1)',
     };
     
+    console.log('🟢 CRIANDO ÁREA:', newArea);
     const newAreas = [...areas, newArea];
+    console.log('📦 Total de áreas:', newAreas.length);
     setAreas(newAreas);
     saveAreasToData(newAreas);
   };
@@ -1410,7 +1412,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
       <div className="flex-1 relative">
         {/* Render areas BEHIND drawflow canvas */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           {areas.map((area) => {
           const editor = editorRef.current;
           const scale = editor ? editor.zoom : 1;
@@ -1429,7 +1431,6 @@ export default function FluxMap({ data, onChange, onImport }) {
                 background: area.color,
                 transform: 'translate(0, 0)',
                 zIndex: 0,
-                pointerEvents: 'auto',
               }}
               onMouseDown={(e) => {
                 if (e.target.classList.contains('flux-area') || e.target.classList.contains('flux-area-title')) {
