@@ -1215,6 +1215,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                     placeholder="Digite o texto"
                   />
                 )}
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
                   Cancelar
