@@ -350,8 +350,54 @@ export default function FluxMap({ data, onChange, onImport }) {
   }, [isDraggingNew, dragNodeType]);
 
   useEffect(() => {
-    if (!drawflowRef.current || editorRef.current) return;
+    if (!drawflowRef.current) return;
 
+    // Se já existe um editor, limpar e reimportar
+    if (editorRef.current) {
+      console.log('=== REIMPORTANDO DADOS NO FLUXMAP ===');
+      if (data && data.drawflow) {
+        try {
+          editorRef.current.clear();
+          editorRef.current.import(data);
+          
+          const nodeCount = Object.keys(data.drawflow.Home.data).length;
+          console.log(`✓ FluxMap reimportado com ${nodeCount} nodes`);
+
+          // Re-add edit icons
+          setTimeout(() => {
+            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+            Object.keys(data.drawflow.Home.data).forEach(nodeId => {
+              const nodeData = data.drawflow.Home.data[nodeId];
+              if (editableNodes.includes(nodeData.name)) {
+                const nodeElement = document.getElementById(`node-${nodeId}`);
+                if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
+                  const editIcon = document.createElement('div');
+                  editIcon.className = 'edit-icon';
+                  editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+                  editIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeData = editorRef.current.getNodeFromId(nodeId);
+                    setEditDialog({ 
+                      open: true, 
+                      nodeId: nodeId, 
+                      data: nodeData.data || {},
+                      nodeType: nodeData.name
+                    });
+                  });
+                  nodeElement.appendChild(editIcon);
+                }
+              }
+            });
+          }, 100);
+        } catch (e) {
+          console.error('Erro ao reimportar dados:', e);
+        }
+      }
+      return;
+    }
+
+    // Primeira inicialização
+    console.log('=== INICIALIZANDO FLUXMAP ===');
     const editor = new Drawflow(drawflowRef.current);
     editor.reroute = true;
     editor.curvature = 0.5;
@@ -363,6 +409,9 @@ export default function FluxMap({ data, onChange, onImport }) {
     if (data && data.drawflow) {
       try {
         editor.import(data);
+        
+        const nodeCount = Object.keys(data.drawflow.Home.data).length;
+        console.log(`✓ FluxMap inicializado com ${nodeCount} nodes`);
 
         // Add edit icons to all editable nodes
         setTimeout(() => {
