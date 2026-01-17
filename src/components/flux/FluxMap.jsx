@@ -46,8 +46,6 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [isResizingArea, setIsResizingArea] = useState(false);
   const [dragAreaStart, setDragAreaStart] = useState({ x: 0, y: 0 });
   const [resizeAreaStart, setResizeAreaStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [isCreatingArea, setIsCreatingArea] = useState(false);
-  const [creatingAreaData, setCreatingAreaData] = useState(null);
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
@@ -316,7 +314,36 @@ export default function FluxMap({ data, onChange, onImport }) {
     const centerX = rect.left + (rect.width / 2);
     const centerY = rect.top + (rect.height / 2);
     
-    addNodeToDrawFlow(nodeType, centerX, centerY);
+    if (nodeType === 'area') {
+      addAreaToCanvas(centerX, centerY);
+    } else {
+      addNodeToDrawFlow(nodeType, centerX, centerY);
+    }
+  };
+  
+  const addAreaToCanvas = (clientX, clientY) => {
+    const editor = editorRef.current;
+    const rect = drawflowRef.current.getBoundingClientRect();
+    const scale = editor ? editor.zoom : 1;
+    const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
+    const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
+    
+    const x = (clientX - rect.left - translateX) / scale;
+    const y = (clientY - rect.top - translateY) / scale;
+    
+    const newArea = {
+      id: Date.now().toString(),
+      title: 'Área',
+      x: x - 150,
+      y: y - 100,
+      width: 300,
+      height: 200,
+      color: 'rgba(59, 130, 246, 0.1)',
+    };
+    
+    const newAreas = [...areas, newArea];
+    setAreas(newAreas);
+    saveAreasToData(newAreas);
   };
   
   const saveAreasToData = (newAreas) => {
@@ -351,7 +378,11 @@ export default function FluxMap({ data, onChange, onImport }) {
         e.clientY <= rect.bottom;
 
       if (isOverCanvas) {
-        addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
+        if (dragNodeType === 'area') {
+          addAreaToCanvas(e.clientX, e.clientY);
+        } else {
+          addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
+        }
       }
     }
     
@@ -420,47 +451,7 @@ export default function FluxMap({ data, onChange, onImport }) {
     };
   }, [isDraggingArea, isResizingArea, selectedAreaId, dragAreaStart, resizeAreaStart, areas]);
   
-  // Handle area creation with simpler approach
-  const startCreatingArea = (startX, startY) => {
-    setCreatingAreaData({ startX, startY, currentX: startX, currentY: startY });
-  };
-  
-  const updateCreatingArea = (currentX, currentY) => {
-    if (creatingAreaData) {
-      setCreatingAreaData({ ...creatingAreaData, currentX, currentY });
-    }
-  };
-  
-  const finishCreatingArea = () => {
-    if (!creatingAreaData) return;
-    
-    const { startX, startY, currentX, currentY } = creatingAreaData;
-    const width = Math.abs(currentX - startX);
-    const height = Math.abs(currentY - startY);
-    
-    if (width > 30 && height > 30) {
-      const newArea = {
-        id: Date.now().toString(),
-        title: 'Área',
-        x: Math.min(startX, currentX),
-        y: Math.min(startY, currentY),
-        width,
-        height,
-        color: 'rgba(59, 130, 246, 0.1)',
-      };
-      
-      const newAreas = [...areas, newArea];
-      setAreas(newAreas);
-      saveAreasToData(newAreas);
-    }
-    
-    setCreatingAreaData(null);
-    setIsCreatingArea(false);
-    
-    if (editorRef.current) {
-      editorRef.current.editor_mode = 'edit';
-    }
-  };
+
 
   useEffect(() => {
     if (!drawflowRef.current) return;
@@ -929,6 +920,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
       'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link' },
+      'area': { emoji: '📦', bg: '#f0fdf4', border: '#22c55e', text: 'Área' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -1400,35 +1392,18 @@ export default function FluxMap({ data, onChange, onImport }) {
 
         <div className="pt-3 border-t border-gray-200 mt-3">
           <div
-            className="area-tool"
-            style={{ 
-              background: isCreatingArea ? '#dcfce7' : '#f0fdf4',
-              borderColor: isCreatingArea ? '#16a34a' : '#22c55e',
-              padding: '10px',
-              borderRadius: '6px',
-              border: '2px solid',
-              textAlign: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              userSelect: 'none'
+            className="drag-drawflow"
+            draggable="true"
+            data-node="area"
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'area')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('area');
             }}
-            onClick={() => {
-              const newState = !isCreatingArea;
-              setIsCreatingArea(newState);
-              if (editorRef.current) {
-                editorRef.current.editor_mode = newState ? 'fixed' : 'edit';
-              }
-            }}
+            style={{ background: '#f0fdf4', borderColor: '#22c55e' }}
+            title="Área"
           >
-            <span style={{ fontSize: '20px', display: 'block', marginBottom: '4px' }}>📦</span>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534', display: 'block' }}>
-              {isCreatingArea ? 'CANCELAR' : 'ÁREA'}
-            </span>
-            {!isCreatingArea && (
-              <span style={{ fontSize: '9px', color: '#16a34a', display: 'block', marginTop: '2px' }}>
-                Clique para ativar
-              </span>
-            )}
+            <span style={{ fontSize: '18px' }}>📦</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#166534' }}>Área</span>
           </div>
         </div>
       </div>
@@ -1521,70 +1496,10 @@ export default function FluxMap({ data, onChange, onImport }) {
         <div
           id="drawflow"
           ref={drawflowRef}
-          style={{ position: 'absolute', inset: 0, zIndex: 1, cursor: isCreatingArea ? 'crosshair' : 'default', pointerEvents: isCreatingArea ? 'none' : 'auto' }}
+          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
           onDrop={(e) => e.preventDefault()}
           onDragOver={(e) => e.preventDefault()}
         />
-        
-        {/* Overlay transparente para capturar eventos quando criando área */}
-        {isCreatingArea && (
-          <div
-            style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: 'crosshair' }}
-            onMouseDown={(e) => {
-              if (e.button === 0) {
-                const editor = editorRef.current;
-                const rect = drawflowRef.current.getBoundingClientRect();
-                const scale = editor ? editor.zoom : 1;
-                const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
-                const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
-                
-                const x = (e.clientX - rect.left - translateX) / scale;
-                const y = (e.clientY - rect.top - translateY) / scale;
-                
-                startCreatingArea(x, y);
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-            onMouseMove={(e) => {
-              if (creatingAreaData) {
-                const editor = editorRef.current;
-                const rect = drawflowRef.current.getBoundingClientRect();
-                const scale = editor ? editor.zoom : 1;
-                const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
-                const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
-                
-                const x = (e.clientX - rect.left - translateX) / scale;
-                const y = (e.clientY - rect.top - translateY) / scale;
-                
-                updateCreatingArea(x, y);
-              }
-            }}
-            onMouseUp={(e) => {
-              if (creatingAreaData) {
-                finishCreatingArea();
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-          />
-        )}
-        
-        {/* Preview da área sendo criada */}
-        {creatingAreaData && (
-          <div style={{
-            position: 'absolute',
-            left: `calc(${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px'} + ${Math.min(creatingAreaData.startX, creatingAreaData.currentX) * (editorRef.current ? editorRef.current.zoom : 1)}px)`,
-            top: `calc(${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0px' : '0px'} + ${Math.min(creatingAreaData.startY, creatingAreaData.currentY) * (editorRef.current ? editorRef.current.zoom : 1)}px)`,
-            width: `${Math.abs(creatingAreaData.currentX - creatingAreaData.startX) * (editorRef.current ? editorRef.current.zoom : 1)}px`,
-            height: `${Math.abs(creatingAreaData.currentY - creatingAreaData.startY) * (editorRef.current ? editorRef.current.zoom : 1)}px`,
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '2px dashed rgba(59, 130, 246, 0.6)',
-            borderRadius: '8px',
-            zIndex: 999,
-            pointerEvents: 'none',
-          }} />
-        )}
         
         {selectedNodeId && (
           <div className="absolute top-4 right-4 z-50">
