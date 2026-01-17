@@ -79,45 +79,47 @@ export default function FileViewer() {
   });
 
   useEffect(() => {
-    if (file && !hasChanges) {
-      console.log('=== ATUALIZANDO CONTEÚDO DO ARQUIVO ===');
+    if (file) {
+      console.log('=== CARREGANDO ARQUIVO ===');
+      console.log('Tipo:', file.type);
       console.log('hasChanges:', hasChanges);
-      console.log('File content:', file.content);
-      setFileName(file.name);
+      console.log('Content length:', file.content?.length || 0);
       
-      if (file.content && file.content.trim() !== '') {
-        if (file.type === 'docx' || file.type === 'xlsx') {
-          setLocalContent(file.content);
-        } else if (file.type === 'pptx') {
-          try {
-            const parsed = JSON.parse(file.content);
-            setLocalContent(parsed);
-          } catch (e) {
-            console.error('Erro ao parsear pptx:', e);
-            setLocalContent({ slides: [{ title: '', content: '' }] });
-          }
-        } else {
-          try {
-            const parsed = JSON.parse(file.content);
-            console.log('Conteúdo parseado com sucesso:', parsed);
-            setLocalContent(parsed);
-          } catch (e) {
-            console.error('Erro ao parsear JSON:', e);
+      // SEMPRE carregar do banco quando não há mudanças locais
+      if (!hasChanges) {
+        setFileName(file.name);
+        
+        if (file.content && file.content.trim() !== '') {
+          if (file.type === 'docx' || file.type === 'xlsx') {
             setLocalContent(file.content);
+            console.log('✓ Conteúdo texto carregado');
+          } else {
+            try {
+              const parsed = JSON.parse(file.content);
+              
+              if (file.type === 'flux') {
+                const nodeCount = parsed?.drawflow?.Home?.data ? Object.keys(parsed.drawflow.Home.data).length : 0;
+                console.log(`✓ FluxMap carregado com ${nodeCount} nodes`);
+              }
+              
+              setLocalContent(parsed);
+            } catch (e) {
+              console.error('ERRO ao parsear JSON do arquivo:', e);
+              console.error('Content:', file.content.substring(0, 500));
+              setLocalContent(file.content);
+            }
           }
-        }
-      } else {
-        console.log('Conteúdo vazio, inicializando valores padrão');
-        if (file.type === 'docx' || file.type === 'xlsx') {
-          setLocalContent('');
-        } else if (file.type === 'pptx') {
-          setLocalContent({ slides: [{ title: '', content: '' }] });
-        } else if (file.type === 'flux') {
-          const defaultContent = { drawflow: { Home: { data: {} } } };
-          setLocalContent(defaultContent);
-          console.log('FluxMap inicializado com conteúdo padrão');
         } else {
-          setLocalContent({});
+          console.log('Conteúdo vazio - inicializando padrão');
+          if (file.type === 'flux') {
+            setLocalContent({ drawflow: { Home: { data: {} } } });
+          } else if (file.type === 'pptx') {
+            setLocalContent({ slides: [{ title: '', content: '' }] });
+          } else if (file.type === 'docx' || file.type === 'xlsx') {
+            setLocalContent('');
+          } else {
+            setLocalContent({});
+          }
         }
       }
     }
@@ -139,15 +141,17 @@ export default function FileViewer() {
   const handleContentChange = (newContent) => {
     console.log('=== CONTENT CHANGE DETECTADO ===');
     console.log('Tipo de arquivo:', file?.type);
-    console.log('Novo conteúdo:', newContent);
-    if (file?.type === 'flux' && newContent?.drawflow?.Home?.data) {
-      console.log('Nodes do FluxMap:', Object.keys(newContent.drawflow.Home.data));
-      Object.entries(newContent.drawflow.Home.data).forEach(([id, node]) => {
-        if (node.name === 'card-kanban') {
-          console.log(`Card ${id} - dados:`, node.data);
-        }
-      });
+    
+    if (file?.type === 'flux') {
+      console.log('FluxMap exportou:', newContent);
+      if (newContent?.drawflow?.Home?.data) {
+        const nodeCount = Object.keys(newContent.drawflow.Home.data).length;
+        console.log(`FluxMap tem ${nodeCount} nodes`);
+      } else {
+        console.warn('FluxMap exportou estrutura inválida!');
+      }
     }
+    
     setLocalContent(newContent);
     setHasChanges(true);
   };
@@ -155,26 +159,44 @@ export default function FileViewer() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const contentToSave = (file.type === 'docx' || file.type === 'xlsx')
-        ? (localContent || '')
-        : (typeof localContent === 'object' && localContent !== null
-          ? JSON.stringify(localContent) 
-          : (localContent || ''));
+      let contentToSave;
+      
+      if (file.type === 'docx' || file.type === 'xlsx') {
+        contentToSave = localContent || '';
+      } else if (typeof localContent === 'object' && localContent !== null) {
+        contentToSave = JSON.stringify(localContent);
+      } else {
+        contentToSave = localContent || '';
+      }
       
       console.log('=== SALVANDO ARQUIVO ===');
       console.log('Tipo:', file.type);
-      console.log('Conteúdo a salvar (primeiros 500 chars):', contentToSave.substring(0, 500));
+      console.log('localContent:', localContent);
+      console.log('Conteúdo serializado (tamanho):', contentToSave.length, 'chars');
+      
+      if (file.type === 'flux') {
+        console.log('FluxMap - primeiros 1000 chars:', contentToSave.substring(0, 1000));
+        try {
+          const parsed = JSON.parse(contentToSave);
+          const nodeCount = parsed?.drawflow?.Home?.data ? Object.keys(parsed.drawflow.Home.data).length : 0;
+          console.log(`FluxMap sendo salvo com ${nodeCount} nodes`);
+        } catch (e) {
+          console.error('ERRO: FluxMap tem JSON inválido!', e);
+        }
+      }
       
       await updateFileMutation.mutateAsync({ 
         name: fileName,
         content: contentToSave 
       });
       
-      // CRÍTICO: Esperar um pouco antes de limpar hasChanges para evitar race condition
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Invalidar query para forçar reload
+      await queryClient.invalidateQueries({ queryKey: ['file', fileId] });
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
       setHasChanges(false);
       
-      console.log('Arquivo salvo com sucesso');
+      console.log('✓ Arquivo salvo e query invalidada');
     } catch (error) {
       console.error('ERRO AO SALVAR:', error);
       alert('Erro ao salvar o arquivo: ' + error.message);
