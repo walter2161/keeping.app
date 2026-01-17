@@ -21,17 +21,36 @@ export default function URLLinkEditDialog({ open, onOpenChange, data, onSave }) 
     
     setLoading(true);
     try {
-      const prompt = `Acesse a URL ${formData.url} e extraia as seguintes informações de meta tags e SEO:
-- Título do site (meta title ou og:title)
-- Descrição (meta description ou og:description)
-- Imagem de destaque (og:image)
-- Nome do site (og:site_name)
-- Tipo de conteúdo (og:type)
-- URL canônica
-- Autor (se houver)
-- Data de publicação (se houver)
+      const prompt = `Você DEVE acessar a página web ${formData.url} e extrair EXATAMENTE as seguintes meta tags HTML:
 
-Retorne APENAS as informações encontradas.`;
+IMPORTANTE: Extraia os valores EXATOS das meta tags, não invente informações.
+
+Procure estas meta tags no HTML da página:
+1. IMAGEM DE DESTAQUE (PRIORIDADE MÁXIMA - procure nesta ordem):
+   - <meta property="og:image" content="URL_DA_IMAGEM">
+   - <meta name="twitter:image" content="URL_DA_IMAGEM">
+   - <meta property="og:image:secure_url" content="URL_DA_IMAGEM">
+   - <link rel="image_src" href="URL_DA_IMAGEM">
+
+2. TÍTULO (procure nesta ordem):
+   - <meta property="og:title" content="TITULO">
+   - <meta name="twitter:title" content="TITULO">
+   - <title>TITULO</title>
+
+3. DESCRIÇÃO (procure nesta ordem):
+   - <meta property="og:description" content="DESCRICAO">
+   - <meta name="description" content="DESCRICAO">
+   - <meta name="twitter:description" content="DESCRICAO">
+
+4. OUTRAS INFORMAÇÕES:
+   - <meta property="og:site_name" content="...">
+   - <meta property="og:type" content="...">
+   - <link rel="canonical" href="...">
+   - <meta name="author" content="...">
+   - <meta property="article:published_time" content="...">
+
+RETORNE APENAS os valores ENCONTRADOS nas meta tags. Se não encontrar, deixe vazio.
+A URL da imagem DEVE ser completa (começar com http:// ou https://).`;
 
       const schema = {
         type: "object",
