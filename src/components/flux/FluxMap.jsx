@@ -37,17 +37,20 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [dragNodeType, setDragNodeType] = useState(null);
   const dragStartPosRef = useRef(null);
   const [dragPreviewPos, setDragPreviewPos] = useState({ x: 0, y: 0 });
+  
+  // Areas system - separate from nodes
+  const [areas, setAreas] = useState([]);
+  const [selectedAreaId, setSelectedAreaId] = useState(null);
+  const [areaEditDialog, setAreaEditDialog] = useState({ open: false, areaId: null, data: {} });
+  const [isDraggingArea, setIsDraggingArea] = useState(false);
+  const [isResizingArea, setIsResizingArea] = useState(false);
+  const [dragAreaStart, setDragAreaStart] = useState({ x: 0, y: 0 });
+  const [resizeAreaStart, setResizeAreaStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
     let inputs = 2;
     let outputs = 2;
-    
-    // Areas don't have connections
-    if (name === 'area') {
-      inputs = 0;
-      outputs = 0;
-    }
 
     switch (name) {
       case 'sticky-note':
@@ -181,26 +184,6 @@ export default function FluxMap({ data, onChange, onImport }) {
         `;
         break;
 
-      case 'area':
-        const areaTitle = nodeData.title || 'Área';
-        const areaWidth = nodeData.width || 400;
-        const areaHeight = nodeData.height || 300;
-        const areaColor = nodeData.color || 'rgba(59, 130, 246, 0.1)';
-        
-        html = `
-          <div class="area-container" style="width: ${areaWidth}px; height: ${areaHeight}px; background: ${areaColor}; border: 2px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; position: relative; display: flex; align-items: flex-start; justify-content: center; padding-top: 16px; pointer-events: all;">
-            <span style="font-size: 16px; font-weight: 600; color: rgba(30, 41, 59, 0.7); font-family: 'Montserrat', sans-serif; user-select: none; pointer-events: none;">${areaTitle}</span>
-            <div class="area-resize-handle" style="position: absolute; bottom: 4px; right: 4px; width: 24px; height: 24px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.8); border-radius: 4px; pointer-events: all;">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </div>
-          </div>
-        `;
-        inputs = 0;
-        outputs = 0;
-        break;
-
       default:
         html = '<div style="padding: 12px;">Novo Item</div>';
         break;
@@ -234,33 +217,11 @@ export default function FluxMap({ data, onChange, onImport }) {
       initialData.url = 'https://google.com';
       initialData.title = 'Link';
     }
-    else if (name === 'area') {
-      initialData.title = 'Área';
-      initialData.width = 400;
-      initialData.height = 300;
-      initialData.color = 'rgba(59, 130, 246, 0.1)';
-    }
     
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
-    // Set z-index for areas (background layer) and ensure they stay on bottom
-    if (name === 'area') {
-      setTimeout(() => {
-        const nodeElement = document.getElementById(`node-${nodeId}`);
-        if (nodeElement) {
-          nodeElement.setAttribute('data-node-type', 'area');
-          nodeElement.style.zIndex = '0 !important';
-          // Move area to the beginning of parent to render first (below other elements)
-          const parent = nodeElement.parentNode;
-          if (parent && parent.firstChild !== nodeElement) {
-            parent.insertBefore(nodeElement, parent.firstChild);
-          }
-        }
-      }, 10);
-    }
-
     // Add edit icon to all editable nodes and setup listeners
-    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'area'];
+    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
     if (editableNodes.includes(name)) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
@@ -281,10 +242,10 @@ export default function FluxMap({ data, onChange, onImport }) {
           });
           nodeElement.appendChild(editIcon);
 
-          // Add manual resize for sticky notes and areas
-          if (name === 'sticky-note' || name === 'area') {
-            const container = nodeElement.querySelector(name === 'sticky-note' ? '.sticky-note-container' : '.area-container');
-            const resizeHandle = nodeElement.querySelector(name === 'sticky-note' ? '.sticky-resize-handle' : '.area-resize-handle');
+          // Add manual resize for sticky notes
+          if (name === 'sticky-note') {
+            const container = nodeElement.querySelector('.sticky-note-container');
+            const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
 
             if (container && resizeHandle) {
               let isResizing = false;
@@ -309,7 +270,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                 e.stopPropagation();
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
-                const minSize = name === 'area' ? 200 : 120;
+                const minSize = 120;
                 const newWidth = Math.max(minSize, startWidth + deltaX);
                 const newHeight = Math.max(minSize, startHeight + deltaY);
                 container.style.width = newWidth + 'px';
@@ -347,6 +308,23 @@ export default function FluxMap({ data, onChange, onImport }) {
   };
 
   const handleClickToAdd = (nodeType) => {
+    if (nodeType === 'area') {
+      // Add area instead of node
+      const newArea = {
+        id: Date.now().toString(),
+        title: 'Área',
+        x: 100,
+        y: 100,
+        width: 400,
+        height: 300,
+        color: 'rgba(59, 130, 246, 0.1)',
+      };
+      const newAreas = [...areas, newArea];
+      setAreas(newAreas);
+      saveAreasToData(newAreas);
+      return;
+    }
+    
     if (!drawflowRef.current) return;
     
     const rect = drawflowRef.current.getBoundingClientRect();
@@ -354,6 +332,14 @@ export default function FluxMap({ data, onChange, onImport }) {
     const centerY = rect.top + (rect.height / 2);
     
     addNodeToDrawFlow(nodeType, centerX, centerY);
+  };
+  
+  const saveAreasToData = (newAreas) => {
+    if (onChange && editorRef.current) {
+      const exportData = editorRef.current.export();
+      exportData.areas = newAreas;
+      onChange(exportData);
+    }
   };
 
   const handleMouseDownOnButton = (e, nodeType) => {
@@ -372,15 +358,49 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const handleMouseUp = (e) => {
     if (isDraggingNew && dragNodeType && drawflowRef.current) {
-      const rect = drawflowRef.current.getBoundingClientRect();
-      const isOverCanvas = 
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom;
+      if (dragNodeType === 'area') {
+        const rect = drawflowRef.current.getBoundingClientRect();
+        const isOverCanvas = 
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom;
 
-      if (isOverCanvas) {
-        addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
+        if (isOverCanvas) {
+          const editor = editorRef.current;
+          const canvasRect = drawflowRef.current.getBoundingClientRect();
+          let x = e.clientX - canvasRect.left;
+          let y = e.clientY - canvasRect.top;
+          
+          if (editor) {
+            x = x / editor.zoom;
+            y = y / editor.zoom;
+          }
+          
+          const newArea = {
+            id: Date.now().toString(),
+            title: 'Área',
+            x: x - 200,
+            y: y - 150,
+            width: 400,
+            height: 300,
+            color: 'rgba(59, 130, 246, 0.1)',
+          };
+          const newAreas = [...areas, newArea];
+          setAreas(newAreas);
+          saveAreasToData(newAreas);
+        }
+      } else {
+        const rect = drawflowRef.current.getBoundingClientRect();
+        const isOverCanvas = 
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom;
+
+        if (isOverCanvas) {
+          addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
+        }
       }
     }
     
@@ -401,6 +421,53 @@ export default function FluxMap({ data, onChange, onImport }) {
       };
     }
   }, [isDraggingNew, dragNodeType]);
+  
+  // Handle area dragging
+  useEffect(() => {
+    if (!isDraggingArea && !isResizingArea) return;
+    
+    const handleAreaMouseMove = (e) => {
+      if (isDraggingArea && selectedAreaId) {
+        const editor = editorRef.current;
+        const scale = editor ? editor.zoom : 1;
+        const newX = (e.clientX - dragAreaStart.x) / scale;
+        const newY = (e.clientY - dragAreaStart.y) / scale;
+        
+        const newAreas = areas.map(a =>
+          a.id === selectedAreaId ? { ...a, x: newX, y: newY } : a
+        );
+        setAreas(newAreas);
+      } else if (isResizingArea && selectedAreaId) {
+        const editor = editorRef.current;
+        const scale = editor ? editor.zoom : 1;
+        const deltaX = e.clientX - resizeAreaStart.x;
+        const deltaY = e.clientY - resizeAreaStart.y;
+        const newWidth = Math.max(200, resizeAreaStart.width + deltaX / scale);
+        const newHeight = Math.max(200, resizeAreaStart.height + deltaY / scale);
+        
+        const newAreas = areas.map(a =>
+          a.id === selectedAreaId ? { ...a, width: newWidth, height: newHeight } : a
+        );
+        setAreas(newAreas);
+      }
+    };
+    
+    const handleAreaMouseUp = () => {
+      if (isDraggingArea || isResizingArea) {
+        saveAreasToData(areas);
+      }
+      setIsDraggingArea(false);
+      setIsResizingArea(false);
+    };
+    
+    window.addEventListener('mousemove', handleAreaMouseMove);
+    window.addEventListener('mouseup', handleAreaMouseUp);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleAreaMouseMove);
+      window.removeEventListener('mouseup', handleAreaMouseUp);
+    };
+  }, [isDraggingArea, isResizingArea, selectedAreaId, dragAreaStart, resizeAreaStart, areas]);
 
   useEffect(() => {
     if (!drawflowRef.current) return;
@@ -418,7 +485,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
           // Re-add edit icons
           setTimeout(() => {
-            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'area'];
+            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
             Object.keys(data.drawflow.Home.data).forEach(nodeId => {
               const nodeData = data.drawflow.Home.data[nodeId];
               if (editableNodes.includes(nodeData.name)) {
@@ -459,6 +526,11 @@ export default function FluxMap({ data, onChange, onImport }) {
     
     editorRef.current = editor;
 
+    // Load areas if they exist
+    if (data && data.areas) {
+      setAreas(data.areas);
+    }
+
     if (data && data.drawflow) {
       try {
         editor.import(data);
@@ -489,10 +561,10 @@ export default function FluxMap({ data, onChange, onImport }) {
                 });
                 nodeElement.appendChild(editIcon);
                 
-                // Add manual resize for sticky notes and areas
-                if (nodeData.name === 'sticky-note' || nodeData.name === 'area') {
-                  const container = nodeElement.querySelector(nodeData.name === 'sticky-note' ? '.sticky-note-container' : '.area-container');
-                  const resizeHandle = nodeElement.querySelector(nodeData.name === 'sticky-note' ? '.sticky-resize-handle' : '.area-resize-handle');
+                // Add manual resize for sticky notes
+                if (nodeData.name === 'sticky-note') {
+                  const container = nodeElement.querySelector('.sticky-note-container');
+                  const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
                   
                   if (container && resizeHandle) {
                     let isResizing = false;
@@ -517,7 +589,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                       e.stopPropagation();
                       const deltaX = e.clientX - startX;
                       const deltaY = e.clientY - startY;
-                      const minSize = nodeData.name === 'area' ? 200 : 120;
+                      const minSize = 120;
                       const newWidth = Math.max(minSize, startWidth + deltaX);
                       const newHeight = Math.max(minSize, startHeight + deltaY);
                       container.style.width = newWidth + 'px';
@@ -563,20 +635,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
     editor.on('nodeCreated', saveData);
     editor.on('nodeRemoved', saveData);
-    editor.on('nodeMoved', (id) => {
-      // Keep areas on bottom layer when moved
-      setTimeout(() => {
-        const nodeElement = document.getElementById(`node-${id}`);
-        if (nodeElement && nodeElement.getAttribute('data-node-type') === 'area') {
-          nodeElement.style.zIndex = '0';
-          const parent = nodeElement.parentNode;
-          if (parent && parent.firstChild !== nodeElement) {
-            parent.insertBefore(nodeElement, parent.firstChild);
-          }
-        }
-      }, 0);
-      saveData();
-    });
+    editor.on('nodeMoved', saveData);
     editor.on('connectionCreated', saveData);
     editor.on('connectionRemoved', saveData);
     
@@ -809,89 +868,6 @@ export default function FluxMap({ data, onChange, onImport }) {
               nodeContainer.appendChild(editIcon);
             }
           }, 10);
-        } else if (editDialog.nodeType === 'area') {
-          const { html } = createNodeHTML('area', newData);
-          const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
-          if (nodeElement) {
-            nodeElement.innerHTML = html.trim();
-            console.log('✓ Área atualizada');
-            
-            // Add manual resize for areas
-            setTimeout(() => {
-              const areaContainer = nodeElement.querySelector('.area-container');
-              const resizeHandle = nodeElement.querySelector('.area-resize-handle');
-              
-              if (areaContainer && resizeHandle) {
-                let isResizing = false;
-                let startX, startY, startWidth, startHeight;
-                
-                resizeHandle.addEventListener('mousedown', (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.stopImmediatePropagation();
-                  isResizing = true;
-                  startX = e.clientX;
-                  startY = e.clientY;
-                  startWidth = areaContainer.offsetWidth;
-                  startHeight = areaContainer.offsetHeight;
-                  document.body.style.cursor = 'nwse-resize';
-                  editorRef.current.editor_mode = 'fixed';
-                }, true);
-                
-                const handleMouseMove = (e) => {
-                  if (!isResizing) return;
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const deltaX = e.clientX - startX;
-                  const deltaY = e.clientY - startY;
-                  const newWidth = Math.max(200, startWidth + deltaX);
-                  const newHeight = Math.max(200, startHeight + deltaY);
-                  areaContainer.style.width = newWidth + 'px';
-                  areaContainer.style.height = newHeight + 'px';
-                };
-                
-                const handleMouseUp = () => {
-                  if (!isResizing) return;
-                  isResizing = false;
-                  document.body.style.cursor = 'default';
-                  editorRef.current.editor_mode = 'edit';
-                  
-                  editorRef.current.updateNodeDataFromId(editDialog.nodeId, {
-                    ...newData,
-                    width: areaContainer.offsetWidth,
-                    height: areaContainer.offsetHeight
-                  });
-                  if (onChange) {
-                    onChange(editorRef.current.export());
-                  }
-                };
-                
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-              }
-            }, 50);
-          }
-          
-          // Re-add edit icon
-          setTimeout(() => {
-            const nodeContainer = document.getElementById(`node-${editDialog.nodeId}`);
-            if (nodeContainer && !nodeContainer.querySelector('.edit-icon')) {
-              const editIcon = document.createElement('div');
-              editIcon.className = 'edit-icon';
-              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-              editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const updatedNodeData = editorRef.current.getNodeFromId(editDialog.nodeId);
-                setEditDialog({ 
-                  open: true, 
-                  nodeId: editDialog.nodeId, 
-                  data: updatedNodeData.data || {},
-                  nodeType: updatedNodeData.name
-                });
-              });
-              nodeContainer.appendChild(editIcon);
-            }
-          }, 10);
         } else {
           // rectangle, circle, name-bubble, text-box, url-link
           const { html } = createNodeHTML(editDialog.nodeType, newData);
@@ -953,7 +929,6 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const getDragPreviewContent = () => {
     const previewStyles = {
-      'area': { emoji: '📦', bg: '#dcfce7', border: '#22c55e', text: 'Área' },
       'sticky-note': { emoji: '📝', bg: '#fef3c7', border: '#fbbf24', text: 'Note' },
       'card-kanban': { emoji: '🎯', bg: '#dbeafe', border: '#3b82f6', text: 'Card' },
       'rectangle-shape': { emoji: '▭', bg: '#e0f2fe', border: '#0284c7', text: 'Retângulo' },
@@ -961,6 +936,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
       'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link' },
+      'area': { emoji: '📦', bg: '#dcfce7', border: '#22c55e', text: 'Área' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -1015,9 +991,102 @@ export default function FluxMap({ data, onChange, onImport }) {
           height: auto !important;
           z-index: 10 !important;
         }
-
-        .drawflow .drawflow-node[data-node-type="area"] {
-          z-index: 0 !important;
+        
+        .flux-area {
+          position: absolute;
+          border: 2px dashed rgba(59, 130, 246, 0.4);
+          border-radius: 8px;
+          cursor: move;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding-top: 16px;
+        }
+        
+        .flux-area-selected {
+          border-color: rgba(59, 130, 246, 0.8);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .flux-area-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: rgba(30, 41, 59, 0.7);
+          font-family: 'Montserrat', sans-serif;
+          user-select: none;
+          pointer-events: none;
+        }
+        
+        .flux-area-resize {
+          position: absolute;
+          bottom: 4px;
+          right: 4px;
+          width: 24px;
+          height: 24px;
+          cursor: nwse-resize;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 4px;
+          border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+        
+        .flux-area-resize:hover {
+          background: white;
+          border-color: rgba(148, 163, 184, 0.6);
+        }
+        
+        .flux-area-edit {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 24px;
+          height: 24px;
+          background: white;
+          border-radius: 4px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+          z-index: 10;
+        }
+        
+        .flux-area:hover .flux-area-edit {
+          opacity: 1;
+        }
+        
+        .flux-area-edit:hover {
+          background: #f3f4f6;
+        }
+        
+        .flux-area-delete {
+          position: absolute;
+          top: 8px;
+          right: 40px;
+          width: 24px;
+          height: 24px;
+          background: white;
+          border-radius: 4px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+          z-index: 10;
+        }
+        
+        .flux-area:hover .flux-area-delete {
+          opacity: 1;
+        }
+        
+        .flux-area-delete:hover {
+          background: #fee2e2;
         }
         
         .drawflow .drawflow-node .drawflow_content_node {
@@ -1354,6 +1423,86 @@ export default function FluxMap({ data, onChange, onImport }) {
         onDrop={(e) => e.preventDefault()}
         onDragOver={(e) => e.preventDefault()}
       >
+        {/* Render areas in background */}
+        {areas.map((area) => {
+          const editor = editorRef.current;
+          const scale = editor ? editor.zoom : 1;
+          const translateX = editor ? editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px';
+          const translateY = editor ? editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0px' : '0px';
+          
+          return (
+            <div
+              key={area.id}
+              className={`flux-area ${selectedAreaId === area.id ? 'flux-area-selected' : ''}`}
+              style={{
+                left: `calc(${translateX} + ${area.x * scale}px)`,
+                top: `calc(${translateY} + ${area.y * scale}px)`,
+                width: `${area.width * scale}px`,
+                height: `${area.height * scale}px`,
+                background: area.color,
+                transform: 'translate(0, 0)',
+                zIndex: 0,
+              }}
+              onMouseDown={(e) => {
+                if (e.target.classList.contains('flux-area') || e.target.classList.contains('flux-area-title')) {
+                  setSelectedAreaId(area.id);
+                  setIsDraggingArea(true);
+                  setDragAreaStart({ x: e.clientX - area.x * scale, y: e.clientY - area.y * scale });
+                }
+              }}
+            >
+              <span className="flux-area-title">{area.title}</span>
+              
+              <div
+                className="flux-area-edit"
+                onClick={() => {
+                  setAreaEditDialog({ open: true, areaId: area.id, data: area });
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                  <path d="m15 5 4 4"/>
+                </svg>
+              </div>
+              
+              <div
+                className="flux-area-delete"
+                onClick={() => {
+                  const newAreas = areas.filter(a => a.id !== area.id);
+                  setAreas(newAreas);
+                  saveAreasToData(newAreas);
+                  setSelectedAreaId(null);
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </div>
+              
+              <div
+                className="flux-area-resize"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setIsResizingArea(true);
+                  setSelectedAreaId(area.id);
+                  setResizeAreaStart({
+                    x: e.clientX,
+                    y: e.clientY,
+                    width: area.width,
+                    height: area.height,
+                  });
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+            </div>
+          );
+        })}
+        
         {selectedNodeId && (
           <div className="absolute top-4 right-4 z-50">
             <Button 
@@ -1369,6 +1518,21 @@ export default function FluxMap({ data, onChange, onImport }) {
         )}
       </div>
 
+      {/* Area Edit Dialog */}
+      <AreaEditDialog
+        open={areaEditDialog.open}
+        onOpenChange={(open) => setAreaEditDialog({ ...areaEditDialog, open })}
+        data={areaEditDialog.data}
+        onSave={(newData) => {
+          const newAreas = areas.map(a => 
+            a.id === areaEditDialog.areaId ? { ...a, ...newData } : a
+          );
+          setAreas(newAreas);
+          saveAreasToData(newAreas);
+          setAreaEditDialog({ open: false, areaId: null, data: {} });
+        }}
+      />
+      
       {/* Edit Dialog */}
       {editDialog.nodeType === 'card-kanban' ? (
         <CardEditDialog
@@ -1379,13 +1543,6 @@ export default function FluxMap({ data, onChange, onImport }) {
         />
       ) : editDialog.nodeType === 'url-link' ? (
         <URLLinkEditDialog
-          open={editDialog.open}
-          onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
-          data={editDialog.data}
-          onSave={handleEditSave}
-        />
-      ) : editDialog.nodeType === 'area' ? (
-        <AreaEditDialog
           open={editDialog.open}
           onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
           data={editDialog.data}
