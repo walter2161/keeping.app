@@ -258,53 +258,6 @@ export default function FluxMap({ data, onChange, onImport }) {
   }, [isDraggingNew, dragNodeType]);
 
   useEffect(() => {
-    if (data && editorRef.current && data.drawflow) {
-      editorRef.current.clear();
-      editorRef.current.import(data);
-      
-      // Re-add edit icons after import
-      setTimeout(() => {
-        const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note'];
-        Object.keys(data.drawflow.Home.data).forEach(nodeId => {
-          const nodeData = data.drawflow.Home.data[nodeId];
-          if (editableNodes.includes(nodeData.name)) {
-            const nodeElement = document.getElementById(`node-${nodeId}`);
-            if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
-              const editIcon = document.createElement('div');
-              editIcon.className = 'edit-icon';
-              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-              editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const nodeData = editorRef.current.getNodeFromId(nodeId);
-                setEditDialog({ 
-                  open: true, 
-                  nodeId: nodeId, 
-                  data: nodeData.data || {},
-                  nodeType: nodeData.name
-                });
-              });
-              nodeElement.appendChild(editIcon);
-              
-              // For sticky-note, add blur listener
-              if (nodeData.name === 'sticky-note') {
-                const textarea = nodeElement.querySelector('textarea');
-                if (textarea) {
-                  textarea.addEventListener('blur', () => {
-                    const newText = textarea.value;
-                    editorRef.current.updateNodeDataFromId(nodeId, { text: newText });
-                    if (onChange) {
-                      onChange(editorRef.current.export());
-                    }
-                  });
-                }
-              }
-            }
-          }
-        });
-      }, 100);
-      return;
-    }
-
     if (!drawflowRef.current || editorRef.current) return;
 
     const editor = new Drawflow(drawflowRef.current);
@@ -486,22 +439,21 @@ export default function FluxMap({ data, onChange, onImport }) {
     if (editorRef.current && editDialog.nodeId) {
       const node = editorRef.current.getNodeFromId(editDialog.nodeId);
       if (node) {
-        console.log('=== SALVANDO DADOS DO CARD ===');
+        console.log('=== SALVANDO ELEMENTO ===');
         console.log('Node ID:', editDialog.nodeId);
-        console.log('Dados anteriores:', node.data);
-        console.log('Novos dados:', newData);
+        console.log('Tipo:', editDialog.nodeType);
+        console.log('Dados novos:', newData);
         
-        // Update node data
-        node.data = { ...newData };
+        // CRITICAL: Update node data FIRST
+        editorRef.current.updateNodeDataFromId(editDialog.nodeId, newData);
         
-        // For card-kanban, regenerate the entire HTML with new data
+        // Then update HTML visualization
         if (editDialog.nodeType === 'card-kanban') {
           const { html } = createNodeHTML('card-kanban', newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
-            // Clear and re-add HTML
             nodeElement.innerHTML = html.trim();
-            console.log('HTML do card atualizado');
+            console.log('✓ Card HTML atualizado');
           }
           
           // Re-add edit icon
@@ -525,30 +477,28 @@ export default function FluxMap({ data, onChange, onImport }) {
             }
           }, 10);
         } else if (editDialog.nodeType === 'sticky-note') {
-          // For sticky-note, update textarea value and data
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
             const textarea = nodeElement.querySelector('textarea');
             if (textarea) {
               textarea.value = newData.text || '';
+              console.log('✓ Sticky note atualizado');
             }
           }
         } else {
-          // For other nodes (rectangle, circle, name-bubble, text-box), regenerate HTML
+          // rectangle, circle, name-bubble, text-box
           const { html } = createNodeHTML(editDialog.nodeType, newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
             nodeElement.innerHTML = html.trim();
-            console.log('HTML do elemento atualizado');
+            console.log('✓ Elemento HTML atualizado:', editDialog.nodeType);
           }
         }
         
-        // Update node data in drawflow
-        editorRef.current.updateNodeDataFromId(editDialog.nodeId, newData);
-        
+        // Export and send to parent
         const exportedData = editorRef.current.export();
-        console.log('Dados exportados após salvar:', exportedData);
-        console.log('Node específico no export:', exportedData.drawflow.Home.data[editDialog.nodeId]);
+        console.log('✓ Exportando dados para salvar');
+        console.log('Dados do node após edição:', exportedData.drawflow.Home.data[editDialog.nodeId]);
         
         if (onChange) {
           onChange(exportedData);
