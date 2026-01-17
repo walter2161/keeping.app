@@ -47,8 +47,7 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [dragAreaStart, setDragAreaStart] = useState({ x: 0, y: 0 });
   const [resizeAreaStart, setResizeAreaStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const [isCreatingArea, setIsCreatingArea] = useState(false);
-  const [newAreaStart, setNewAreaStart] = useState({ x: 0, y: 0 });
-  const [newAreaEnd, setNewAreaEnd] = useState({ x: 0, y: 0 });
+  const [creatingAreaData, setCreatingAreaData] = useState(null);
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
@@ -421,45 +420,41 @@ export default function FluxMap({ data, onChange, onImport }) {
     };
   }, [isDraggingArea, isResizingArea, selectedAreaId, dragAreaStart, resizeAreaStart, areas]);
   
-  // Handle area creation
-  const handleAreaCreationMove = (e) => {
-    if (!isCreatingArea) return;
-    const editor = editorRef.current;
-    const rect = drawflowRef.current.getBoundingClientRect();
-    const scale = editor ? editor.zoom : 1;
-    const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
-    const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
-    
-    const x = (e.clientX - rect.left - translateX) / scale;
-    const y = (e.clientY - rect.top - translateY) / scale;
-    
-    setNewAreaEnd({ x, y });
+  // Handle area creation with simpler approach
+  const startCreatingArea = (startX, startY) => {
+    setCreatingAreaData({ startX, startY, currentX: startX, currentY: startY });
   };
   
-  const handleAreaCreationEnd = () => {
-    document.removeEventListener('mousemove', handleAreaCreationMove);
-    document.removeEventListener('mouseup', handleAreaCreationEnd);
+  const updateCreatingArea = (currentX, currentY) => {
+    if (creatingAreaData) {
+      setCreatingAreaData({ ...creatingAreaData, currentX, currentY });
+    }
+  };
+  
+  const finishCreatingArea = () => {
+    if (!creatingAreaData) return;
     
-    const width = Math.abs(newAreaEnd.x - newAreaStart.x);
-    const height = Math.abs(newAreaEnd.y - newAreaStart.y);
+    const { startX, startY, currentX, currentY } = creatingAreaData;
+    const width = Math.abs(currentX - startX);
+    const height = Math.abs(currentY - startY);
     
-    if (width > 20 && height > 20) {
+    if (width > 30 && height > 30) {
       const newArea = {
         id: Date.now().toString(),
         title: 'Área',
-        x: Math.min(newAreaStart.x, newAreaEnd.x),
-        y: Math.min(newAreaStart.y, newAreaEnd.y),
+        x: Math.min(startX, currentX),
+        y: Math.min(startY, currentY),
         width,
         height,
         color: 'rgba(59, 130, 246, 0.1)',
       };
+      
       const newAreas = [...areas, newArea];
       setAreas(newAreas);
       saveAreasToData(newAreas);
     }
     
-    setNewAreaStart({ x: 0, y: 0 });
-    setNewAreaEnd({ x: 0, y: 0 });
+    setCreatingAreaData(null);
     setIsCreatingArea(false);
     
     if (editorRef.current) {
@@ -1546,10 +1541,28 @@ export default function FluxMap({ data, onChange, onImport }) {
                 const x = (e.clientX - rect.left - translateX) / scale;
                 const y = (e.clientY - rect.top - translateY) / scale;
                 
-                setNewAreaStart({ x, y });
-                setNewAreaEnd({ x, y });
-                document.addEventListener('mousemove', handleAreaCreationMove);
-                document.addEventListener('mouseup', handleAreaCreationEnd);
+                startCreatingArea(x, y);
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onMouseMove={(e) => {
+              if (creatingAreaData) {
+                const editor = editorRef.current;
+                const rect = drawflowRef.current.getBoundingClientRect();
+                const scale = editor ? editor.zoom : 1;
+                const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
+                const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
+                
+                const x = (e.clientX - rect.left - translateX) / scale;
+                const y = (e.clientY - rect.top - translateY) / scale;
+                
+                updateCreatingArea(x, y);
+              }
+            }}
+            onMouseUp={(e) => {
+              if (creatingAreaData) {
+                finishCreatingArea();
                 e.preventDefault();
                 e.stopPropagation();
               }
@@ -1558,19 +1571,18 @@ export default function FluxMap({ data, onChange, onImport }) {
         )}
         
         {/* Preview da área sendo criada */}
-        {isCreatingArea && newAreaStart.x !== newAreaEnd.x && newAreaStart.y !== newAreaEnd.y && (
+        {creatingAreaData && (
           <div style={{
             position: 'absolute',
-            left: Math.min(newAreaStart.x, newAreaEnd.x),
-            top: Math.min(newAreaStart.y, newAreaEnd.y),
-            width: Math.abs(newAreaEnd.x - newAreaStart.x),
-            height: Math.abs(newAreaEnd.y - newAreaStart.y),
+            left: `calc(${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px'} + ${Math.min(creatingAreaData.startX, creatingAreaData.currentX) * (editorRef.current ? editorRef.current.zoom : 1)}px)`,
+            top: `calc(${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0px' : '0px'} + ${Math.min(creatingAreaData.startY, creatingAreaData.currentY) * (editorRef.current ? editorRef.current.zoom : 1)}px)`,
+            width: `${Math.abs(creatingAreaData.currentX - creatingAreaData.startX) * (editorRef.current ? editorRef.current.zoom : 1)}px`,
+            height: `${Math.abs(creatingAreaData.currentY - creatingAreaData.startY) * (editorRef.current ? editorRef.current.zoom : 1)}px`,
             background: 'rgba(59, 130, 246, 0.1)',
             border: '2px dashed rgba(59, 130, 246, 0.6)',
             borderRadius: '8px',
             zIndex: 999,
             pointerEvents: 'none',
-            transform: `translate(${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px'}, ${editorRef.current ? editorRef.current.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0px' : '0px'}) scale(${editorRef.current ? editorRef.current.zoom : 1})`
           }} />
         )}
         
