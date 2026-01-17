@@ -49,9 +49,9 @@ export default function FluxMap({ data, onChange, onImport }) {
         const noteWidth = nodeData.width || 180;
         const noteHeight = nodeData.height || minHeight;
         html = `
-          <div class="sticky-note-container" style="width: ${noteWidth}px; height: ${noteHeight}px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column; resize: both; overflow: auto;">
-            <span style="width: 100%; border: none; background: transparent; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif; white-space: pre-wrap; word-wrap: break-word;">${noteText}</span>
-            <div style="position: absolute; bottom: 2px; right: 2px; width: 16px; height: 16px; cursor: nwse-resize;">
+          <div class="sticky-note-container" style="width: ${noteWidth}px; height: ${noteHeight}px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column; overflow: hidden;">
+            <span style="width: 100%; border: none; background: transparent; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">${noteText}</span>
+            <div class="sticky-resize-handle" style="position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center;">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
@@ -189,24 +189,56 @@ export default function FluxMap({ data, onChange, onImport }) {
           });
           nodeElement.appendChild(editIcon);
 
-          // Add resize observer for sticky notes
+          // Add manual resize for sticky notes
           if (name === 'sticky-note') {
             const stickyContainer = nodeElement.querySelector('.sticky-note-container');
-            if (stickyContainer) {
-              const resizeObserver = new ResizeObserver(() => {
-                const width = stickyContainer.offsetWidth;
-                const height = stickyContainer.offsetHeight;
+            const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
+
+            if (stickyContainer && resizeHandle) {
+              let isResizing = false;
+              let startX, startY, startWidth, startHeight;
+
+              resizeHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = stickyContainer.offsetWidth;
+                startHeight = stickyContainer.offsetHeight;
+                document.body.style.cursor = 'nwse-resize';
+                editor.editor_mode = 'fixed';
+              });
+
+              const handleMouseMove = (e) => {
+                if (!isResizing) return;
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                const newWidth = Math.max(120, startWidth + deltaX);
+                const newHeight = Math.max(120, startHeight + deltaY);
+                stickyContainer.style.width = newWidth + 'px';
+                stickyContainer.style.height = newHeight + 'px';
+              };
+
+              const handleMouseUp = () => {
+                if (!isResizing) return;
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                editor.editor_mode = 'edit';
+
                 const currentData = editor.getNodeFromId(nodeId);
                 editor.updateNodeDataFromId(nodeId, {
                   ...currentData.data,
-                  width: width,
-                  height: height
+                  width: stickyContainer.offsetWidth,
+                  height: stickyContainer.offsetHeight
                 });
                 if (onChange) {
                   onChange(editor.export());
                 }
-              });
-              resizeObserver.observe(stickyContainer);
+              };
+
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
             }
           }
         }
@@ -312,24 +344,56 @@ export default function FluxMap({ data, onChange, onImport }) {
                 });
                 nodeElement.appendChild(editIcon);
                 
-                // Add resize observer for sticky notes
+                // Add manual resize for sticky notes
                 if (nodeData.name === 'sticky-note') {
                   const stickyContainer = nodeElement.querySelector('.sticky-note-container');
-                  if (stickyContainer) {
-                    const resizeObserver = new ResizeObserver(() => {
-                      const width = stickyContainer.offsetWidth;
-                      const height = stickyContainer.offsetHeight;
+                  const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
+                  
+                  if (stickyContainer && resizeHandle) {
+                    let isResizing = false;
+                    let startX, startY, startWidth, startHeight;
+                    
+                    resizeHandle.addEventListener('mousedown', (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      isResizing = true;
+                      startX = e.clientX;
+                      startY = e.clientY;
+                      startWidth = stickyContainer.offsetWidth;
+                      startHeight = stickyContainer.offsetHeight;
+                      document.body.style.cursor = 'nwse-resize';
+                      editor.editor_mode = 'fixed';
+                    });
+                    
+                    const handleMouseMove = (e) => {
+                      if (!isResizing) return;
+                      const deltaX = e.clientX - startX;
+                      const deltaY = e.clientY - startY;
+                      const newWidth = Math.max(120, startWidth + deltaX);
+                      const newHeight = Math.max(120, startHeight + deltaY);
+                      stickyContainer.style.width = newWidth + 'px';
+                      stickyContainer.style.height = newHeight + 'px';
+                    };
+                    
+                    const handleMouseUp = () => {
+                      if (!isResizing) return;
+                      isResizing = false;
+                      document.body.style.cursor = 'default';
+                      editor.editor_mode = 'edit';
+                      
                       const currentData = editor.getNodeFromId(nodeId);
                       editor.updateNodeDataFromId(nodeId, {
                         ...currentData.data,
-                        width: width,
-                        height: height
+                        width: stickyContainer.offsetWidth,
+                        height: stickyContainer.offsetHeight
                       });
                       if (onChange) {
                         onChange(editor.export());
                       }
-                    });
-                    resizeObserver.observe(stickyContainer);
+                    };
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
                   }
                 }
               }
@@ -507,23 +571,55 @@ export default function FluxMap({ data, onChange, onImport }) {
             nodeElement.innerHTML = html.trim();
             console.log('✓ Sticky note atualizado');
             
-            // Add resize observer to save dimensions
+            // Add manual resize for sticky notes
             setTimeout(() => {
               const stickyContainer = nodeElement.querySelector('.sticky-note-container');
-              if (stickyContainer) {
-                const resizeObserver = new ResizeObserver(() => {
-                  const width = stickyContainer.offsetWidth;
-                  const height = stickyContainer.offsetHeight;
+              const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
+              
+              if (stickyContainer && resizeHandle) {
+                let isResizing = false;
+                let startX, startY, startWidth, startHeight;
+                
+                resizeHandle.addEventListener('mousedown', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  isResizing = true;
+                  startX = e.clientX;
+                  startY = e.clientY;
+                  startWidth = stickyContainer.offsetWidth;
+                  startHeight = stickyContainer.offsetHeight;
+                  document.body.style.cursor = 'nwse-resize';
+                  editorRef.current.editor_mode = 'fixed';
+                });
+                
+                const handleMouseMove = (e) => {
+                  if (!isResizing) return;
+                  const deltaX = e.clientX - startX;
+                  const deltaY = e.clientY - startY;
+                  const newWidth = Math.max(120, startWidth + deltaX);
+                  const newHeight = Math.max(120, startHeight + deltaY);
+                  stickyContainer.style.width = newWidth + 'px';
+                  stickyContainer.style.height = newHeight + 'px';
+                };
+                
+                const handleMouseUp = () => {
+                  if (!isResizing) return;
+                  isResizing = false;
+                  document.body.style.cursor = 'default';
+                  editorRef.current.editor_mode = 'edit';
+                  
                   editorRef.current.updateNodeDataFromId(editDialog.nodeId, {
                     ...newData,
-                    width: width,
-                    height: height
+                    width: stickyContainer.offsetWidth,
+                    height: stickyContainer.offsetHeight
                   });
                   if (onChange) {
                     onChange(editorRef.current.export());
                   }
-                });
-                resizeObserver.observe(stickyContainer);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
               }
             }, 50);
           }
