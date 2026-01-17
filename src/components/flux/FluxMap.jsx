@@ -139,27 +139,20 @@ export default function FluxMap({ data, onChange, onImport }) {
         const linkUrl = nodeData.url || 'https://google.com';
         const linkTitle = nodeData.title || 'Link';
         html = `
-          <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden; cursor: pointer;" onclick="window.open('${linkUrl}', '_blank')">
-            <div style="height: 160px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; position: relative; overflow: hidden;">
-              <iframe src="${linkUrl}" style="width: 100%; height: 100%; border: none; pointer-events: none; transform: scale(1); transform-origin: 0 0;"></iframe>
-              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.05) 100%);"></div>
+          <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
+            <div style="height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center;">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
             </div>
-            <div style="padding: 12px; display: flex; align-items: center; justify-content: space-between;">
-              <div style="flex: 1; min-width: 0;">
-                <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 4px; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  ${linkTitle}
-                </p>
-                <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  ${linkUrl}
-                </p>
-              </div>
-              <div style="margin-left: 8px; background: #3b82f6; color: white; padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </div>
+            <div style="padding: 12px;">
+              <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 4px; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${linkTitle}
+              </p>
+              <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                🔗 ${linkUrl}
+              </p>
             </div>
           </div>
         `;
@@ -1139,6 +1132,64 @@ export default function FluxMap({ data, onChange, onImport }) {
           data={editDialog.data}
           onSave={handleEditSave}
         />
+      ) : editDialog.nodeType === 'url-link' ? (
+        <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Editar Link/URL</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Título</label>
+                <Input
+                  value={editDialog.data.title || ''}
+                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
+                  placeholder="Digite o título"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">URL</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={editDialog.data.url || ''}
+                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, url: e.target.value } })}
+                    placeholder="https://exemplo.com"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(editDialog.data.url || 'https://google.com', '_blank')}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                    Abrir
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Preview</label>
+                <div className="border rounded-lg overflow-hidden" style={{ height: '400px' }}>
+                  <iframe
+                    src={editDialog.data.url || 'https://google.com'}
+                    className="w-full h-full"
+                    title="Preview"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
+                  Cancelar
+                </Button>
+                <Button onClick={() => handleEditSave(editDialog.data)}>
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       ) : (
         <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
           <DialogContent>
@@ -1146,46 +1197,24 @@ export default function FluxMap({ data, onChange, onImport }) {
               <DialogTitle>Editar Elemento</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              {editDialog.nodeType === 'url-link' ? (
-                <>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Título</label>
-                    <Input
-                      value={editDialog.data.title || ''}
-                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, title: e.target.value } })}
-                      placeholder="Digite o título"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">URL</label>
-                    <Input
-                      value={editDialog.data.url || ''}
-                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, url: e.target.value } })}
-                      placeholder="https://exemplo.com"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    {editDialog.nodeType === 'sticky-note' ? 'Nota' : 'Texto'}
-                  </label>
-                  {editDialog.nodeType === 'sticky-note' ? (
-                    <Textarea
-                      value={editDialog.data.text || ''}
-                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
-                      placeholder="Digite a nota..."
-                      rows={6}
-                    />
-                  ) : (
-                    <Input
-                      value={editDialog.data.text || ''}
-                      onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
-                      placeholder="Digite o texto"
-                    />
-                  )}
-                </div>
-              )}
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  {editDialog.nodeType === 'sticky-note' ? 'Nota' : 'Texto'}
+                </label>
+                {editDialog.nodeType === 'sticky-note' ? (
+                  <Textarea
+                    value={editDialog.data.text || ''}
+                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                    placeholder="Digite a nota..."
+                    rows={6}
+                  />
+                ) : (
+                  <Input
+                    value={editDialog.data.text || ''}
+                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                    placeholder="Digite o texto"
+                  />
+                )}
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
                   Cancelar
