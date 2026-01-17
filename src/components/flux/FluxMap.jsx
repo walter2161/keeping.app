@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import CardEditDialog from './CardEditDialog';
 import URLLinkEditDialog from './URLLinkEditDialog';
+import AreaEditDialog from './AreaEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -174,6 +175,24 @@ export default function FluxMap({ data, onChange, onImport }) {
         `;
         break;
 
+      case 'area':
+        const areaTitle = nodeData.title || 'Área';
+        const areaWidth = nodeData.width || 400;
+        const areaHeight = nodeData.height || 300;
+        const areaColor = nodeData.color || 'rgba(59, 130, 246, 0.1)';
+        
+        html = `
+          <div class="area-container" style="width: ${areaWidth}px; height: ${areaHeight}px; background: ${areaColor}; border: 2px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; position: relative; display: flex; align-items: flex-start; justify-content: center; padding-top: 16px;">
+            <span style="font-size: 16px; font-weight: 600; color: rgba(30, 41, 59, 0.7); font-family: 'Montserrat', sans-serif; user-select: none;">${areaTitle}</span>
+            <div class="area-resize-handle" style="position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+        `;
+        break;
+
       default:
         html = '<div style="padding: 12px;">Novo Item</div>';
         break;
@@ -207,11 +226,28 @@ export default function FluxMap({ data, onChange, onImport }) {
       initialData.url = 'https://google.com';
       initialData.title = 'Link';
     }
+    else if (name === 'area') {
+      initialData.title = 'Área';
+      initialData.width = 400;
+      initialData.height = 300;
+      initialData.color = 'rgba(59, 130, 246, 0.1)';
+    }
     
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
-    // Add edit icon to all editable nodes and setup listeners for sticky-note
-    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+    // Set z-index for areas (background layer)
+    if (name === 'area') {
+      setTimeout(() => {
+        const nodeElement = document.getElementById(`node-${nodeId}`);
+        if (nodeElement) {
+          nodeElement.setAttribute('data-node-type', 'area');
+          nodeElement.style.zIndex = '0';
+        }
+      }, 10);
+    }
+
+    // Add edit icon to all editable nodes and setup listeners
+    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'area'];
     if (editableNodes.includes(name)) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
@@ -232,12 +268,12 @@ export default function FluxMap({ data, onChange, onImport }) {
           });
           nodeElement.appendChild(editIcon);
 
-          // Add manual resize for sticky notes
-          if (name === 'sticky-note') {
-            const stickyContainer = nodeElement.querySelector('.sticky-note-container');
-            const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
+          // Add manual resize for sticky notes and areas
+          if (name === 'sticky-note' || name === 'area') {
+            const container = nodeElement.querySelector(name === 'sticky-note' ? '.sticky-note-container' : '.area-container');
+            const resizeHandle = nodeElement.querySelector(name === 'sticky-note' ? '.sticky-resize-handle' : '.area-resize-handle');
 
-            if (stickyContainer && resizeHandle) {
+            if (container && resizeHandle) {
               let isResizing = false;
               let startX, startY, startWidth, startHeight;
 
@@ -247,8 +283,8 @@ export default function FluxMap({ data, onChange, onImport }) {
                 isResizing = true;
                 startX = e.clientX;
                 startY = e.clientY;
-                startWidth = stickyContainer.offsetWidth;
-                startHeight = stickyContainer.offsetHeight;
+                startWidth = container.offsetWidth;
+                startHeight = container.offsetHeight;
                 document.body.style.cursor = 'nwse-resize';
                 editor.editor_mode = 'fixed';
               });
@@ -257,10 +293,11 @@ export default function FluxMap({ data, onChange, onImport }) {
                 if (!isResizing) return;
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
-                const newWidth = Math.max(120, startWidth + deltaX);
-                const newHeight = Math.max(120, startHeight + deltaY);
-                stickyContainer.style.width = newWidth + 'px';
-                stickyContainer.style.height = newHeight + 'px';
+                const minSize = name === 'area' ? 200 : 120;
+                const newWidth = Math.max(minSize, startWidth + deltaX);
+                const newHeight = Math.max(minSize, startHeight + deltaY);
+                container.style.width = newWidth + 'px';
+                container.style.height = newHeight + 'px';
               };
 
               const handleMouseUp = () => {
@@ -272,8 +309,8 @@ export default function FluxMap({ data, onChange, onImport }) {
                 const currentData = editor.getNodeFromId(nodeId);
                 editor.updateNodeDataFromId(nodeId, {
                   ...currentData.data,
-                  width: stickyContainer.offsetWidth,
-                  height: stickyContainer.offsetHeight
+                  width: container.offsetWidth,
+                  height: container.offsetHeight
                 });
                 if (onChange) {
                   onChange(editor.export());
@@ -365,7 +402,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
           // Re-add edit icons
           setTimeout(() => {
-            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'area'];
             Object.keys(data.drawflow.Home.data).forEach(nodeId => {
               const nodeData = data.drawflow.Home.data[nodeId];
               if (editableNodes.includes(nodeData.name)) {
@@ -436,12 +473,12 @@ export default function FluxMap({ data, onChange, onImport }) {
                 });
                 nodeElement.appendChild(editIcon);
                 
-                // Add manual resize for sticky notes
-                if (nodeData.name === 'sticky-note') {
-                  const stickyContainer = nodeElement.querySelector('.sticky-note-container');
-                  const resizeHandle = nodeElement.querySelector('.sticky-resize-handle');
+                // Add manual resize for sticky notes and areas
+                if (nodeData.name === 'sticky-note' || nodeData.name === 'area') {
+                  const container = nodeElement.querySelector(nodeData.name === 'sticky-note' ? '.sticky-note-container' : '.area-container');
+                  const resizeHandle = nodeElement.querySelector(nodeData.name === 'sticky-note' ? '.sticky-resize-handle' : '.area-resize-handle');
                   
-                  if (stickyContainer && resizeHandle) {
+                  if (container && resizeHandle) {
                     let isResizing = false;
                     let startX, startY, startWidth, startHeight;
                     
@@ -451,8 +488,8 @@ export default function FluxMap({ data, onChange, onImport }) {
                       isResizing = true;
                       startX = e.clientX;
                       startY = e.clientY;
-                      startWidth = stickyContainer.offsetWidth;
-                      startHeight = stickyContainer.offsetHeight;
+                      startWidth = container.offsetWidth;
+                      startHeight = container.offsetHeight;
                       document.body.style.cursor = 'nwse-resize';
                       editor.editor_mode = 'fixed';
                     });
@@ -461,10 +498,11 @@ export default function FluxMap({ data, onChange, onImport }) {
                       if (!isResizing) return;
                       const deltaX = e.clientX - startX;
                       const deltaY = e.clientY - startY;
-                      const newWidth = Math.max(120, startWidth + deltaX);
-                      const newHeight = Math.max(120, startHeight + deltaY);
-                      stickyContainer.style.width = newWidth + 'px';
-                      stickyContainer.style.height = newHeight + 'px';
+                      const minSize = nodeData.name === 'area' ? 200 : 120;
+                      const newWidth = Math.max(minSize, startWidth + deltaX);
+                      const newHeight = Math.max(minSize, startHeight + deltaY);
+                      container.style.width = newWidth + 'px';
+                      container.style.height = newHeight + 'px';
                     };
                     
                     const handleMouseUp = () => {
@@ -476,8 +514,8 @@ export default function FluxMap({ data, onChange, onImport }) {
                       const currentData = editor.getNodeFromId(nodeId);
                       editor.updateNodeDataFromId(nodeId, {
                         ...currentData.data,
-                        width: stickyContainer.offsetWidth,
-                        height: stickyContainer.offsetHeight
+                        width: container.offsetWidth,
+                        height: container.offsetHeight
                       });
                       if (onChange) {
                         onChange(editor.export());
@@ -736,6 +774,86 @@ export default function FluxMap({ data, onChange, onImport }) {
               nodeContainer.appendChild(editIcon);
             }
           }, 10);
+        } else if (editDialog.nodeType === 'area') {
+          const { html } = createNodeHTML('area', newData);
+          const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
+          if (nodeElement) {
+            nodeElement.innerHTML = html.trim();
+            console.log('✓ Área atualizada');
+            
+            // Add manual resize for areas
+            setTimeout(() => {
+              const areaContainer = nodeElement.querySelector('.area-container');
+              const resizeHandle = nodeElement.querySelector('.area-resize-handle');
+              
+              if (areaContainer && resizeHandle) {
+                let isResizing = false;
+                let startX, startY, startWidth, startHeight;
+                
+                resizeHandle.addEventListener('mousedown', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  isResizing = true;
+                  startX = e.clientX;
+                  startY = e.clientY;
+                  startWidth = areaContainer.offsetWidth;
+                  startHeight = areaContainer.offsetHeight;
+                  document.body.style.cursor = 'nwse-resize';
+                  editorRef.current.editor_mode = 'fixed';
+                });
+                
+                const handleMouseMove = (e) => {
+                  if (!isResizing) return;
+                  const deltaX = e.clientX - startX;
+                  const deltaY = e.clientY - startY;
+                  const newWidth = Math.max(200, startWidth + deltaX);
+                  const newHeight = Math.max(200, startHeight + deltaY);
+                  areaContainer.style.width = newWidth + 'px';
+                  areaContainer.style.height = newHeight + 'px';
+                };
+                
+                const handleMouseUp = () => {
+                  if (!isResizing) return;
+                  isResizing = false;
+                  document.body.style.cursor = 'default';
+                  editorRef.current.editor_mode = 'edit';
+                  
+                  editorRef.current.updateNodeDataFromId(editDialog.nodeId, {
+                    ...newData,
+                    width: areaContainer.offsetWidth,
+                    height: areaContainer.offsetHeight
+                  });
+                  if (onChange) {
+                    onChange(editorRef.current.export());
+                  }
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }
+            }, 50);
+          }
+          
+          // Re-add edit icon
+          setTimeout(() => {
+            const nodeContainer = document.getElementById(`node-${editDialog.nodeId}`);
+            if (nodeContainer && !nodeContainer.querySelector('.edit-icon')) {
+              const editIcon = document.createElement('div');
+              editIcon.className = 'edit-icon';
+              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+              editIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const updatedNodeData = editorRef.current.getNodeFromId(editDialog.nodeId);
+                setEditDialog({ 
+                  open: true, 
+                  nodeId: editDialog.nodeId, 
+                  data: updatedNodeData.data || {},
+                  nodeType: updatedNodeData.name
+                });
+              });
+              nodeContainer.appendChild(editIcon);
+            }
+          }, 10);
         } else {
           // rectangle, circle, name-bubble, text-box, url-link
           const { html } = createNodeHTML(editDialog.nodeType, newData);
@@ -797,13 +915,14 @@ export default function FluxMap({ data, onChange, onImport }) {
 
   const getDragPreviewContent = () => {
     const previewStyles = {
-      'sticky-note': { emoji: '📝', bg: '#fef3c7', border: '#fbbf24', text: 'Sticky Note' },
+      'sticky-note': { emoji: '📝', bg: '#fef3c7', border: '#fbbf24', text: 'Note' },
       'card-kanban': { emoji: '🎯', bg: '#dbeafe', border: '#3b82f6', text: 'Card' },
-      'rectangle-shape': { emoji: '▭', bg: '#e0f2fe', border: '#0284c7', text: 'Retângulo' },
-      'circle-shape': { emoji: '●', bg: '#fef9c3', border: '#eab308', text: 'Círculo' },
+      'rectangle-shape': { emoji: '▭', bg: '#e0f2fe', border: '#0284c7', text: 'Ret' },
+      'circle-shape': { emoji: '●', bg: '#fef9c3', border: '#eab308', text: 'Circ' },
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
-      'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link/URL' },
+      'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link' },
+      'area': { emoji: '📦', bg: '#dcfce7', border: '#22c55e', text: 'Área' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -856,6 +975,14 @@ export default function FluxMap({ data, onChange, onImport }) {
           min-height: auto !important;
           width: auto !important;
           height: auto !important;
+        }
+
+        .drawflow .drawflow-node[data-node-type="area"] {
+          z-index: 0 !important;
+        }
+        
+        .drawflow .drawflow-node:not([data-node-type="area"]) {
+          z-index: 10 !important;
         }
         
         .drawflow .drawflow-node .drawflow_content_node {
@@ -1008,10 +1135,10 @@ export default function FluxMap({ data, onChange, onImport }) {
         }
 
         .sidebar-flux {
-          width: 200px;
+          width: 60px;
           background: white;
           border-right: 1px solid #e2e8f0;
-          padding: 12px;
+          padding: 8px;
           overflow-y: auto;
         }
 
@@ -1019,18 +1146,19 @@ export default function FluxMap({ data, onChange, onImport }) {
           cursor: grab;
           user-select: none;
           margin-bottom: 6px;
-          padding: 8px 10px;
+          padding: 6px;
           border-radius: 6px;
           border: 1.5px solid;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 8px;
+          gap: 4px;
           transition: all 0.2s;
           font-family: 'Montserrat', sans-serif;
         }
 
         .drag-drawflow:hover {
-          transform: translateX(4px);
+          transform: scale(1.05);
           box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
@@ -1048,9 +1176,22 @@ export default function FluxMap({ data, onChange, onImport }) {
       `}</style>
 
       <div className="sidebar-flux">
-        <div className="mb-4">
-          <h3 className="font-semibold text-xs text-gray-600 mb-2 uppercase tracking-wide">Elementos</h3>
-          
+        <div className="mb-3">
+          <div
+            className="drag-drawflow"
+            draggable="true"
+            data-node="area"
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'area')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('area');
+            }}
+            style={{ background: '#dcfce7', borderColor: '#22c55e' }}
+            title="Área"
+          >
+            <span style={{ fontSize: '20px' }}>📦</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#166534' }}>Área</span>
+          </div>
+
           <div
             className="drag-drawflow"
             draggable="true"
@@ -1060,9 +1201,10 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('sticky-note');
             }}
             style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
+            title="Sticky Note"
           >
-            <span style={{ fontSize: '18px' }}>📝</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Sticky Note</span>
+            <span style={{ fontSize: '20px' }}>📝</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#92400e' }}>Note</span>
           </div>
 
           <div
@@ -1074,9 +1216,10 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('card-kanban');
             }}
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
+            title="Card"
           >
-            <span style={{ fontSize: '18px' }}>🎯</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Card</span>
+            <span style={{ fontSize: '20px' }}>🎯</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#1e40af' }}>Card</span>
           </div>
 
           <div
@@ -1088,9 +1231,10 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('rectangle-shape');
             }}
             style={{ background: '#e0f2fe', borderColor: '#0284c7' }}
+            title="Retângulo"
           >
-            <span style={{ fontSize: '18px' }}>▭</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#075985' }}>Retângulo</span>
+            <span style={{ fontSize: '20px' }}>▭</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#075985' }}>Ret</span>
           </div>
 
           <div
@@ -1102,9 +1246,10 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('circle-shape');
             }}
             style={{ background: '#fef9c3', borderColor: '#eab308' }}
+            title="Círculo"
           >
-            <span style={{ fontSize: '18px' }}>●</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#713f12' }}>Círculo</span>
+            <span style={{ fontSize: '20px' }}>●</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#713f12' }}>Circ</span>
           </div>
 
           <div
@@ -1116,9 +1261,10 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('name-bubble');
             }}
             style={{ background: '#f3e8ff', borderColor: '#a855f7' }}
+            title="Nome"
           >
-            <span style={{ fontSize: '18px' }}>👤</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
+            <span style={{ fontSize: '20px' }}>👤</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
           </div>
 
           <div
@@ -1130,9 +1276,10 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('text-box');
             }}
             style={{ background: '#f1f5f9', borderColor: '#64748b' }}
+            title="Texto"
           >
-            <span style={{ fontSize: '18px' }}>T</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#334155' }}>Texto</span>
+            <span style={{ fontSize: '20px' }}>T</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#334155' }}>Texto</span>
           </div>
 
           <div
@@ -1144,24 +1291,23 @@ export default function FluxMap({ data, onChange, onImport }) {
               if (!isDraggingNew) handleClickToAdd('url-link');
             }}
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
+            title="Link"
           >
-            <span style={{ fontSize: '18px' }}>🔗</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Link/URL</span>
+            <span style={{ fontSize: '20px' }}>🔗</span>
+            <span style={{ fontSize: '9px', fontWeight: '600', color: '#1e40af' }}>Link</span>
           </div>
         </div>
 
-        <div className="pt-3 border-t border-gray-200">
-          <h3 className="font-semibold text-xs text-gray-600 mb-2 uppercase tracking-wide">Controles</h3>
-          
+        <div className="pt-2 border-t border-gray-200">
           <div className="flex items-center gap-1 mb-2">
-            <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1 h-7 px-2">
+            <Button variant="outline" size="sm" onClick={handleZoomOut} className="flex-1 h-6 px-1" title="Zoom -">
               <Minus className="w-3 h-3" />
             </Button>
-            <span className="text-xs font-medium w-12 text-center">{zoom}%</span>
-            <Button variant="outline" size="sm" onClick={handleZoomIn} className="flex-1 h-7 px-2">
+            <Button variant="outline" size="sm" onClick={handleZoomIn} className="flex-1 h-6 px-1" title="Zoom +">
               <Plus className="w-3 h-3" />
             </Button>
           </div>
+          <div className="text-[8px] text-center text-gray-500 mb-1">{zoom}%</div>
 
 
         </div>
@@ -1199,6 +1345,13 @@ export default function FluxMap({ data, onChange, onImport }) {
         />
       ) : editDialog.nodeType === 'url-link' ? (
         <URLLinkEditDialog
+          open={editDialog.open}
+          onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
+          data={editDialog.data}
+          onSave={handleEditSave}
+        />
+      ) : editDialog.nodeType === 'area' ? (
+        <AreaEditDialog
           open={editDialog.open}
           onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
           data={editDialog.data}
