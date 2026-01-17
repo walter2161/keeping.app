@@ -158,14 +158,13 @@ Retorne APENAS as informações encontradas.`;
               placeholder="https://exemplo.com/imagem.jpg"
             />
             {formData.image && (
-              <div className="mt-2 border rounded-lg overflow-hidden" style={{ height: '200px' }}>
+              <div className="mt-2 border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center" style={{ height: '200px' }}>
                 <img 
                   src={formData.image} 
                   alt="Preview" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">Imagem não disponível</div>';
                   }}
                 />
               </div>
