@@ -43,9 +43,12 @@ export default function FluxMap({ data, onChange, onImport }) {
 
     switch (name) {
       case 'sticky-note':
+        const noteText = nodeData.text || 'Nota';
+        const lineCount = noteText.split('\n').length;
+        const minHeight = Math.max(180, lineCount * 24 + 40);
         html = `
-          <div style="width: 180px; min-height: 180px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; resize: both; overflow: auto;">
-            <textarea style="width: 100%; height: 140px; border: none; background: transparent; resize: vertical; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif;" placeholder="Escreva aqui...">${nodeData.text || 'Nota'}</textarea>
+          <div style="width: 180px; min-height: ${minHeight}px; background: #fef08a; padding: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column;">
+            <span style="width: 100%; border: none; background: transparent; font-size: 14px; line-height: 1.5; color: #78716c; font-family: 'Montserrat', sans-serif; white-space: pre-wrap; word-wrap: break-word;">${noteText}</span>
           </div>
         `;
         break;
@@ -179,19 +182,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           });
           nodeElement.appendChild(editIcon);
           
-          // For sticky-note, add blur listener to save textarea changes
-          if (name === 'sticky-note') {
-            const textarea = nodeElement.querySelector('textarea');
-            if (textarea) {
-              textarea.addEventListener('blur', () => {
-                const newText = textarea.value;
-                editor.updateNodeDataFromId(nodeId, { text: newText });
-                if (onChange) {
-                  onChange(editor.export());
-                }
-              });
-            }
-          }
+
         }
       }, 10);
     }
@@ -294,20 +285,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                   });
                 });
                 nodeElement.appendChild(editIcon);
-                
-                // For sticky-note, add blur listener
-                if (nodeData.name === 'sticky-note') {
-                  const textarea = nodeElement.querySelector('textarea');
-                  if (textarea) {
-                    textarea.addEventListener('blur', () => {
-                      const newText = textarea.value;
-                      editor.updateNodeDataFromId(nodeId, { text: newText });
-                      if (onChange) {
-                        onChange(editor.export());
-                      }
-                    });
-                  }
-                }
+
               }
             }
           });
@@ -477,14 +455,33 @@ export default function FluxMap({ data, onChange, onImport }) {
             }
           }, 10);
         } else if (editDialog.nodeType === 'sticky-note') {
+          const { html } = createNodeHTML('sticky-note', newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
-            const textarea = nodeElement.querySelector('textarea');
-            if (textarea) {
-              textarea.value = newData.text || '';
-              console.log('✓ Sticky note atualizado');
-            }
+            nodeElement.innerHTML = html.trim();
+            console.log('✓ Sticky note atualizado');
           }
+          
+          // Re-add edit icon
+          setTimeout(() => {
+            const nodeContainer = document.getElementById(`node-${editDialog.nodeId}`);
+            if (nodeContainer && !nodeContainer.querySelector('.edit-icon')) {
+              const editIcon = document.createElement('div');
+              editIcon.className = 'edit-icon';
+              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+              editIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const updatedNodeData = editorRef.current.getNodeFromId(editDialog.nodeId);
+                setEditDialog({ 
+                  open: true, 
+                  nodeId: editDialog.nodeId, 
+                  data: updatedNodeData.data || {},
+                  nodeType: updatedNodeData.name
+                });
+              });
+              nodeContainer.appendChild(editIcon);
+            }
+          }, 10);
         } else {
           // rectangle, circle, name-bubble, text-box
           const { html } = createNodeHTML(editDialog.nodeType, newData);
@@ -939,12 +936,23 @@ export default function FluxMap({ data, onChange, onImport }) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Texto</label>
-                <Input
-                  value={editDialog.data.text || ''}
-                  onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
-                  placeholder="Digite o texto"
-                />
+                <label className="text-sm font-medium mb-2 block">
+                  {editDialog.nodeType === 'sticky-note' ? 'Nota' : 'Texto'}
+                </label>
+                {editDialog.nodeType === 'sticky-note' ? (
+                  <Textarea
+                    value={editDialog.data.text || ''}
+                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                    placeholder="Digite a nota..."
+                    rows={6}
+                  />
+                ) : (
+                  <Input
+                    value={editDialog.data.text || ''}
+                    onChange={(e) => setEditDialog({ ...editDialog, data: { ...editDialog.data, text: e.target.value } })}
+                    placeholder="Digite o texto"
+                  />
+                )}
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditDialog({ open: false, nodeId: null, data: {}, nodeType: null })}>
