@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
 export default function URLLinkEditDialog({ open, onOpenChange, data, onSave }) {
   const [formData, setFormData] = useState(data);
   const [loading, setLoading] = useState(false);
+  const [autoFetchTimeout, setAutoFetchTimeout] = useState(null);
 
   const handleFetchMetadata = async () => {
     if (!formData.url) return;
@@ -75,6 +76,23 @@ Retorne APENAS as informações encontradas.`;
     onSave(formData);
   };
 
+  // Auto-fetch metadata when URL changes
+  useEffect(() => {
+    if (formData.url && formData.url.startsWith('http')) {
+      if (autoFetchTimeout) clearTimeout(autoFetchTimeout);
+      
+      const timeout = setTimeout(() => {
+        handleFetchMetadata();
+      }, 1500); // Wait 1.5s after user stops typing
+      
+      setAutoFetchTimeout(timeout);
+    }
+    
+    return () => {
+      if (autoFetchTimeout) clearTimeout(autoFetchTimeout);
+    };
+  }, [formData.url]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -83,35 +101,24 @@ Retorne APENAS as informações encontradas.`;
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">URL</label>
+            <label className="text-sm font-medium mb-2 block">URL {loading && <span className="text-xs text-blue-600 ml-2">(carregando informações...)</span>}</label>
             <div className="flex gap-2">
               <Input
                 value={formData.url || ''}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                 placeholder="https://exemplo.com"
                 className="flex-1"
+                disabled={loading}
               />
-              <Button
-                variant="outline"
-                onClick={handleFetchMetadata}
-                disabled={loading || !formData.url}
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Carregar Info
-              </Button>
               <Button
                 variant="outline"
                 onClick={() => window.open(formData.url || 'https://google.com', '_blank')}
                 disabled={!formData.url}
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Abrir
+                <ExternalLink className="w-4 h-4" />
               </Button>
             </div>
+            <p className="text-xs text-gray-500 mt-1">Cole a URL e aguarde o carregamento automático das informações</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
