@@ -461,6 +461,10 @@ export default function FluxMap({ data, onChange, onImport }) {
     setNewAreaStart({ x: 0, y: 0 });
     setNewAreaEnd({ x: 0, y: 0 });
     setIsCreatingArea(false);
+    
+    if (editorRef.current) {
+      editorRef.current.editor_mode = 'edit';
+    }
   };
 
   useEffect(() => {
@@ -1413,7 +1417,13 @@ export default function FluxMap({ data, onChange, onImport }) {
               transition: 'all 0.2s',
               userSelect: 'none'
             }}
-            onClick={() => setIsCreatingArea(!isCreatingArea)}
+            onClick={() => {
+              const newState = !isCreatingArea;
+              setIsCreatingArea(newState);
+              if (editorRef.current) {
+                editorRef.current.editor_mode = newState ? 'fixed' : 'edit';
+              }
+            }}
           >
             <span style={{ fontSize: '20px', display: 'block', marginBottom: '4px' }}>📦</span>
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534', display: 'block' }}>
