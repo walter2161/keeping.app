@@ -1526,28 +1526,36 @@ export default function FluxMap({ data, onChange, onImport }) {
         <div
           id="drawflow"
           ref={drawflowRef}
-          style={{ position: 'absolute', inset: 0, zIndex: 1, cursor: isCreatingArea ? 'crosshair' : 'default' }}
+          style={{ position: 'absolute', inset: 0, zIndex: 1, cursor: isCreatingArea ? 'crosshair' : 'default', pointerEvents: isCreatingArea ? 'none' : 'auto' }}
           onDrop={(e) => e.preventDefault()}
           onDragOver={(e) => e.preventDefault()}
-          onMouseDown={(e) => {
-            if (isCreatingArea && e.button === 0) {
-              const editor = editorRef.current;
-              const rect = drawflowRef.current.getBoundingClientRect();
-              const scale = editor ? editor.zoom : 1;
-              const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
-              const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
-              
-              const x = (e.clientX - rect.left - translateX) / scale;
-              const y = (e.clientY - rect.top - translateY) / scale;
-              
-              setNewAreaStart({ x, y });
-              setNewAreaEnd({ x, y });
-              document.addEventListener('mousemove', handleAreaCreationMove);
-              document.addEventListener('mouseup', handleAreaCreationEnd);
-              e.preventDefault();
-            }
-          }}
         />
+        
+        {/* Overlay transparente para capturar eventos quando criando área */}
+        {isCreatingArea && (
+          <div
+            style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: 'crosshair' }}
+            onMouseDown={(e) => {
+              if (e.button === 0) {
+                const editor = editorRef.current;
+                const rect = drawflowRef.current.getBoundingClientRect();
+                const scale = editor ? editor.zoom : 1;
+                const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
+                const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
+                
+                const x = (e.clientX - rect.left - translateX) / scale;
+                const y = (e.clientY - rect.top - translateY) / scale;
+                
+                setNewAreaStart({ x, y });
+                setNewAreaEnd({ x, y });
+                document.addEventListener('mousemove', handleAreaCreationMove);
+                document.addEventListener('mouseup', handleAreaCreationEnd);
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+          />
+        )}
         
         {/* Preview da área sendo criada */}
         {isCreatingArea && newAreaStart.x !== newAreaEnd.x && newAreaStart.y !== newAreaEnd.y && (
