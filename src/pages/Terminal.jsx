@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Terminal as TerminalIcon, HelpCircle, X } from 'lucide-react';
+import { Terminal as TerminalIcon, HelpCircle, X, Copy, Check } from 'lucide-react';
 
 export default function Terminal() {
   const [history, setHistory] = useState([]);
@@ -967,11 +967,42 @@ Utility:
 `;
 
 function Documentation() {
+  const [copied, setCopied] = useState(false);
+  const docRef = useRef(null);
+
+  const copyAllText = () => {
+    if (docRef.current) {
+      const text = docRef.current.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6 text-green-400">
-      <div>
-        <h2 className="text-xl font-bold text-cyan-400 mb-2">📚 Keeping Terminal - Complete Documentation</h2>
-        <p className="text-gray-400 text-xs">For AI Assistants (Manus, NotebookLM, etc.)</p>
+    <div ref={docRef} className="space-y-6 text-green-400">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-cyan-400 mb-2">📚 Keeping Terminal - Complete Documentation</h2>
+          <p className="text-gray-400 text-xs">For AI Assistants (Manus, NotebookLM, etc.)</p>
+        </div>
+        <button
+          onClick={copyAllText}
+          className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors text-white"
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4 text-green-400" />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              Copy All
+            </>
+          )}
+        </button>
       </div>
 
       <section>
