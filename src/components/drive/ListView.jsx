@@ -112,12 +112,13 @@ export default function ListView({
         
         return (
           <React.Fragment key={folder.id}>
-            <Tooltip delayDuration={300}>
+            <Tooltip delayDuration={500}>
               <TooltipTrigger asChild>
             <div
               className="grid grid-cols-12 gap-4 px-4 py-3 border-b hover:bg-gray-50 cursor-pointer group items-center"
               onClick={() => onFolderClick(folder.id)}
               style={{ paddingLeft: `${level * 24 + 16}px` }}
+              title=""
             >
               <div className="col-span-5 flex items-center gap-2 min-w-0">
                 {folderHasContent ? (
@@ -214,12 +215,13 @@ export default function ListView({
         const Icon = config.icon;
         
         return (
-          <Tooltip key={file.id} delayDuration={300}>
+          <Tooltip key={file.id} delayDuration={500}>
             <TooltipTrigger asChild>
           <div
             className="grid grid-cols-12 gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer group items-center"
             onClick={() => onFileClick(file)}
             style={{ paddingLeft: `${level * 24 + 16}px` }}
+            title=""
           >
             <div className="col-span-5 flex items-center gap-2 min-w-0">
               <Icon className={`w-5 h-5 flex-shrink-0 ${config.color}`} />

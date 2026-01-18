@@ -119,7 +119,7 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
 
   return (
     <TooltipProvider>
-      <Tooltip delayDuration={300}>
+      <Tooltip delayDuration={500}>
         <TooltipTrigger asChild>
           <div
             ref={provided?.innerRef}
@@ -130,6 +130,7 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             }`}
             onClick={handleCardClick}
             onContextMenu={handleContextMenu}
+            title=""
           >
             {renderThumbnail()}
             
