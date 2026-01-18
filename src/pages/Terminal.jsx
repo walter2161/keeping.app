@@ -904,6 +904,76 @@ export default function Terminal() {
           break;
         }
 
+        case 'upload-json': {
+          addToHistory(input, `Para criar estruturas de pastas e arquivos, cole um JSON no formato:\n{"folders": [{"name": "Pasta", "parent_id": null}], "files": [{"name": "arquivo.docx", "type": "docx", "folder_id": null}]}`);
+          break;
+        }
+
+        case 'import': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: import <json_string>', true);
+            break;
+          }
+          try {
+            const jsonStr = args.join(' ');
+            const importData = JSON.parse(jsonStr);
+            const currentFolderId = currentPath === '/' ? null : currentPath;
+            const user = await base44.auth.me();
+            
+            // Pegar team_id da pasta atual
+            let team_id = null;
+            if (currentFolderId) {
+              const parentFolder = folders.find(f => f.id === currentFolderId);
+              if (parentFolder) team_id = parentFolder.team_id;
+            }
+            
+            let created = { folders: 0, files: 0 };
+            const folderMap = {};
+            
+            // Criar pastas primeiro
+            if (importData.folders && Array.isArray(importData.folders)) {
+              for (const folderData of importData.folders) {
+                const result = await createFolderMutation.mutateAsync({
+                  name: folderData.name,
+                  parent_id: folderData.parent_id || currentFolderId,
+                  team_id: team_id,
+                  color: folderData.color || 'bg-blue-500',
+                  owner: user.email,
+                  deleted: false
+                });
+                if (folderData.temp_id) folderMap[folderData.temp_id] = result.id;
+                created.folders++;
+              }
+            }
+            
+            // Criar arquivos
+            if (importData.files && Array.isArray(importData.files)) {
+              for (const fileData of importData.files) {
+                let folderId = fileData.folder_id || currentFolderId;
+                if (fileData.folder_id && folderMap[fileData.folder_id]) {
+                  folderId = folderMap[fileData.folder_id];
+                }
+                
+                await createFileMutation.mutateAsync({
+                  name: fileData.name,
+                  type: fileData.type || 'other',
+                  folder_id: folderId,
+                  team_id: team_id,
+                  content: fileData.content || '',
+                  owner: user.email,
+                  deleted: false
+                });
+                created.files++;
+              }
+            }
+            
+            addToHistory(input, `Importação concluída:\n${created.folders} pasta(s) criada(s)\n${created.files} arquivo(s) criado(s)`);
+          } catch (e) {
+            addToHistory(input, `Erro ao importar JSON: ${e.message}`, true);
+          }
+          break;
+        }
+
         default:
           addToHistory(input, `Command not found: ${cmd}\nType 'help' for available commands`, true);
       }
@@ -1083,6 +1153,10 @@ XLSX:
 PPTX:
   pptx-add-slide <file> <title> [content]
   pptx-list <file>
+
+Import/Export:
+  upload-json          Show JSON format guide
+  import <json>        Import folders/files from JSON
 
 Utility:
   help, docs, clear
@@ -1273,6 +1347,19 @@ function Documentation() {
             <div>
               <code className="text-cyan-400">pptx-list &lt;file&gt;</code>
               <p className="text-gray-400 text-xs">Show all slides</p>
+            </div>
+          </div>
+
+          <h4 className="font-bold text-white text-base mt-4">📥 Import/Export Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">upload-json</code>
+              <p className="text-gray-400 text-xs">Show JSON format guide for importing</p>
+            </div>
+            <div>
+              <code className="text-cyan-400">import &lt;json_string&gt;</code>
+              <p className="text-gray-400 text-xs">Import folders and files from JSON</p>
+              <code className="text-green-400 text-xs block mt-1">{'import {"folders":[{"name":"Marketing","temp_id":"m1"}],"files":[{"name":"plano.docx","type":"docx","folder_id":"m1"}]}'}</code>
             </div>
           </div>
         </div>
