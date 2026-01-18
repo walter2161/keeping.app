@@ -244,6 +244,20 @@ export default function Drive() {
     queryClient.invalidateQueries({ queryKey: ['teams'] });
   };
 
+  const getUniqueName = (baseName, existingNames) => {
+    if (!existingNames.includes(baseName.toLowerCase())) {
+      return baseName;
+    }
+    
+    let counter = 1;
+    let newName = `${baseName} copy ${counter}`;
+    while (existingNames.includes(newName.toLowerCase())) {
+      counter++;
+      newName = `${baseName} copy ${counter}`;
+    }
+    return newName;
+  };
+
   const handleCreateFolder = async (name, color) => {
     if (!user) return;
     try {
@@ -358,16 +372,36 @@ export default function Drive() {
   const handleRenameFolder = async (folder) => {
     const newName = prompt('Novo nome:', folder.name);
     if (newName && newName.trim()) {
-      await updateFolderMutation.mutateAsync({ id: folder.id, data: { name: newName.trim() } });
-      await logTeamActivity(folder.team_id, 'update_folder', newName.trim(), folder.id);
+      const trimmedName = newName.trim();
+      const existingNames = currentFolders
+        .filter(f => f.id !== folder.id)
+        .map(f => f.name.toLowerCase());
+      
+      if (existingNames.includes(trimmedName.toLowerCase())) {
+        alert('Já existe uma pasta com este nome neste local');
+        return;
+      }
+      
+      await updateFolderMutation.mutateAsync({ id: folder.id, data: { name: trimmedName } });
+      await logTeamActivity(folder.team_id, 'update_folder', trimmedName, folder.id);
     }
   };
 
   const handleRenameFile = async (file) => {
     const newName = prompt('Novo nome:', file.name);
     if (newName && newName.trim()) {
-      await updateFileMutation.mutateAsync({ id: file.id, data: { name: newName.trim() } });
-      await logTeamActivity(file.team_id, 'update_file', newName.trim(), file.id);
+      const trimmedName = newName.trim();
+      const existingNames = currentFiles
+        .filter(f => f.id !== file.id)
+        .map(f => f.name.toLowerCase());
+      
+      if (existingNames.includes(trimmedName.toLowerCase())) {
+        alert('Já existe um arquivo com este nome neste local');
+        return;
+      }
+      
+      await updateFileMutation.mutateAsync({ id: file.id, data: { name: trimmedName } });
+      await logTeamActivity(file.team_id, 'update_file', trimmedName, file.id);
     }
   };
 
@@ -453,12 +487,23 @@ export default function Drive() {
 
   const handleImport = async (data) => {
     const importStructure = async (structure, parentId = null) => {
+      const existingFolders = folders
+        .filter(f => f.parent_id === parentId && !f.deleted)
+        .map(f => f.name.toLowerCase());
+      const existingFiles = files
+        .filter(f => f.folder_id === parentId && !f.deleted)
+        .map(f => f.name.toLowerCase());
+      
       // Import folders
       for (const folder of structure.folders || []) {
+        const folderName = getUniqueName(folder.name, existingFolders);
+        existingFolders.push(folderName.toLowerCase());
+        
         const newFolder = await base44.entities.Folder.create({
-          name: folder.name,
+          name: folderName,
           parent_id: parentId,
           color: folder.color,
+          owner: user.email,
         });
         
         if (folder.children) {
@@ -468,11 +513,15 @@ export default function Drive() {
       
       // Import files
       for (const file of structure.files || []) {
+        const fileName = getUniqueName(file.name, existingFiles);
+        existingFiles.push(fileName.toLowerCase());
+        
         await base44.entities.File.create({
-          name: file.name,
+          name: fileName,
           type: file.type,
           folder_id: parentId,
           content: file.content,
+          owner: user.email,
         });
       }
     };
@@ -480,11 +529,15 @@ export default function Drive() {
     if (data.type === 'full_drive') {
       await importStructure(data.structure, currentFolderId);
     } else if (data.type === 'single_file') {
+      const existingFiles = currentFiles.map(f => f.name.toLowerCase());
+      const fileName = getUniqueName(data.file.name, existingFiles);
+      
       await base44.entities.File.create({
-        name: data.file.name,
+        name: fileName,
         type: data.file.type,
         folder_id: currentFolderId,
         content: data.file.content,
+        owner: user.email,
       });
     }
     
@@ -768,15 +821,23 @@ export default function Drive() {
     try {
       let successCount = 0;
       
+      const existingFiles = files
+        .filter(f => f.folder_id === folderId && !f.deleted)
+        .map(f => f.name.toLowerCase());
+      
       for (const file of droppedFiles) {
         const fileType = detectFileType(file);
         
         // Upload do arquivo
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         
+        // Gerar nome único
+        const fileName = getUniqueName(file.name, existingFiles);
+        existingFiles.push(fileName.toLowerCase());
+        
         // Criar registro no banco
         await createFileMutation.mutateAsync({
-          name: file.name,
+          name: fileName,
           type: fileType,
           folder_id: folderId,
           team_id: teamId,
@@ -1016,6 +1077,10 @@ export default function Drive() {
             handleCreateFile(name, createDialog.type);
           }
         }}
+        existingNames={[
+          ...currentFolders.map(f => f.name.toLowerCase()),
+          ...currentFiles.map(f => f.name.toLowerCase())
+        ]}
       />
 
       {/* Import Dialog */}

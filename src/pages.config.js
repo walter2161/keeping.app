@@ -3,9 +3,9 @@ import Dashboard from './pages/Dashboard';
 import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
 import Profile from './pages/Profile';
+import Terminal from './pages/Terminal';
 import Trash from './pages/Trash';
 import Wiki from './pages/Wiki';
-import Terminal from './pages/Terminal';
 import __Layout from './Layout.jsx';
 
 
@@ -15,9 +15,9 @@ export const PAGES = {
     "Drive": Drive,
     "FileViewer": FileViewer,
     "Profile": Profile,
+    "Terminal": Terminal,
     "Trash": Trash,
     "Wiki": Wiki,
-    "Terminal": Terminal,
 }
 
 export const pagesConfig = {
