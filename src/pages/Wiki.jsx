@@ -294,65 +294,286 @@ export default function Wiki() {
                 <p>
                   Acesse o Keeping via linha de comando para criar, editar e gerenciar arquivos/pastas de forma avançada. Perfeito para automações e AIs externas (Manus, NotebookLM, etc).
                 </p>
-                <h3 className="font-semibold text-lg">Principais Comandos:</h3>
-                <div className="space-y-3">
-                  <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-400">
-                    <p className="font-mono text-sm"><strong className="text-blue-600">ls / dir</strong> - Lista arquivos e pastas</p>
-                    <p className="font-mono text-sm"><strong className="text-blue-600">cd [pasta]</strong> - Navega entre pastas</p>
-                    <p className="font-mono text-sm"><strong className="text-blue-600">mkdir [nome]</strong> - Cria pasta</p>
-                    <p className="font-mono text-sm"><strong className="text-blue-600">touch [nome] [tipo]</strong> - Cria arquivo</p>
-                  </div>
-                  
-                  <div className="bg-purple-50 p-3 rounded-lg border-l-4 border-purple-500">
-                    <p className="font-semibold text-purple-900 mb-2">Comandos Kanban (.kbn):</p>
-                    <p className="font-mono text-xs">kanban-add-list arquivo "Lista"</p>
-                    <p className="font-mono text-xs">kanban-add-card arquivo list_id "Card" "desc" priority:high</p>
-                    <p className="font-mono text-xs">kanban-list arquivo</p>
-                  </div>
 
-                  <div className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-500">
-                    <p className="font-semibold text-orange-900 mb-2">Comandos Gantt/Cronograma (.gnt/.crn):</p>
-                    <p className="font-mono text-xs">gantt-add-task arquivo "Task" 2026-01-20 2026-02-20 30</p>
-                    <p className="font-mono text-xs">gantt-add-milestone arquivo "Marco" 2026-03-01</p>
-                    <p className="font-mono text-xs">gantt-list arquivo</p>
-                  </div>
-
-                  <div className="bg-teal-50 p-3 rounded-lg border-l-4 border-teal-500">
-                    <p className="font-semibold text-teal-900 mb-2">Comandos FluxMap (.flux):</p>
-                    <p className="font-mono text-xs">flux-add-node arquivo sticky-note 100 200 "Nota"</p>
-                    <p className="font-mono text-xs">flux-connect arquivo node_id_from node_id_to</p>
-                    <p className="font-mono text-xs">flux-list arquivo</p>
-                  </div>
-
-                  <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500">
-                    <p className="font-semibold text-blue-900 mb-2">Comandos Documentos (.docx):</p>
-                    <p className="font-mono text-xs">docx-add-text arquivo "Parágrafo"</p>
-                    <p className="font-mono text-xs">docx-add-heading arquivo level:1 "Título"</p>
-                  </div>
-
-                  <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
-                    <p className="font-semibold text-green-900 mb-2">Comandos Planilhas (.xlsx):</p>
-                    <p className="font-mono text-xs">xlsx-set-cell arquivo 0 0 "Header"</p>
-                    <p className="font-mono text-xs">xlsx-add-row arquivo "Jan" 1000 2000</p>
-                    <p className="font-mono text-xs">xlsx-list arquivo</p>
-                  </div>
-
-                  <div className="bg-amber-50 p-3 rounded-lg border-l-4 border-amber-500">
-                    <p className="font-semibold text-amber-900 mb-2">Comandos Apresentações (.pptx):</p>
-                    <p className="font-mono text-xs">pptx-add-slide arquivo "Título" "Conteúdo"</p>
-                    <p className="font-mono text-xs">pptx-list arquivo</p>
-                  </div>
-
-                  <div className="bg-indigo-50 p-3 rounded-lg border-l-4 border-indigo-500">
-                    <p className="font-semibold text-indigo-900 mb-2">Escrever JSON Completo:</p>
-                    <p className="font-mono text-xs">echo '{`'{"lists":[...]}'`} &gt; arquivo</p>
-                    <p className="text-xs text-gray-600 mt-2">Cole conteúdo JSON completo de arquivos Kanban, Gantt, FluxMap, etc. O terminal valida automaticamente.</p>
+                {/* Navegação Básica */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border-2 border-gray-300">
+                  <h3 className="font-bold text-gray-900 text-lg mb-3">📁 Navegação e Sistema de Arquivos</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[120px]">ls / dir</code>
+                      <span>Lista todos os arquivos e pastas na pasta atual</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[120px]">cd [pasta]</code>
+                      <span>Navega para uma pasta (use nome ou ID)</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[120px]">cd ..</code>
+                      <span>Volta para a pasta anterior</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[120px]">cd /</code>
+                      <span>Volta para a raiz (Meu Drive)</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[120px]">pwd</code>
+                      <span>Mostra o caminho atual</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[120px]">tree</code>
+                      <span>Exibe árvore hierárquica de pastas</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300 mt-4">
-                  <p className="font-semibold mb-2">📖 Documentação Completa:</p>
-                  <p className="text-sm">Digite <code className="bg-white px-2 py-1 rounded">docs</code> no terminal para ver a documentação completa com exemplos detalhados de cada comando.</p>
+
+                {/* Criação e Gerenciamento */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border-2 border-blue-300">
+                  <h3 className="font-bold text-blue-900 text-lg mb-3">✨ Criar e Gerenciar</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[200px]">mkdir [nome]</code>
+                      <span>Cria uma nova pasta</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[200px]">touch [nome] [tipo]</code>
+                      <span>Cria arquivo (kbn, gnt, crn, flux, docx, xlsx, pptx)</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[200px]">rm [nome]</code>
+                      <span>Move para lixeira (pasta ou arquivo)</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[200px]">mv [origem] [destino]</code>
+                      <span>Renomeia arquivo ou pasta</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[200px]">cat [arquivo]</code>
+                      <span>Exibe conteúdo do arquivo</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-blue-600 font-mono font-semibold min-w-[200px]">echo "..." &gt; [arquivo]</code>
+                      <span>Escreve conteúdo (aceita JSON completo)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos Kanban */}
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border-2 border-purple-300">
+                  <h3 className="font-bold text-purple-900 text-lg mb-3">📋 Kanban (.kbn)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-purple-600 font-mono font-semibold">kanban-add-list [arquivo] "Nome da Lista"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona nova coluna ao quadro</p>
+                    </div>
+                    <div>
+                      <code className="text-purple-600 font-mono font-semibold">kanban-add-card [arquivo] [list_id] "Título" "Descrição" [priority:low|medium|high]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona card em uma lista (copie o list_id do comando list)</p>
+                    </div>
+                    <div>
+                      <code className="text-purple-600 font-mono font-semibold">kanban-list [arquivo]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Lista todas as colunas e seus IDs</p>
+                    </div>
+                    <div className="bg-purple-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo completo:</p>
+                      <code className="text-xs block mt-1">kanban-add-list board "To Do"</code>
+                      <code className="text-xs block">kanban-list board  # copie o ID</code>
+                      <code className="text-xs block">kanban-add-card board abc123 "Tarefa 1" "Descrição" priority:high</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos Gantt */}
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border-2 border-orange-300">
+                  <h3 className="font-bold text-orange-900 text-lg mb-3">📊 Gantt Chart (.gnt)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-orange-600 font-mono font-semibold">gantt-add-task [arquivo] "Nome" [início] [fim] [progresso%]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona tarefa com datas (formato: YYYY-MM-DD)</p>
+                    </div>
+                    <div>
+                      <code className="text-orange-600 font-mono font-semibold">gantt-add-milestone [arquivo] "Nome" [data]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona marco importante (milestone)</p>
+                    </div>
+                    <div>
+                      <code className="text-orange-600 font-mono font-semibold">gantt-list [arquivo]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Lista todas as tarefas</p>
+                    </div>
+                    <div className="bg-orange-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo:</p>
+                      <code className="text-xs block mt-1">gantt-add-task projeto "Planejamento" 2026-01-20 2026-02-15 50</code>
+                      <code className="text-xs block">gantt-add-milestone projeto "Lançamento" 2026-03-01</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos Cronograma */}
+                <div className="bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-lg border-2 border-pink-300">
+                  <h3 className="font-bold text-pink-900 text-lg mb-3">📅 Cronograma (.crn)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-pink-600 font-mono font-semibold">crn-add-group [arquivo] "Nome" [cor]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona grupo/categoria (cores: blue, green, purple, orange, red)</p>
+                    </div>
+                    <div>
+                      <code className="text-pink-600 font-mono font-semibold">crn-add-item [arquivo] [group_id] "Nome" [início] [fim] "Responsável"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona item ao cronograma</p>
+                    </div>
+                    <div>
+                      <code className="text-pink-600 font-mono font-semibold">crn-list [arquivo]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Lista grupos e IDs</p>
+                    </div>
+                    <div className="bg-pink-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo:</p>
+                      <code className="text-xs block mt-1">crn-add-group timeline "Marketing" purple</code>
+                      <code className="text-xs block">crn-list timeline  # copie group_id</code>
+                      <code className="text-xs block">crn-add-item timeline xyz789 "Campanha" 2026-02-01 2026-02-28 "João"</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos FluxMap */}
+                <div className="bg-gradient-to-r from-teal-50 to-teal-100 p-4 rounded-lg border-2 border-teal-300">
+                  <h3 className="font-bold text-teal-900 text-lg mb-3">🔀 FluxMap (.flux)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-teal-600 font-mono font-semibold">flux-add-node [arquivo] [tipo] [x] [y] "Texto"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Tipos: sticky-note, card, rectangle, circle, name, text, link</p>
+                    </div>
+                    <div>
+                      <code className="text-teal-600 font-mono font-semibold">flux-connect [arquivo] [node_from_id] [node_to_id]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Conecta dois nós (copie IDs do comando list)</p>
+                    </div>
+                    <div>
+                      <code className="text-teal-600 font-mono font-semibold">flux-list [arquivo]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Lista todos os nós e seus IDs</p>
+                    </div>
+                    <div className="bg-teal-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo:</p>
+                      <code className="text-xs block mt-1">flux-add-node diagrama sticky-note 100 100 "Início"</code>
+                      <code className="text-xs block">flux-add-node diagrama rectangle 300 100 "Processo"</code>
+                      <code className="text-xs block">flux-list diagrama  # copie IDs dos nodes</code>
+                      <code className="text-xs block">flux-connect diagrama node-1 node-2</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos Documentos */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-100 p-4 rounded-lg border-2 border-blue-300">
+                  <h3 className="font-bold text-blue-900 text-lg mb-3">📝 Documentos (.docx)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-blue-600 font-mono font-semibold">docx-add-text [arquivo] "Texto"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona parágrafo</p>
+                    </div>
+                    <div>
+                      <code className="text-blue-600 font-mono font-semibold">docx-add-heading [arquivo] level:[1-6] "Título"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona título (H1 a H6)</p>
+                    </div>
+                    <div>
+                      <code className="text-blue-600 font-mono font-semibold">docx-add-list [arquivo] "Item 1" "Item 2" "Item 3"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona lista com marcadores</p>
+                    </div>
+                    <div className="bg-blue-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo:</p>
+                      <code className="text-xs block mt-1">docx-add-heading doc level:1 "Relatório Anual"</code>
+                      <code className="text-xs block">docx-add-text doc "Este é o relatório..."</code>
+                      <code className="text-xs block">docx-add-list doc "Ponto 1" "Ponto 2" "Ponto 3"</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos Planilhas */}
+                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border-2 border-green-300">
+                  <h3 className="font-bold text-green-900 text-lg mb-3">📊 Planilhas (.xlsx)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-green-600 font-mono font-semibold">xlsx-set-cell [arquivo] [linha] [coluna] "Valor"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Define valor de célula (linha/coluna começam em 0)</p>
+                    </div>
+                    <div>
+                      <code className="text-green-600 font-mono font-semibold">xlsx-add-row [arquivo] "Col1" "Col2" "Col3" ...</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona linha completa</p>
+                    </div>
+                    <div>
+                      <code className="text-green-600 font-mono font-semibold">xlsx-list [arquivo]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Exibe conteúdo da planilha</p>
+                    </div>
+                    <div className="bg-green-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo:</p>
+                      <code className="text-xs block mt-1">xlsx-set-cell vendas 0 0 "Mês"</code>
+                      <code className="text-xs block">xlsx-set-cell vendas 0 1 "Valor"</code>
+                      <code className="text-xs block">xlsx-add-row vendas "Janeiro" "5000"</code>
+                      <code className="text-xs block">xlsx-add-row vendas "Fevereiro" "6200"</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comandos Apresentações */}
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-100 p-4 rounded-lg border-2 border-amber-300">
+                  <h3 className="font-bold text-amber-900 text-lg mb-3">🎬 Apresentações (.pptx)</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <code className="text-amber-600 font-mono font-semibold">pptx-add-slide [arquivo] "Título" "Conteúdo"</code>
+                      <p className="text-gray-600 ml-4 mt-1">Adiciona novo slide</p>
+                    </div>
+                    <div>
+                      <code className="text-amber-600 font-mono font-semibold">pptx-list [arquivo]</code>
+                      <p className="text-gray-600 ml-4 mt-1">Lista todos os slides</p>
+                    </div>
+                    <div className="bg-amber-200 p-2 rounded mt-2">
+                      <p className="text-xs font-semibold">Exemplo:</p>
+                      <code className="text-xs block mt-1">pptx-add-slide deck "Introdução" "Bem-vindos"</code>
+                      <code className="text-xs block">pptx-add-slide deck "Objetivos" "Metas do projeto"</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* JSON Completo */}
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-100 p-4 rounded-lg border-2 border-indigo-400">
+                  <h3 className="font-bold text-indigo-900 text-lg mb-3">📋 Escrever JSON Completo</h3>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-gray-700">
+                      Para arquivos complexos, você pode colar o JSON completo diretamente:
+                    </p>
+                    <code className="text-indigo-600 font-mono font-semibold block bg-white p-2 rounded">
+                      echo '{`'{"lists":[{"id":"1","title":"To Do","cards":[]}]}'`} &gt; board
+                    </code>
+                    <p className="text-gray-600 text-xs mt-2">
+                      ✓ O terminal valida automaticamente o JSON<br/>
+                      ✓ Funciona para todos os tipos: Kanban, Gantt, FluxMap, Cronograma<br/>
+                      ✓ Ideal para criar estruturas complexas de uma vez
+                    </p>
+                  </div>
+                </div>
+
+                {/* Utilitários */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border-2 border-gray-300">
+                  <h3 className="font-bold text-gray-900 text-lg mb-3">🛠️ Comandos Utilitários</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex gap-4">
+                      <code className="text-gray-600 font-mono font-semibold min-w-[120px]">help</code>
+                      <span>Mostra lista resumida de comandos</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-gray-600 font-mono font-semibold min-w-[120px]">docs</code>
+                      <span>Abre documentação completa no terminal</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <code className="text-gray-600 font-mono font-semibold min-w-[120px]">clear</code>
+                      <span>Limpa o histórico do terminal</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-100 p-4 rounded-lg border-2 border-yellow-400 mt-4">
+                  <p className="font-semibold text-yellow-900 mb-2">💡 Dicas Importantes:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                    <li>Use <strong>aspas duplas</strong> para textos com espaços</li>
+                    <li>IDs de listas/grupos podem ser copiados com o comando <strong>*-list</strong></li>
+                    <li>Datas usam formato <strong>YYYY-MM-DD</strong> (ex: 2026-01-20)</li>
+                    <li>O terminal funciona em <strong>tempo real</strong> com o Drive</li>
+                    <li>Mudanças aparecem instantaneamente em todas as interfaces</li>
+                  </ul>
                 </div>
               </AccordionContent>
             </AccordionItem>
