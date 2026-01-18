@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Terminal as TerminalIcon, HelpCircle, X, Copy, Check } from 'lucide-react';
+import { useSyncData } from '../components/sync/useSyncData';
 
 export default function Terminal() {
   const [history, setHistory] = useState([]);
