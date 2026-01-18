@@ -283,6 +283,81 @@ export default function Wiki() {
               </AccordionContent>
             </AccordionItem>
 
+            {/* Terminal */}
+            <AccordionItem value="terminal" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  💻 Terminal - Interface de Comando
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Acesse o Keeping via linha de comando para criar, editar e gerenciar arquivos/pastas de forma avançada. Perfeito para automações e AIs externas (Manus, NotebookLM, etc).
+                </p>
+                <h3 className="font-semibold text-lg">Principais Comandos:</h3>
+                <div className="space-y-3">
+                  <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-400">
+                    <p className="font-mono text-sm"><strong className="text-blue-600">ls / dir</strong> - Lista arquivos e pastas</p>
+                    <p className="font-mono text-sm"><strong className="text-blue-600">cd [pasta]</strong> - Navega entre pastas</p>
+                    <p className="font-mono text-sm"><strong className="text-blue-600">mkdir [nome]</strong> - Cria pasta</p>
+                    <p className="font-mono text-sm"><strong className="text-blue-600">touch [nome] [tipo]</strong> - Cria arquivo</p>
+                  </div>
+                  
+                  <div className="bg-purple-50 p-3 rounded-lg border-l-4 border-purple-500">
+                    <p className="font-semibold text-purple-900 mb-2">Comandos Kanban (.kbn):</p>
+                    <p className="font-mono text-xs">kanban-add-list arquivo "Lista"</p>
+                    <p className="font-mono text-xs">kanban-add-card arquivo list_id "Card" "desc" priority:high</p>
+                    <p className="font-mono text-xs">kanban-list arquivo</p>
+                  </div>
+
+                  <div className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-500">
+                    <p className="font-semibold text-orange-900 mb-2">Comandos Gantt/Cronograma (.gnt/.crn):</p>
+                    <p className="font-mono text-xs">gantt-add-task arquivo "Task" 2026-01-20 2026-02-20 30</p>
+                    <p className="font-mono text-xs">gantt-add-milestone arquivo "Marco" 2026-03-01</p>
+                    <p className="font-mono text-xs">gantt-list arquivo</p>
+                  </div>
+
+                  <div className="bg-teal-50 p-3 rounded-lg border-l-4 border-teal-500">
+                    <p className="font-semibold text-teal-900 mb-2">Comandos FluxMap (.flux):</p>
+                    <p className="font-mono text-xs">flux-add-node arquivo sticky-note 100 200 "Nota"</p>
+                    <p className="font-mono text-xs">flux-connect arquivo node_id_from node_id_to</p>
+                    <p className="font-mono text-xs">flux-list arquivo</p>
+                  </div>
+
+                  <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500">
+                    <p className="font-semibold text-blue-900 mb-2">Comandos Documentos (.docx):</p>
+                    <p className="font-mono text-xs">docx-add-text arquivo "Parágrafo"</p>
+                    <p className="font-mono text-xs">docx-add-heading arquivo level:1 "Título"</p>
+                  </div>
+
+                  <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
+                    <p className="font-semibold text-green-900 mb-2">Comandos Planilhas (.xlsx):</p>
+                    <p className="font-mono text-xs">xlsx-set-cell arquivo 0 0 "Header"</p>
+                    <p className="font-mono text-xs">xlsx-add-row arquivo "Jan" 1000 2000</p>
+                    <p className="font-mono text-xs">xlsx-list arquivo</p>
+                  </div>
+
+                  <div className="bg-amber-50 p-3 rounded-lg border-l-4 border-amber-500">
+                    <p className="font-semibold text-amber-900 mb-2">Comandos Apresentações (.pptx):</p>
+                    <p className="font-mono text-xs">pptx-add-slide arquivo "Título" "Conteúdo"</p>
+                    <p className="font-mono text-xs">pptx-list arquivo</p>
+                  </div>
+
+                  <div className="bg-indigo-50 p-3 rounded-lg border-l-4 border-indigo-500">
+                    <p className="font-semibold text-indigo-900 mb-2">Import/Export JSON:</p>
+                    <p className="font-mono text-xs">upload-json - Mostra formato JSON</p>
+                    <p className="font-mono text-xs">import {'{...}'} - Importa estrutura JSON</p>
+                    <p className="text-xs text-gray-600 mt-2">Formato: {`{"folders":[{"name":"Pasta","temp_id":"p1"}],"files":[{"name":"arquivo.docx","type":"docx","folder_id":"p1"}]}`}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300 mt-4">
+                  <p className="font-semibold mb-2">📖 Documentação Completa:</p>
+                  <p className="text-sm">Digite <code className="bg-white px-2 py-1 rounded">docs</code> no terminal para ver a documentação completa com exemplos detalhados de cada comando.</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             {/* Assistente Virtual */}
             <AccordionItem value="assistant" className="border rounded-lg px-4">
               <AccordionTrigger className="text-xl font-semibold">
@@ -421,6 +496,30 @@ export default function Wiki() {
               </AccordionContent>
             </AccordionItem>
 
+            {/* Sincronização em Tempo Real */}
+            <AccordionItem value="sync" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  🔄 Sincronização em Tempo Real
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  O Keeping sincroniza automaticamente todas as mudanças em tempo real entre Drive, Terminal e Assistente AI.
+                </p>
+                <h3 className="font-semibold text-lg">Como funciona:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Real-time subscriptions:</strong> Usa WebSockets para detectar mudanças instantaneamente</li>
+                  <li><strong>Auto-refresh:</strong> Páginas se atualizam sozinhas quando alguém muda algo</li>
+                  <li><strong>Sincronização cruzada:</strong> Mudanças no Terminal aparecem no Drive e vice-versa</li>
+                  <li><strong>Consistência garantida:</strong> Todas as interfaces sempre mostram os mesmos dados</li>
+                </ul>
+                <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                  <strong>✨ Benefício:</strong> Você e sua equipe veem as mudanças na hora, sem precisar recarregar a página!
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             {/* Dashboard */}
             <AccordionItem value="dashboard" className="border rounded-lg px-4">
               <AccordionTrigger className="text-xl font-semibold">
@@ -461,6 +560,55 @@ export default function Wiki() {
                   <li><strong>Backgrounds:</strong> Adicione cores ou imagens de fundo aos slides</li>
                   <li><strong>Modo apresentação:</strong> Visualize em tela cheia com navegação</li>
                   <li><strong>Exportar:</strong> Baixe como PowerPoint (.pptx) ou PDF</li>
+                  <li><strong>Impressão:</strong> Imprima slides direto do navegador</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Documentos */}
+            <AccordionItem value="documents" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  📝 Documentos (DOCX)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Editor de texto completo com formatação rica e visual A4 profissional.
+                </p>
+                <h3 className="font-semibold text-lg">Recursos:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Formatação rica:</strong> Negrito, itálico, sublinhado, cores, tamanhos</li>
+                  <li><strong>Títulos:</strong> 6 níveis de títulos (H1-H6)</li>
+                  <li><strong>Listas:</strong> Numeradas e com marcadores</li>
+                  <li><strong>Orientação A4:</strong> Vertical ou horizontal com visualização real</li>
+                  <li><strong>Zoom:</strong> Ajuste de 50% a 200%</li>
+                  <li><strong>Impressão:</strong> Formato A4 pronto para impressão</li>
+                  <li><strong>Exportar:</strong> Baixe como TXT</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Planilhas */}
+            <AccordionItem value="spreadsheets" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  📊 Planilhas (XLSX)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Planilhas estilo Excel com interface familiar e poderosa.
+                </p>
+                <h3 className="font-semibold text-lg">Recursos:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Grid interativo:</strong> Navegação com mouse e teclado</li>
+                  <li><strong>Edição de células:</strong> Duplo clique ou F2 para editar</li>
+                  <li><strong>Formatação:</strong> Negrito, cores, alinhamentos</li>
+                  <li><strong>Fórmulas:</strong> Suporte a cálculos e funções</li>
+                  <li><strong>Colunas redimensionáveis:</strong> Ajuste largura das colunas</li>
+                  <li><strong>Impressão:</strong> Layout otimizado para papel</li>
+                  <li><strong>Exportar:</strong> Baixe como CSV</li>
                 </ul>
               </AccordionContent>
             </AccordionItem>
