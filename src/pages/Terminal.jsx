@@ -359,6 +359,429 @@ export default function Terminal() {
           break;
         }
 
+        // === KANBAN COMMANDS ===
+        case 'kanban-add-list': {
+          if (args.length < 2) {
+            addToHistory(input, 'Usage: kanban-add-list <file_name> <list_title>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'kbn') {
+            addToHistory(input, 'File not found or not a kanban file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { lists: [] };
+          const listTitle = args.slice(1).join(' ');
+          content.lists.push({ id: Date.now().toString(), title: listTitle, cards: [] });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `List "${listTitle}" added to ${args[0]}`);
+          break;
+        }
+
+        case 'kanban-add-card': {
+          if (args.length < 3) {
+            addToHistory(input, 'Usage: kanban-add-card <file_name> <list_id> <card_title> [description] [priority:low|medium|high]', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'kbn') {
+            addToHistory(input, 'File not found or not a kanban file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"lists":[]}');
+          const listId = args[1];
+          const list = content.lists.find(l => l.id === listId);
+          if (!list) {
+            addToHistory(input, `List ${listId} not found`, true);
+            break;
+          }
+          const cardTitle = args[2];
+          const description = args[3] || '';
+          const priority = args[4]?.split(':')[1] || 'medium';
+          list.cards.push({
+            id: Date.now().toString(),
+            title: cardTitle,
+            description,
+            priority,
+            labels: [],
+            assignees: []
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Card "${cardTitle}" added to list ${listId}`);
+          break;
+        }
+
+        case 'kanban-list': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: kanban-list <file_name>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'kbn') {
+            addToHistory(input, 'File not found or not a kanban file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"lists":[]}');
+          let output = `Kanban: ${targetFile.name}\n`;
+          content.lists.forEach(list => {
+            output += `\nList: ${list.title} (ID: ${list.id})\n`;
+            list.cards.forEach(card => {
+              output += `  - ${card.title} [${card.priority}]\n`;
+            });
+          });
+          addToHistory(input, output || 'Empty kanban');
+          break;
+        }
+
+        // === GANTT/CRONOGRAMA COMMANDS ===
+        case 'gantt-add-task': {
+          if (args.length < 5) {
+            addToHistory(input, 'Usage: gantt-add-task <file_name> <task_name> <start_date> <end_date> <progress_percent>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || (targetFile.type !== 'gnt' && targetFile.type !== 'crn')) {
+            addToHistory(input, 'File not found or not a gantt/cronograma file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { tasks: [] };
+          content.tasks.push({
+            id: Date.now().toString(),
+            name: args[1],
+            start: args[2],
+            end: args[3],
+            progress: parseInt(args[4]),
+            dependencies: []
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Task "${args[1]}" added`);
+          break;
+        }
+
+        case 'gantt-add-milestone': {
+          if (args.length < 3) {
+            addToHistory(input, 'Usage: gantt-add-milestone <file_name> <milestone_name> <date>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || (targetFile.type !== 'gnt' && targetFile.type !== 'crn')) {
+            addToHistory(input, 'File not found or not a gantt/cronograma file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"tasks":[],"milestones":[]}');
+          if (!content.milestones) content.milestones = [];
+          content.milestones.push({
+            id: Date.now().toString(),
+            name: args[1],
+            date: args[2]
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Milestone "${args[1]}" added`);
+          break;
+        }
+
+        case 'gantt-list': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: gantt-list <file_name>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || (targetFile.type !== 'gnt' && targetFile.type !== 'crn')) {
+            addToHistory(input, 'File not found or not a gantt/cronograma file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"tasks":[]}');
+          let output = `Gantt: ${targetFile.name}\n\nTasks:\n`;
+          (content.tasks || []).forEach(t => {
+            output += `  - ${t.name}: ${t.start} → ${t.end} (${t.progress}%)\n`;
+          });
+          if (content.milestones) {
+            output += '\nMilestones:\n';
+            content.milestones.forEach(m => {
+              output += `  🎯 ${m.name}: ${m.date}\n`;
+            });
+          }
+          addToHistory(input, output);
+          break;
+        }
+
+        // === FLUX COMMANDS ===
+        case 'flux-add-node': {
+          if (args.length < 4) {
+            addToHistory(input, 'Usage: flux-add-node <file_name> <node_type> <x> <y> [text|title]', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'flux') {
+            addToHistory(input, 'File not found or not a flux file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { drawflow: { Home: { data: {} } } };
+          const nodeId = Date.now().toString();
+          const nodeType = args[1];
+          const nodeData = { text: args[4] || 'Node', title: args[4] || 'Node' };
+          content.drawflow.Home.data[nodeId] = {
+            id: nodeId,
+            name: nodeType,
+            data: nodeData,
+            class: nodeType,
+            html: '',
+            typenode: false,
+            inputs: {},
+            outputs: {},
+            pos_x: parseInt(args[2]),
+            pos_y: parseInt(args[3])
+          };
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Node ${nodeId} (${nodeType}) added at (${args[2]}, ${args[3]})`);
+          break;
+        }
+
+        case 'flux-connect': {
+          if (args.length < 3) {
+            addToHistory(input, 'Usage: flux-connect <file_name> <node_id_from> <node_id_to>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'flux') {
+            addToHistory(input, 'File not found or not a flux file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content);
+          const fromNode = content.drawflow.Home.data[args[1]];
+          const toNode = content.drawflow.Home.data[args[2]];
+          if (!fromNode || !toNode) {
+            addToHistory(input, 'Node(s) not found', true);
+            break;
+          }
+          const outputId = 'output_1';
+          const inputId = 'input_1';
+          if (!fromNode.outputs[outputId]) fromNode.outputs[outputId] = { connections: [] };
+          if (!toNode.inputs[inputId]) toNode.inputs[inputId] = { connections: [] };
+          fromNode.outputs[outputId].connections.push({ node: args[2], output: inputId });
+          toNode.inputs[inputId].connections.push({ node: args[1], input: outputId });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Connected ${args[1]} → ${args[2]}`);
+          break;
+        }
+
+        case 'flux-list': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: flux-list <file_name>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'flux') {
+            addToHistory(input, 'File not found or not a flux file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"drawflow":{"Home":{"data":{}}}}');
+          let output = `FluxMap: ${targetFile.name}\n\nNodes:\n`;
+          Object.values(content.drawflow.Home.data).forEach(node => {
+            output += `  - ID: ${node.id}, Type: ${node.name}, Pos: (${node.pos_x}, ${node.pos_y})\n`;
+          });
+          addToHistory(input, output);
+          break;
+        }
+
+        // === DOCX COMMANDS ===
+        case 'docx-add-text': {
+          if (args.length < 2) {
+            addToHistory(input, 'Usage: docx-add-text <file_name> <text>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'docx') {
+            addToHistory(input, 'File not found or not a docx file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { paragraphs: [] };
+          const text = args.slice(1).join(' ');
+          content.paragraphs.push({ text, style: 'normal' });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Text added to ${args[0]}`);
+          break;
+        }
+
+        case 'docx-add-heading': {
+          if (args.length < 3) {
+            addToHistory(input, 'Usage: docx-add-heading <file_name> <level:1-6> <text>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'docx') {
+            addToHistory(input, 'File not found or not a docx file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"paragraphs":[]}');
+          const level = args[1].split(':')[1] || '1';
+          const text = args.slice(2).join(' ');
+          content.paragraphs.push({ text, style: `heading${level}` });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Heading added to ${args[0]}`);
+          break;
+        }
+
+        // === XLSX COMMANDS ===
+        case 'xlsx-set-cell': {
+          if (args.length < 4) {
+            addToHistory(input, 'Usage: xlsx-set-cell <file_name> <row> <col> <value>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'xlsx') {
+            addToHistory(input, 'File not found or not a xlsx file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { cells: {} };
+          const row = parseInt(args[1]);
+          const col = parseInt(args[2]);
+          const value = args.slice(3).join(' ');
+          if (!content.cells) content.cells = {};
+          if (!content.cells[row]) content.cells[row] = {};
+          content.cells[row][col] = value;
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Cell [${row},${col}] set to "${value}"`);
+          break;
+        }
+
+        case 'xlsx-add-row': {
+          if (args.length < 2) {
+            addToHistory(input, 'Usage: xlsx-add-row <file_name> <val1> <val2> <val3> ...', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'xlsx') {
+            addToHistory(input, 'File not found or not a xlsx file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"cells":{}}');
+          if (!content.cells) content.cells = {};
+          const rows = Object.keys(content.cells).map(k => parseInt(k));
+          const newRow = rows.length > 0 ? Math.max(...rows) + 1 : 0;
+          content.cells[newRow] = {};
+          args.slice(1).forEach((val, idx) => {
+            content.cells[newRow][idx] = val;
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Row ${newRow} added with ${args.length - 1} values`);
+          break;
+        }
+
+        case 'xlsx-list': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: xlsx-list <file_name>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'xlsx') {
+            addToHistory(input, 'File not found or not a xlsx file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"cells":{}}');
+          let output = `Spreadsheet: ${targetFile.name}\n`;
+          Object.keys(content.cells || {}).sort((a, b) => parseInt(a) - parseInt(b)).forEach(row => {
+            const cols = content.cells[row];
+            const values = Object.keys(cols).sort((a, b) => parseInt(a) - parseInt(b)).map(col => cols[col]);
+            output += `Row ${row}: ${values.join(' | ')}\n`;
+          });
+          addToHistory(input, output || 'Empty spreadsheet');
+          break;
+        }
+
+        // === PPTX COMMANDS ===
+        case 'pptx-add-slide': {
+          if (args.length < 2) {
+            addToHistory(input, 'Usage: pptx-add-slide <file_name> <title> [content]', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'pptx') {
+            addToHistory(input, 'File not found or not a pptx file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { slides: [] };
+          const title = args[1];
+          const slideContent = args.slice(2).join(' ');
+          content.slides.push({
+            id: Date.now().toString(),
+            title,
+            content: slideContent,
+            layout: 'title-content'
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Slide "${title}" added`);
+          break;
+        }
+
+        case 'pptx-list': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: pptx-list <file_name>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'pptx') {
+            addToHistory(input, 'File not found or not a pptx file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"slides":[]}');
+          let output = `Presentation: ${targetFile.name}\n\nSlides:\n`;
+          content.slides.forEach((slide, idx) => {
+            output += `  ${idx + 1}. ${slide.title}\n`;
+          });
+          addToHistory(input, output);
+          break;
+        }
+
         default:
           addToHistory(input, `Command not found: ${cmd}\nType 'help' for available commands`, true);
       }
@@ -491,40 +914,56 @@ export default function Terminal() {
 const HELP_TEXT = `AVAILABLE COMMANDS:
 
 Navigation:
-  ls, dir           List files and folders in current directory
-  pwd               Print current directory path
+  ls, dir           List files and folders
+  pwd               Print current directory
   cd <folder>       Change directory
-  cd ..             Go to parent directory
-  cd                Go to root directory
+  cd ..             Parent directory
+  cd                Root directory
 
-File Operations:
-  touch <name> [type]    Create new file (types: docx, xlsx, pptx, kbn, gnt, crn, flux, pdf, img, video, other)
-  cat <file>             Display file content
-  echo "text" > <file>   Write content to file
+Basic File Ops:
+  touch <name> [type]    Create file
+  cat <file>             Display content
+  echo "text" > <file>   Write to file
   rm <name>              Delete file
-  rm -r <name>           Delete folder recursively
-  mv <old> <new>         Rename file or folder
-
-Folder Operations:
-  mkdir <name>      Create new folder
+  rm -r <name>           Delete folder
+  mv <old> <new>         Rename
+  mkdir <name>           Create folder
 
 Search & Info:
-  find <pattern>    Search for files/folders by name
-  tree              Display directory tree structure
-  count             Count files and folders in current directory
+  find <pattern>    Search items
+  tree              Show tree
+  count             Count items
+
+KANBAN:
+  kanban-add-list <file> <title>
+  kanban-add-card <file> <list_id> <title> [desc] [priority:low|medium|high]
+  kanban-list <file>
+
+GANTT/CRONOGRAMA:
+  gantt-add-task <file> <name> <start> <end> <progress>
+  gantt-add-milestone <file> <name> <date>
+  gantt-list <file>
+
+FLUXMAP:
+  flux-add-node <file> <type> <x> <y> [text]
+  flux-connect <file> <from_id> <to_id>
+  flux-list <file>
+
+DOCX:
+  docx-add-text <file> <text>
+  docx-add-heading <file> <level:1-6> <text>
+
+XLSX:
+  xlsx-set-cell <file> <row> <col> <value>
+  xlsx-add-row <file> <val1> <val2> ...
+  xlsx-list <file>
+
+PPTX:
+  pptx-add-slide <file> <title> [content]
+  pptx-list <file>
 
 Utility:
-  help              Show this help message
-  docs              Open full documentation
-  clear             Clear terminal screen
-
-Examples:
-  mkdir projects
-  cd projects
-  touch report docx
-  echo "Hello World" > report
-  cat report
-  tree
+  help, docs, clear
 `;
 
 function Documentation() {
@@ -557,124 +996,208 @@ function Documentation() {
         <h3 className="text-lg font-bold text-yellow-400 mb-2">🔧 Command Reference</h3>
         
         <div className="space-y-4 text-sm">
-          <div>
-            <h4 className="font-bold text-white">ls / dir</h4>
-            <p className="text-gray-400">List all items in current directory</p>
-            <code className="text-cyan-400 block mt-1">ls</code>
+          <h4 className="font-bold text-white text-base mt-4">📂 Basic Navigation & Files</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">ls / dir</code>
+              <p className="text-gray-400 text-xs">List all items in current directory</p>
+            </div>
+            <div>
+              <code className="text-cyan-400">cd &lt;folder&gt;</code>
+              <p className="text-gray-400 text-xs">Navigate to folder. Use ".." for parent, no args for root</p>
+            </div>
+            <div>
+              <code className="text-cyan-400">mkdir &lt;name&gt;</code>
+              <p className="text-gray-400 text-xs">Create new folder</p>
+            </div>
+            <div>
+              <code className="text-cyan-400">touch &lt;name&gt; [type]</code>
+              <p className="text-gray-400 text-xs">Create file (types: docx, xlsx, pptx, kbn, gnt, crn, flux, pdf, img, video)</p>
+            </div>
+            <div>
+              <code className="text-cyan-400">cat &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Display file content</p>
+            </div>
+            <div>
+              <code className="text-cyan-400">rm &lt;name&gt; [-r]</code>
+              <p className="text-gray-400 text-xs">Delete file/folder (use -r for folders)</p>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-white">cd &lt;folder_name&gt;</h4>
-            <p className="text-gray-400">Navigate to a folder. Use ".." for parent, no args for root</p>
-            <code className="text-cyan-400 block mt-1">cd projects</code>
-            <code className="text-cyan-400 block mt-1">cd ..</code>
+          <h4 className="font-bold text-white text-base mt-4">📋 KANBAN Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">kanban-add-list &lt;file&gt; &lt;title&gt;</code>
+              <p className="text-gray-400 text-xs">Add new list to kanban</p>
+              <code className="text-green-400 text-xs block mt-1">kanban-add-list tasks "To Do"</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">kanban-add-card &lt;file&gt; &lt;list_id&gt; &lt;title&gt; [desc] [priority:low|medium|high]</code>
+              <p className="text-gray-400 text-xs">Add card to list</p>
+              <code className="text-green-400 text-xs block mt-1">kanban-add-card tasks 123 "Task 1" "Description" priority:high</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">kanban-list &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Show all lists and cards</p>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-white">mkdir &lt;folder_name&gt;</h4>
-            <p className="text-gray-400">Create a new folder in current directory</p>
-            <code className="text-cyan-400 block mt-1">mkdir "My Projects"</code>
+          <h4 className="font-bold text-white text-base mt-4">📅 GANTT/CRONOGRAMA Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">gantt-add-task &lt;file&gt; &lt;name&gt; &lt;start&gt; &lt;end&gt; &lt;progress&gt;</code>
+              <p className="text-gray-400 text-xs">Add task to timeline</p>
+              <code className="text-green-400 text-xs block mt-1">gantt-add-task timeline "Design Phase" 2026-01-20 2026-02-20 30</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">gantt-add-milestone &lt;file&gt; &lt;name&gt; &lt;date&gt;</code>
+              <p className="text-gray-400 text-xs">Add milestone</p>
+              <code className="text-green-400 text-xs block mt-1">gantt-add-milestone timeline "Launch" 2026-03-01</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">gantt-list &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Show all tasks and milestones</p>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-white">touch &lt;file_name&gt; [type]</h4>
-            <p className="text-gray-400">Create a new file. Type defaults to 'other'</p>
-            <code className="text-cyan-400 block mt-1">touch report docx</code>
-            <code className="text-cyan-400 block mt-1">touch budget xlsx</code>
+          <h4 className="font-bold text-white text-base mt-4">🔀 FLUXMAP Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">flux-add-node &lt;file&gt; &lt;type&gt; &lt;x&gt; &lt;y&gt; [text]</code>
+              <p className="text-gray-400 text-xs">Add node (types: sticky-note, card-kanban, rectangle-shape, circle-shape, name-bubble, text-box, url-link)</p>
+              <code className="text-green-400 text-xs block mt-1">flux-add-node map sticky-note 100 200 "My Note"</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">flux-connect &lt;file&gt; &lt;from_id&gt; &lt;to_id&gt;</code>
+              <p className="text-gray-400 text-xs">Connect two nodes</p>
+              <code className="text-green-400 text-xs block mt-1">flux-connect map 12345 67890</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">flux-list &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Show all nodes and their IDs</p>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-white">cat &lt;file_name&gt;</h4>
-            <p className="text-gray-400">Display file content</p>
-            <code className="text-cyan-400 block mt-1">cat report</code>
+          <h4 className="font-bold text-white text-base mt-4">📄 DOCX Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">docx-add-text &lt;file&gt; &lt;text&gt;</code>
+              <p className="text-gray-400 text-xs">Add paragraph</p>
+              <code className="text-green-400 text-xs block mt-1">docx-add-text doc "This is a paragraph"</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">docx-add-heading &lt;file&gt; &lt;level:1-6&gt; &lt;text&gt;</code>
+              <p className="text-gray-400 text-xs">Add heading</p>
+              <code className="text-green-400 text-xs block mt-1">docx-add-heading doc level:1 "Chapter 1"</code>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-white">echo "content" &gt; &lt;file_name&gt;</h4>
-            <p className="text-gray-400">Write content to an existing file</p>
-            <code className="text-cyan-400 block mt-1">echo "Project notes" &gt; report</code>
+          <h4 className="font-bold text-white text-base mt-4">📊 XLSX Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">xlsx-set-cell &lt;file&gt; &lt;row&gt; &lt;col&gt; &lt;value&gt;</code>
+              <p className="text-gray-400 text-xs">Set cell value</p>
+              <code className="text-green-400 text-xs block mt-1">xlsx-set-cell budget 0 0 "Income"</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">xlsx-add-row &lt;file&gt; &lt;val1&gt; &lt;val2&gt; ...</code>
+              <p className="text-gray-400 text-xs">Add row with values</p>
+              <code className="text-green-400 text-xs block mt-1">xlsx-add-row budget "Jan" 1000 2000</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">xlsx-list &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Display spreadsheet</p>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-white">mv &lt;old_name&gt; &lt;new_name&gt;</h4>
-            <p className="text-gray-400">Rename a file or folder</p>
-            <code className="text-cyan-400 block mt-1">mv oldname newname</code>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-white">rm &lt;name&gt; [-r]</h4>
-            <p className="text-gray-400">Delete a file. Use -r flag for folders</p>
-            <code className="text-cyan-400 block mt-1">rm report</code>
-            <code className="text-cyan-400 block mt-1">rm -r projects</code>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-white">find &lt;pattern&gt;</h4>
-            <p className="text-gray-400">Search for files/folders by name (case-insensitive)</p>
-            <code className="text-cyan-400 block mt-1">find report</code>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-white">tree</h4>
-            <p className="text-gray-400">Display full directory tree from current location</p>
-            <code className="text-cyan-400 block mt-1">tree</code>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-white">count</h4>
-            <p className="text-gray-400">Count files and folders in current directory</p>
-            <code className="text-cyan-400 block mt-1">count</code>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-white">pwd</h4>
-            <p className="text-gray-400">Print current working directory path</p>
-            <code className="text-cyan-400 block mt-1">pwd</code>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-white">clear</h4>
-            <p className="text-gray-400">Clear terminal screen</p>
-            <code className="text-cyan-400 block mt-1">clear</code>
+          <h4 className="font-bold text-white text-base mt-4">📽️ PPTX Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">pptx-add-slide &lt;file&gt; &lt;title&gt; [content]</code>
+              <p className="text-gray-400 text-xs">Add slide to presentation</p>
+              <code className="text-green-400 text-xs block mt-1">pptx-add-slide deck "Introduction" "Welcome to our presentation"</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">pptx-list &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Show all slides</p>
+            </div>
           </div>
         </div>
       </section>
 
       <section>
-        <h3 className="text-lg font-bold text-yellow-400 mb-2">💡 Usage Examples for AIs</h3>
+        <h3 className="text-lg font-bold text-yellow-400 mb-2">💡 Complete Examples</h3>
         <div className="space-y-3 text-sm">
           <div>
-            <p className="text-white font-bold">Example 1: Create project structure</p>
-            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded">
-mkdir "2024 Projects"
-cd "2024 Projects"
-mkdir Reports
-mkdir Data
-cd Reports
-touch summary docx
-touch analysis xlsx
+            <p className="text-white font-bold">Example 1: Create complete Kanban board</p>
+            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded text-xs">
+touch project kbn
+kanban-add-list project "Backlog"
+kanban-add-list project "In Progress"
+kanban-add-list project "Done"
+kanban-list project
+{'{Get list IDs from output}'}
+kanban-add-card project 12345 "Design UI" "Create mockups" priority:high
+kanban-add-card project 12345 "Setup DB" "Configure database" priority:medium
             </pre>
           </div>
 
           <div>
-            <p className="text-white font-bold">Example 2: Organize files</p>
-            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded">
-cd /
-mkdir Archive
-find old
-cd Documents
-mv oldfile Archive
+            <p className="text-white font-bold">Example 2: Build FluxMap workflow</p>
+            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded text-xs">
+touch workflow flux
+flux-add-node workflow sticky-note 100 100 "Start Here"
+flux-add-node workflow rectangle-shape 300 100 "Process Step"
+flux-add-node workflow circle-shape 500 100 "Decision"
+flux-list workflow
+{'{Get node IDs}'}
+flux-connect workflow 12345 67890
+flux-connect workflow 67890 11111
             </pre>
           </div>
 
           <div>
-            <p className="text-white font-bold">Example 3: Batch operations</p>
-            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded">
-tree
-count
-find .xlsx
-cd Data
-ls
+            <p className="text-white font-bold">Example 3: Create Gantt timeline</p>
+            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded text-xs">
+touch schedule gnt
+gantt-add-task schedule "Research" 2026-01-20 2026-02-01 50
+gantt-add-task schedule "Development" 2026-02-01 2026-03-15 25
+gantt-add-milestone schedule "Beta Release" 2026-03-15
+gantt-list schedule
+            </pre>
+          </div>
+
+          <div>
+            <p className="text-white font-bold">Example 4: Build complete document</p>
+            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded text-xs">
+touch report docx
+docx-add-heading report level:1 "Project Report"
+docx-add-heading report level:2 "Executive Summary"
+docx-add-text report "This project demonstrates..."
+docx-add-heading report level:2 "Methodology"
+docx-add-text report "We used the following approach..."
+            </pre>
+          </div>
+
+          <div>
+            <p className="text-white font-bold">Example 5: Create spreadsheet with data</p>
+            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded text-xs">
+touch budget xlsx
+xlsx-add-row budget "Month" "Income" "Expenses" "Profit"
+xlsx-add-row budget "January" 5000 3000 2000
+xlsx-add-row budget "February" 6000 3500 2500
+xlsx-list budget
+            </pre>
+          </div>
+
+          <div>
+            <p className="text-white font-bold">Example 6: Create presentation</p>
+            <pre className="text-cyan-400 mt-1 bg-black p-2 rounded text-xs">
+touch pitch pptx
+pptx-add-slide pitch "Company Overview" "We are a leading provider of..."
+pptx-add-slide pitch "Market Analysis" "The market size is growing..."
+pptx-add-slide pitch "Financial Projections" "Revenue forecast for next 3 years"
+pptx-list pitch
             </pre>
           </div>
         </div>
