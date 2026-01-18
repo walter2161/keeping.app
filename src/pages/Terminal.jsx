@@ -16,6 +16,9 @@ export default function Terminal() {
   const inputRef = useRef(null);
   const terminalRef = useRef(null);
   const queryClient = useQueryClient();
+  
+  // SYNC DIRECTIVE: Real-time synchronization with database
+  useSyncData();
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],

@@ -25,6 +25,7 @@ import XlsxEditor from '../components/editors/XlsxEditor';
 import PptxEditor from '../components/editors/PptxEditor';
 import AIAssistant from '../components/ai/AIAssistant';
 import CollaborationBar from '../components/collaboration/CollaborationBar';
+import { useSyncData } from '../components/sync/useSyncData';
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
@@ -55,6 +56,9 @@ export default function FileViewer() {
   const [docZoom, setDocZoom] = useState(100);
   
   const queryClient = useQueryClient();
+  
+  // SYNC DIRECTIVE: Real-time synchronization with database
+  useSyncData();
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
