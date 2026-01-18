@@ -180,9 +180,36 @@ export default function Terminal() {
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
           const user = await base44.auth.me();
+          
+          // Check for duplicate name
+          const existingFolder = folders.find(f => f.name === args[0] && f.parent_id === currentFolderId && !f.deleted);
+          if (existingFolder) {
+            addToHistory(input, `Folder already exists: ${args[0]}`, true);
+            break;
+          }
+          
+          // Get team_id from parent folder
+          let team_id = null;
+          if (currentFolderId) {
+            const parentFolder = folders.find(f => f.id === currentFolderId);
+            if (parentFolder) {
+              team_id = parentFolder.team_id;
+              // Check team permissions
+              if (team_id) {
+                const { data: teams } = await base44.entities.Team.list();
+                const team = teams?.find(t => t.id === team_id);
+                if (team && !team.members.includes(user.email) && team.owner !== user.email) {
+                  addToHistory(input, 'Permission denied: Not a team member', true);
+                  break;
+                }
+              }
+            }
+          }
+          
           await createFolderMutation.mutateAsync({
             name: args[0],
             parent_id: currentFolderId,
+            team_id,
             owner: user.email,
             deleted: false
           });
@@ -198,9 +225,36 @@ export default function Terminal() {
           const currentFolderId = currentPath === '/' ? null : currentPath;
           const user = await base44.auth.me();
           const fileType = args[1] || 'other';
+          
+          // Check for duplicate name
+          const existingFile = files.find(f => f.name === args[0] && f.folder_id === currentFolderId && !f.deleted);
+          if (existingFile) {
+            addToHistory(input, `File already exists: ${args[0]}`, true);
+            break;
+          }
+          
+          // Get team_id from parent folder
+          let team_id = null;
+          if (currentFolderId) {
+            const parentFolder = folders.find(f => f.id === currentFolderId);
+            if (parentFolder) {
+              team_id = parentFolder.team_id;
+              // Check team permissions
+              if (team_id) {
+                const { data: teams } = await base44.entities.Team.list();
+                const team = teams?.find(t => t.id === team_id);
+                if (team && !team.members.includes(user.email) && team.owner !== user.email) {
+                  addToHistory(input, 'Permission denied: Not a team member', true);
+                  break;
+                }
+              }
+            }
+          }
+          
           await createFileMutation.mutateAsync({
             name: args[0],
             folder_id: currentFolderId,
+            team_id,
             type: fileType,
             owner: user.email,
             deleted: false
@@ -216,15 +270,56 @@ export default function Terminal() {
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
           const isRecursive = args.includes('-r');
+          const user = await base44.auth.me();
           
           const targetFile = findFileByName(args[0], currentFolderId);
           const targetFolder = findFolderByName(args[0], currentFolderId);
 
           if (targetFile) {
-            await deleteFileMutation.mutateAsync(targetFile.id);
+            // Check ownership or team membership
+            if (targetFile.owner !== user.email && targetFile.team_id) {
+              const { data: teams } = await base44.entities.Team.list();
+              const team = teams?.find(t => t.id === targetFile.team_id);
+              if (team && !team.members.includes(user.email) && team.owner !== user.email) {
+                addToHistory(input, 'Permission denied: Not the owner', true);
+                break;
+              }
+            } else if (targetFile.owner !== user.email) {
+              addToHistory(input, 'Permission denied: Not the owner', true);
+              break;
+            }
+            
+            await updateFileMutation.mutateAsync({
+              id: targetFile.id,
+              data: { 
+                deleted: true, 
+                deleted_at: new Date().toISOString(),
+                original_folder_id: targetFile.folder_id
+              }
+            });
             addToHistory(input, `File deleted: ${args[0]}`);
           } else if (targetFolder && isRecursive) {
-            await deleteFolderMutation.mutateAsync(targetFolder.id);
+            // Check ownership or team membership
+            if (targetFolder.owner !== user.email && targetFolder.team_id) {
+              const { data: teams } = await base44.entities.Team.list();
+              const team = teams?.find(t => t.id === targetFolder.team_id);
+              if (team && !team.members.includes(user.email) && team.owner !== user.email) {
+                addToHistory(input, 'Permission denied: Not the owner', true);
+                break;
+              }
+            } else if (targetFolder.owner !== user.email) {
+              addToHistory(input, 'Permission denied: Not the owner', true);
+              break;
+            }
+            
+            await updateFolderMutation.mutateAsync({
+              id: targetFolder.id,
+              data: { 
+                deleted: true, 
+                deleted_at: new Date().toISOString(),
+                original_parent_id: targetFolder.parent_id
+              }
+            });
             addToHistory(input, `Folder deleted: ${args[0]}`);
           } else if (targetFolder && !isRecursive) {
             addToHistory(input, 'Use -r flag to delete folders', true);
@@ -240,16 +335,39 @@ export default function Terminal() {
             break;
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
+          const user = await base44.auth.me();
           const targetFile = findFileByName(args[0], currentFolderId);
           const targetFolder = findFolderByName(args[0], currentFolderId);
 
           if (targetFile) {
+            // Check ownership
+            if (targetFile.owner !== user.email) {
+              addToHistory(input, 'Permission denied: Not the owner', true);
+              break;
+            }
+            // Check duplicate
+            const existingFile = files.find(f => f.name === args[1] && f.folder_id === currentFolderId && !f.deleted && f.id !== targetFile.id);
+            if (existingFile) {
+              addToHistory(input, `File with name "${args[1]}" already exists`, true);
+              break;
+            }
             await updateFileMutation.mutateAsync({
               id: targetFile.id,
               data: { name: args[1] }
             });
             addToHistory(input, `File renamed: ${args[0]} → ${args[1]}`);
           } else if (targetFolder) {
+            // Check ownership
+            if (targetFolder.owner !== user.email) {
+              addToHistory(input, 'Permission denied: Not the owner', true);
+              break;
+            }
+            // Check duplicate
+            const existingFolder = folders.find(f => f.name === args[1] && f.parent_id === currentFolderId && !f.deleted && f.id !== targetFolder.id);
+            if (existingFolder) {
+              addToHistory(input, `Folder with name "${args[1]}" already exists`, true);
+              break;
+            }
             await updateFolderMutation.mutateAsync({
               id: targetFolder.id,
               data: { name: args[1] }
