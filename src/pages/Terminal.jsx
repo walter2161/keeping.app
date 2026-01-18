@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Terminal as TerminalIcon, HelpCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { Terminal as TerminalIcon, HelpCircle, X } from 'lucide-react';
 
 export default function Terminal() {
   const [history, setHistory] = useState([]);
@@ -420,13 +422,21 @@ export default function Terminal() {
           <TerminalIcon className="w-5 h-5" />
           <span className="font-bold">Keeping Terminal v1.0</span>
         </div>
-        <button
-          onClick={() => setShowDocs(!showDocs)}
-          className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors"
-        >
-          <HelpCircle className="w-4 h-4" />
-          {showDocs ? 'Hide Docs' : 'Show Docs'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowDocs(!showDocs)}
+            className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            {showDocs ? 'Hide Docs' : 'Show Docs'}
+          </button>
+          <Link to={createPageUrl('Drive')}>
+            <button className="flex items-center gap-2 px-3 py-1 bg-red-900 hover:bg-red-800 rounded text-sm transition-colors">
+              <X className="w-4 h-4" />
+              Exit
+            </button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden flex">
