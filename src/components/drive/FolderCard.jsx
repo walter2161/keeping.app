@@ -79,11 +79,11 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
   };
   
   return (
-    <TooltipProvider>
-      <Tooltip delayDuration={500}>
-        <TooltipTrigger asChild>
     <Droppable droppableId={`folder-${folder.id}`} type="FILE">
       {(droppableProvided, droppableSnapshot) => (
+        <TooltipProvider>
+          <Tooltip delayDuration={500}>
+            <TooltipTrigger asChild>
         <div
           ref={(el) => {
             droppableProvided.innerRef(el);
@@ -100,7 +100,6 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
           onDragOver={handleExternalDragOver}
           onDragLeave={handleExternalDragLeave}
           onDrop={handleExternalDrop}
-          title=""
         >
       <div className="relative">
         <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
@@ -165,13 +164,13 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
       
       <div style={{ display: 'none' }}>{droppableProvided.placeholder}</div>
         </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{folder.name}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </Droppable>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{folder.name}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   );
 }
