@@ -17,10 +17,12 @@ export default function CreateDialog({
   type, // 'folder' | 'kbn' | 'gnt' | 'crn' | 'docx' | 'xlsx' | 'pptx'
   open, 
   onOpenChange, 
-  onSubmit 
+  onSubmit,
+  existingNames = [] // Lista de nomes já existentes
 }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('blue');
+  const [error, setError] = useState('');
 
   const config = {
     folder: { icon: Folder, title: 'Nova Pasta', placeholder: 'Nome da pasta', color: 'text-gray-600' },
@@ -45,15 +47,26 @@ export default function CreateDialog({
     { value: 'default', label: 'Cinza', class: 'bg-gray-500' },
   ];
 
+  const handleNameChange = (value) => {
+    setName(value);
+    if (existingNames.includes(value.trim().toLowerCase())) {
+      setError('Já existe um item com este nome neste local');
+    } else {
+      setError('');
+    }
+  };
+
   const handleSubmit = () => {
-    if (name.trim()) {
+    const trimmedName = name.trim();
+    if (trimmedName && !existingNames.includes(trimmedName.toLowerCase())) {
       if (type === 'folder') {
-        onSubmit(name.trim(), color);
+        onSubmit(trimmedName, color);
       } else {
-        onSubmit(name.trim());
+        onSubmit(trimmedName);
       }
       setName('');
       setColor('blue');
+      setError('');
     }
   };
 
@@ -70,10 +83,14 @@ export default function CreateDialog({
           <Input
             placeholder={currentConfig.placeholder}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             autoFocus
+            className={error ? 'border-red-500' : ''}
           />
+          {error && (
+            <p className="text-red-500 text-sm mt-2">{error}</p>
+          )}
           
           {type === 'folder' && (
             <div className="mt-4">
@@ -95,10 +112,15 @@ export default function CreateDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => {
+            onOpenChange(false);
+            setName('');
+            setError('');
+            setColor('blue');
+          }}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!name.trim()}>
+          <Button onClick={handleSubmit} disabled={!name.trim() || !!error}>
             Criar
           </Button>
         </DialogFooter>

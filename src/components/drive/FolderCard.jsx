@@ -6,6 +6,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Droppable } from '@hello-pangea/dnd';
 import FolderColorPicker from './FolderColorPicker';
@@ -73,6 +79,9 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
   };
   
   return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
     <Droppable droppableId={`folder-${folder.id}`} type="FILE">
       {(droppableProvided, droppableSnapshot) => (
         <div
@@ -157,5 +166,11 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
         </div>
       )}
     </Droppable>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{folder.name}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

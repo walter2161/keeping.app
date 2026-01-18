@@ -10,6 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import FolderColorPicker from './FolderColorPicker';
@@ -77,6 +83,7 @@ export default function ListView({
   };
   
   return (
+    <TooltipProvider>
     <>
       <FolderColorPicker
         folder={colorPickerState.folder}
@@ -105,6 +112,8 @@ export default function ListView({
         
         return (
           <React.Fragment key={folder.id}>
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
             <div
               className="grid grid-cols-12 gap-4 px-4 py-3 border-b hover:bg-gray-50 cursor-pointer group items-center"
               onClick={() => onFolderClick(folder.id)}
@@ -168,6 +177,11 @@ export default function ListView({
             </DropdownMenu>
           </div>
         </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{folder.name}</p>
+              </TooltipContent>
+            </Tooltip>
         
         {isExpanded && folderHasContent && (
           <ListView
@@ -200,8 +214,9 @@ export default function ListView({
         const Icon = config.icon;
         
         return (
+          <Tooltip key={file.id} delayDuration={300}>
+            <TooltipTrigger asChild>
           <div
-            key={file.id}
             className="grid grid-cols-12 gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer group items-center"
             onClick={() => onFileClick(file)}
             style={{ paddingLeft: `${level * 24 + 16}px` }}
@@ -247,6 +262,11 @@ export default function ListView({
               </DropdownMenu>
             </div>
           </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{file.name}</p>
+            </TooltipContent>
+          </Tooltip>
         );
       })}
 
@@ -257,5 +277,6 @@ export default function ListView({
       )}
     </div>
     </>
+    </TooltipProvider>
   );
 }
