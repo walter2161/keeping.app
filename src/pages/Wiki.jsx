@@ -344,10 +344,9 @@ export default function Wiki() {
                   </div>
 
                   <div className="bg-indigo-50 p-3 rounded-lg border-l-4 border-indigo-500">
-                    <p className="font-semibold text-indigo-900 mb-2">Import/Export JSON:</p>
-                    <p className="font-mono text-xs">upload-json - Mostra formato JSON</p>
-                    <p className="font-mono text-xs">import {'{...}'} - Importa estrutura JSON</p>
-                    <p className="text-xs text-gray-600 mt-2">Formato: {`{"folders":[{"name":"Pasta","temp_id":"p1"}],"files":[{"name":"arquivo.docx","type":"docx","folder_id":"p1"}]}`}</p>
+                    <p className="font-semibold text-indigo-900 mb-2">Escrever JSON Completo:</p>
+                    <p className="font-mono text-xs">echo '{`'{"lists":[...]}'`} &gt; arquivo</p>
+                    <p className="text-xs text-gray-600 mt-2">Cole conteúdo JSON completo de arquivos Kanban, Gantt, FluxMap, etc. O terminal valida automaticamente.</p>
                   </div>
                 </div>
                 
