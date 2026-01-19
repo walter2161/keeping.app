@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, MoreVertical, Trash2, Edit2, Download, Palette, Users, ArrowRight } from 'lucide-react';
+import { Folder, MoreVertical, Trash2, Edit2, Download, Palette, Users, ArrowRight, Archive } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +25,7 @@ const folderColors = {
   red: 'text-red-500',
 };
 
-export default function FolderCard({ folder, onClick, onDelete, onRename, onExport, onColorChange, onMove, isOwner, provided, isDragging, onExternalDrop }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onExport, onCompress, onColorChange, onMove, isOwner, provided, isDragging, onExternalDrop }) {
   const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
   const [clickCount, setClickCount] = React.useState(0);
   const clickTimer = React.useRef(null);
@@ -136,6 +136,10 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onExport?.(folder); }}>
             <Download className="w-4 h-4 mr-2" />
             Exportar (.zip)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCompress?.(folder); }}>
+            <Archive className="w-4 h-4 mr-2" />
+            Compactar (.zip)
           </DropdownMenuItem>
           {isOwner && (
             <>

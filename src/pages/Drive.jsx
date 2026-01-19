@@ -751,6 +751,250 @@ export default function Drive() {
     }
   };
 
+  const handleCompressFolder = async (folder) => {
+    const zip = new JSZip();
+    const toast = (await import('react-hot-toast')).default;
+    const compressToastId = toast.loading('Compactando pasta...', { position: 'bottom-left' });
+    
+    try {
+      const addFolderToZip = async (folderId, zipFolder) => {
+        const subFolders = folders.filter(f => f.parent_id === folderId && !f.deleted);
+        const folderFiles = files.filter(f => f.folder_id === folderId && !f.deleted);
+        
+        for (const file of folderFiles) {
+          if ((file.type === 'img' || file.type === 'video') && file.file_url) {
+            try {
+              const response = await fetch(file.file_url);
+              const blob = await response.blob();
+              zipFolder.file(file.name, blob);
+            } catch (error) {
+              console.error('Error downloading file:', error);
+            }
+          } else if (file.type === 'docx' || file.type === 'xlsx' || file.type === 'pptx') {
+            zipFolder.file(`${file.name}.${file.type}`, file.content || '');
+          } else {
+            zipFolder.file(`${file.name}.json`, JSON.stringify({
+              name: file.name,
+              type: file.type,
+              content: file.content
+            }, null, 2));
+          }
+        }
+        
+        for (const subFolder of subFolders) {
+          const subZipFolder = zipFolder.folder(subFolder.name);
+          await addFolderToZip(subFolder.id, subZipFolder);
+        }
+      };
+      
+      await addFolderToZip(folder.id, zip);
+      
+      const content = await zip.generateAsync({ type: 'blob' });
+      const file = new File([content], `${folder.name}.zip`, { type: 'application/zip' });
+      
+      // Upload do ZIP
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      // Criar arquivo ZIP no sistema
+      await createFileMutation.mutateAsync({
+        name: `${folder.name}.zip`,
+        type: 'other',
+        folder_id: folder.parent_id,
+        team_id: folder.team_id,
+        file_url: file_url,
+        order: currentFiles.length,
+        owner: user.email,
+      });
+      
+      toast.success(`Pasta compactada: ${folder.name}.zip`, { id: compressToastId, duration: 3000, position: 'bottom-left' });
+    } catch (error) {
+      console.error('Erro ao compactar:', error);
+      toast.error('Erro ao compactar pasta', { id: compressToastId, position: 'bottom-left' });
+    }
+  };
+
+  const handleExtractZip = async (file) => {
+    if (!file.file_url) {
+      alert('Arquivo ZIP não possui URL válida');
+      return;
+    }
+    
+    const toast = (await import('react-hot-toast')).default;
+    const extractToastId = toast.loading('Descompactando arquivo...', { position: 'bottom-left' });
+    
+    try {
+      // Download do ZIP
+      const response = await fetch(file.file_url);
+      const blob = await response.blob();
+      
+      const zip = await JSZip.loadAsync(blob);
+      const folderMap = new Map();
+      
+      const getTeamId = (folderId) => {
+        if (!folderId) return null;
+        let currentId = folderId;
+        while (currentId) {
+          const folder = folders.find(f => f.id === currentId);
+          if (!folder) break;
+          if (folder.team_id) return folder.team_id;
+          currentId = folder.parent_id;
+        }
+        return null;
+      };
+      
+      const teamId = getTeamId(file.folder_id);
+      
+      const createFolder = async (folderPath, parentId) => {
+        const folderName = folderPath.split('/').pop();
+        const newFolder = await createFolderMutation.mutateAsync({
+          name: folderName,
+          parent_id: parentId,
+          team_id: teamId,
+          owner: user.email,
+          deleted: false
+        });
+        return newFolder.id;
+      };
+      
+      const detectFileType = (fileName) => {
+        const ext = fileName.split('.').pop().toLowerCase();
+        const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
+        const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv'];
+        
+        if (ext === 'docx' || ext === 'doc') return 'docx';
+        if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') return 'xlsx';
+        if (ext === 'pptx' || ext === 'ppt') return 'pptx';
+        if (ext === 'pdf') return 'pdf';
+        if (ext === 'kbn') return 'kbn';
+        if (ext === 'gnt') return 'gnt';
+        if (ext === 'crn') return 'crn';
+        if (ext === 'flux') return 'flux';
+        if (imageExts.includes(ext)) return 'img';
+        if (videoExts.includes(ext)) return 'video';
+        return 'other';
+      };
+      
+      const convertCSVToXLSX = (csvContent) => {
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        const cells = {};
+        
+        lines.forEach((line, rowIndex) => {
+          const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          cells[rowIndex] = {};
+          values.forEach((value, colIndex) => {
+            cells[rowIndex][colIndex] = value;
+          });
+        });
+        
+        return JSON.stringify({ cells });
+      };
+      
+      const createFile = async (fileName, content, parentId, isBlob = false) => {
+        const fileType = detectFileType(fileName);
+        const baseName = fileName.replace(/\.[^/.]+$/, '');
+        
+        let fileContent = '';
+        let fileUrl = null;
+        
+        if (isBlob) {
+          const blob = new Blob([content]);
+          const file = new File([blob], fileName);
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          fileUrl = file_url;
+        } else {
+          if (fileName.toLowerCase().endsWith('.csv')) {
+            fileContent = convertCSVToXLSX(content);
+          } else if (fileType === 'docx' || fileType === 'xlsx' || fileType === 'pptx') {
+            fileContent = content;
+          } else if (fileType === 'kbn' || fileType === 'gnt' || fileType === 'crn' || fileType === 'flux') {
+            try {
+              JSON.parse(content);
+              fileContent = content;
+            } catch {
+              fileContent = '';
+            }
+          }
+        }
+        
+        await createFileMutation.mutateAsync({
+          name: baseName,
+          type: fileType,
+          folder_id: parentId,
+          team_id: teamId,
+          content: fileContent,
+          file_url: fileUrl,
+          owner: user.email,
+          deleted: false
+        });
+      };
+      
+      // Processar ZIP
+      const paths = Object.keys(zip.files).sort();
+      
+      for (const path of paths) {
+        const zipEntry = zip.files[path];
+        
+        if (zipEntry.dir) {
+          const pathParts = path.replace(/\/$/, '').split('/');
+          let currentParentId = file.folder_id;
+          let currentPath = '';
+          
+          for (const part of pathParts) {
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            
+            if (!folderMap.has(currentPath)) {
+              const newFolderId = await createFolder(currentPath, currentParentId);
+              folderMap.set(currentPath, newFolderId);
+              currentParentId = newFolderId;
+            } else {
+              currentParentId = folderMap.get(currentPath);
+            }
+          }
+        } else {
+          const pathParts = path.split('/');
+          const fileName = pathParts.pop();
+          const folderPath = pathParts.join('/');
+          
+          let parentId = file.folder_id;
+          if (folderPath) {
+            const parts = folderPath.split('/');
+            let currentPath = '';
+            
+            for (const part of parts) {
+              currentPath = currentPath ? `${currentPath}/${part}` : part;
+              
+              if (!folderMap.has(currentPath)) {
+                const newFolderId = await createFolder(currentPath, parentId);
+                folderMap.set(currentPath, newFolderId);
+                parentId = newFolderId;
+              } else {
+                parentId = folderMap.get(currentPath);
+              }
+            }
+          }
+          
+          const fileType = detectFileType(fileName);
+          const isBinary = fileType === 'img' || fileType === 'video' || fileType === 'pdf' || fileType === 'other';
+          
+          if (isBinary) {
+            const blob = await zipEntry.async('blob');
+            await createFile(fileName, blob, parentId, true);
+          } else {
+            const content = await zipEntry.async('text');
+            await createFile(fileName, content, parentId, false);
+          }
+        }
+      }
+      
+      toast.success('ZIP descompactado com sucesso!', { id: extractToastId, duration: 3000, position: 'bottom-left' });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    } catch (error) {
+      console.error('Erro ao descompactar:', error);
+      toast.error('Erro ao descompactar ZIP: ' + error.message, { id: extractToastId, position: 'bottom-left' });
+    }
+  };
+
   const handleExportFolder = async (folder) => {
     const zip = new JSZip();
     
@@ -946,6 +1190,7 @@ export default function Drive() {
             onFolderDelete={handleDeleteFolder}
             onFolderRename={handleRenameFolder}
             onFolderExport={handleExportFolder}
+            onFolderCompress={handleCompressFolder}
             onFolderColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
             onFolderMove={handleMoveFolder}
             onFileDelete={(file) => {
@@ -964,6 +1209,7 @@ export default function Drive() {
             }}
             onFileRename={handleRenameFile}
             onFileExport={handleExportFile}
+            onFileExtract={handleExtractZip}
             onFileMove={handleMoveFile}
             currentUserEmail={user?.email}
             allFolders={folders.filter(f => !f.deleted)}
@@ -993,6 +1239,7 @@ export default function Drive() {
                               onDelete={() => handleDeleteFolder(folder)}
                               onRename={() => handleRenameFolder(folder)}
                               onExport={() => handleExportFolder(folder)}
+                              onCompress={() => handleCompressFolder(folder)}
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
                               onMove={() => handleMoveFolder(folder)}
                               isOwner={folder.owner === user?.email}
@@ -1045,6 +1292,7 @@ export default function Drive() {
                               }}
                               onRename={() => handleRenameFile(file)}
                               onExport={() => handleExportFile(file)}
+                              onExtract={() => handleExtractZip(file)}
                               onMove={() => handleMoveFile(file)}
                               isOwner={file.owner === user?.email}
                               provided={provided}

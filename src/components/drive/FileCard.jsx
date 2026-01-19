@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,7 +31,7 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, isOwner, provided, isDragging }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, onExtract, isOwner, provided, isDragging }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
   const [clickCount, setClickCount] = React.useState(0);
@@ -158,6 +158,12 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </DropdownMenuItem>
+          {file.name.toLowerCase().endsWith('.zip') && file.file_url && (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onExtract?.(file); }}>
+              <Archive className="w-4 h-4 mr-2" />
+              Descompactar Aqui
+            </DropdownMenuItem>
+          )}
           {isOwner && (
             <>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove?.(file); }}>
