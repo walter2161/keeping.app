@@ -226,21 +226,90 @@ export default function FluxMap({ data, onChange, onImport }) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
         if (nodeElement && !nodeElement.querySelector('.edit-icon')) {
-          // Add edit icon
-          const editIcon = document.createElement('div');
-          editIcon.className = 'edit-icon';
-          editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-          editIcon.addEventListener('click', (e) => {
+          // Add menu icon (3 dots)
+          const menuIcon = document.createElement('div');
+          menuIcon.className = 'node-menu-icon';
+          menuIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+          
+          // Create dropdown menu
+          const dropdown = document.createElement('div');
+          dropdown.className = 'node-menu-dropdown';
+          dropdown.style.display = 'none';
+          dropdown.innerHTML = `
+            <div class="node-menu-item" data-action="edit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              <span>Editar</span>
+            </div>
+            <div class="node-menu-item" data-action="clone">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Clonar</span>
+            </div>
+            <div class="node-menu-item node-menu-delete" data-action="delete">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              <span>Excluir</span>
+            </div>
+          `;
+          
+          menuIcon.addEventListener('click', (e) => {
             e.stopPropagation();
-            const nodeData = editor.getNodeFromId(nodeId);
-            setEditDialog({ 
-              open: true, 
-              nodeId: nodeId, 
-              data: nodeData.data || {},
-              nodeType: nodeData.name
-            });
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
           });
-          nodeElement.appendChild(editIcon);
+          
+          dropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = e.target.closest('.node-menu-item')?.dataset.action;
+            if (!action) return;
+            
+            const currentNodeData = editor.getNodeFromId(nodeId);
+            
+            if (action === 'edit') {
+              setEditDialog({ 
+                open: true, 
+                nodeId: nodeId, 
+                data: currentNodeData.data || {},
+                nodeType: currentNodeData.name
+              });
+            } else if (action === 'clone') {
+              const { html, inputs, outputs } = createNodeHTML(currentNodeData.name, currentNodeData.data);
+              const nodeElement = document.getElementById(`node-${nodeId}`);
+              const rect = nodeElement.getBoundingClientRect();
+              const newNodeId = editor.addNode(
+                currentNodeData.name, 
+                inputs, 
+                outputs, 
+                currentNodeData.pos_x + 50, 
+                currentNodeData.pos_y + 50, 
+                currentNodeData.name, 
+                {...currentNodeData.data}, 
+                html
+              );
+              
+              // Add menu to cloned node
+              setTimeout(() => {
+                const newNodeElement = document.getElementById(`node-${newNodeId}`);
+                if (newNodeElement && !newNodeElement.querySelector('.node-menu-icon')) {
+                  newNodeElement.appendChild(menuIcon.cloneNode(true));
+                  newNodeElement.appendChild(dropdown.cloneNode(true));
+                  // Re-attach event listeners...
+                }
+              }, 10);
+              
+              if (onChange) onChange(editor.export());
+            } else if (action === 'delete') {
+              editor.removeNodeId(`node-${nodeId}`);
+              if (onChange) onChange(editor.export());
+            }
+            
+            dropdown.style.display = 'none';
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', () => {
+            dropdown.style.display = 'none';
+          });
+          
+          nodeElement.appendChild(menuIcon);
+          nodeElement.appendChild(dropdown);
 
           // Add manual resize for sticky notes
           if (name === 'sticky-note') {
@@ -484,22 +553,76 @@ export default function FluxMap({ data, onChange, onImport }) {
                     contentNode.innerHTML = html.trim();
                   }
                   
-                  // Add edit icon if not exists
-                  if (!nodeElement.querySelector('.edit-icon')) {
-                    const editIcon = document.createElement('div');
-                    editIcon.className = 'edit-icon';
-                    editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-                    editIcon.addEventListener('click', (e) => {
+                  // Add menu icon if not exists
+                  if (!nodeElement.querySelector('.node-menu-icon')) {
+                    const menuIcon = document.createElement('div');
+                    menuIcon.className = 'node-menu-icon';
+                    menuIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+                    
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'node-menu-dropdown';
+                    dropdown.style.display = 'none';
+                    dropdown.innerHTML = `
+                      <div class="node-menu-item" data-action="edit">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        <span>Editar</span>
+                      </div>
+                      <div class="node-menu-item" data-action="clone">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <span>Clonar</span>
+                      </div>
+                      <div class="node-menu-item node-menu-delete" data-action="delete">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        <span>Excluir</span>
+                      </div>
+                    `;
+                    
+                    menuIcon.addEventListener('click', (e) => {
                       e.stopPropagation();
-                      const nodeData = editorRef.current.getNodeFromId(nodeId);
-                      setEditDialog({ 
-                        open: true, 
-                        nodeId: nodeId, 
-                        data: nodeData.data || {},
-                        nodeType: nodeData.name
-                      });
+                      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
                     });
-                    nodeElement.appendChild(editIcon);
+                    
+                    dropdown.addEventListener('click', (e) => {
+                      e.stopPropagation();
+                      const action = e.target.closest('.node-menu-item')?.dataset.action;
+                      if (!action) return;
+                      
+                      const currentNodeData = editorRef.current.getNodeFromId(nodeId);
+                      
+                      if (action === 'edit') {
+                        setEditDialog({ 
+                          open: true, 
+                          nodeId: nodeId, 
+                          data: currentNodeData.data || {},
+                          nodeType: currentNodeData.name
+                        });
+                      } else if (action === 'clone') {
+                        const { html, inputs, outputs } = createNodeHTML(currentNodeData.name, currentNodeData.data);
+                        editorRef.current.addNode(
+                          currentNodeData.name, 
+                          inputs, 
+                          outputs, 
+                          currentNodeData.pos_x + 50, 
+                          currentNodeData.pos_y + 50, 
+                          currentNodeData.name, 
+                          {...currentNodeData.data}, 
+                          html
+                        );
+                        if (onChange) onChange(editorRef.current.export());
+                      } else if (action === 'delete') {
+                        editorRef.current.removeNodeId(`node-${nodeId}`);
+                        if (onChange) onChange(editorRef.current.export());
+                      }
+                      
+                      dropdown.style.display = 'none';
+                    });
+                    
+                    document.addEventListener('click', () => {
+                      dropdown.style.display = 'none';
+                    });
+                    
+                    nodeElement.appendChild(menuIcon);
+                    nodeElement.appendChild(dropdown);
                   }
                 }
               }
@@ -549,22 +672,76 @@ export default function FluxMap({ data, onChange, onImport }) {
                   contentNode.innerHTML = html.trim();
                 }
                 
-                // Add edit icon if not exists
-                if (!nodeElement.querySelector('.edit-icon')) {
-                  const editIcon = document.createElement('div');
-                  editIcon.className = 'edit-icon';
-                  editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-                  editIcon.addEventListener('click', (e) => {
+                // Add menu icon if not exists
+                if (!nodeElement.querySelector('.node-menu-icon')) {
+                  const menuIcon = document.createElement('div');
+                  menuIcon.className = 'node-menu-icon';
+                  menuIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+                  
+                  const dropdown = document.createElement('div');
+                  dropdown.className = 'node-menu-dropdown';
+                  dropdown.style.display = 'none';
+                  dropdown.innerHTML = `
+                    <div class="node-menu-item" data-action="edit">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                      <span>Editar</span>
+                    </div>
+                    <div class="node-menu-item" data-action="clone">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <span>Clonar</span>
+                    </div>
+                    <div class="node-menu-item node-menu-delete" data-action="delete">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      <span>Excluir</span>
+                    </div>
+                  `;
+                  
+                  menuIcon.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const nodeData = editor.getNodeFromId(nodeId);
-                    setEditDialog({ 
-                      open: true, 
-                      nodeId: nodeId, 
-                      data: nodeData.data || {},
-                      nodeType: nodeData.name
-                    });
+                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
                   });
-                  nodeElement.appendChild(editIcon);
+                  
+                  dropdown.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = e.target.closest('.node-menu-item')?.dataset.action;
+                    if (!action) return;
+                    
+                    const currentNodeData = editor.getNodeFromId(nodeId);
+                    
+                    if (action === 'edit') {
+                      setEditDialog({ 
+                        open: true, 
+                        nodeId: nodeId, 
+                        data: currentNodeData.data || {},
+                        nodeType: currentNodeData.name
+                      });
+                    } else if (action === 'clone') {
+                      const { html, inputs, outputs } = createNodeHTML(currentNodeData.name, currentNodeData.data);
+                      editor.addNode(
+                        currentNodeData.name, 
+                        inputs, 
+                        outputs, 
+                        currentNodeData.pos_x + 50, 
+                        currentNodeData.pos_y + 50, 
+                        currentNodeData.name, 
+                        {...currentNodeData.data}, 
+                        html
+                      );
+                      if (onChange) onChange(editor.export());
+                    } else if (action === 'delete') {
+                      editor.removeNodeId(`node-${nodeId}`);
+                      if (onChange) onChange(editor.export());
+                    }
+                    
+                    dropdown.style.display = 'none';
+                  });
+                  
+                  document.addEventListener('click', () => {
+                    dropdown.style.display = 'none';
+                  });
+                  
+                  nodeElement.appendChild(menuIcon);
+                  nodeElement.appendChild(dropdown);
                 }
                 
                 // Add manual resize for sticky notes
@@ -1141,7 +1318,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           border-color: #3b82f6;
         }
 
-        .drawflow .drawflow-node .edit-icon {
+        .drawflow .drawflow-node .node-menu-icon {
           position: absolute;
           top: 8px;
           right: 8px;
@@ -1160,18 +1337,61 @@ export default function FluxMap({ data, onChange, onImport }) {
           pointer-events: all;
         }
 
-        .drawflow .drawflow-node:hover .edit-icon {
+        .drawflow .drawflow-node:hover .node-menu-icon {
           opacity: 1;
         }
 
-        .drawflow .drawflow-node .edit-icon:hover {
+        .drawflow .drawflow-node .node-menu-icon:hover {
           background: #f3f4f6;
         }
 
-        .drawflow .drawflow-node .edit-icon svg {
+        .drawflow .drawflow-node .node-menu-icon svg {
           width: 14px;
           height: 14px;
           color: #64748b;
+        }
+        
+        .node-menu-dropdown {
+          position: absolute;
+          top: 36px;
+          right: 8px;
+          background: white;
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          overflow: hidden;
+          min-width: 140px;
+          z-index: 20;
+        }
+        
+        .node-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          cursor: pointer;
+          transition: background 0.2s;
+          font-size: 13px;
+          color: #1e293b;
+        }
+        
+        .node-menu-item:hover {
+          background: #f1f5f9;
+        }
+        
+        .node-menu-item svg {
+          color: #64748b;
+        }
+        
+        .node-menu-delete {
+          color: #dc2626;
+        }
+        
+        .node-menu-delete svg {
+          color: #dc2626;
+        }
+        
+        .node-menu-delete:hover {
+          background: #fee2e2;
         }
         
         .drawflow .drawflow-node .inputs {
@@ -1522,19 +1742,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           onDragOver={(e) => e.preventDefault()}
         />
         
-        {selectedNodeId && (
-          <div className="absolute top-4 right-4 z-50">
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={handleDeleteClick}
-              className="shadow-lg"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Excluir Item
-            </Button>
-          </div>
-        )}
+
       </div>
 
       {/* Area Edit Dialog */}
