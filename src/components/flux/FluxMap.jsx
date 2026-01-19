@@ -565,6 +565,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                     });
                   });
                   nodeElement.appendChild(editIcon);
+                }
                 
                 // Add manual resize for sticky notes
                 if (nodeData.name === 'sticky-note') {
