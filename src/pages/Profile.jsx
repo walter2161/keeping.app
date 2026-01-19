@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import DesktopSyncDownload from '../components/profile/DesktopSyncDownload';
 
 export default function Profile() {
   const queryClient = useQueryClient();
@@ -649,6 +650,9 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Sincronização Desktop */}
+        <DesktopSyncDownload user={user} />
       </div>
     </div>
   );
