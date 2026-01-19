@@ -265,7 +265,7 @@ export default function FluxMap({ data, onChange, onImport }) {
             menuLeaveTimer = setTimeout(() => {
               const menuContent = menuButton.nextElementSibling;
               menuContent.classList.remove('open');
-            }, 300);
+            }, 700);
           });
           
           menuContainer.addEventListener('mouseenter', () => {
@@ -604,7 +604,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                       menuLeaveTimer = setTimeout(() => {
                         const menuContent = menuButton.nextElementSibling;
                         menuContent.classList.remove('open');
-                      }, 300);
+                      }, 700);
                     });
                     
                     menuContainer.addEventListener('mouseenter', () => {
@@ -671,7 +671,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                     menuContainer.addEventListener('mouseleave', () => {
                       menuLeaveTimer = setTimeout(() => {
                         menuContent.classList.remove('open');
-                      }, 300);
+                      }, 700);
                     });
                     
                     menuContainer.addEventListener('mouseenter', () => {

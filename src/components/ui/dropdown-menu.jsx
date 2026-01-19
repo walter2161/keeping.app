@@ -61,7 +61,7 @@ const DropdownMenuContent = React.forwardRef(({ className, sideOffset = 4, onPoi
       setIsOpen(false);
       const closeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
       document.dispatchEvent(closeEvent);
-    }, 300);
+    }, 700);
     onPointerLeave?.(e);
   };
 
