@@ -947,27 +947,6 @@ export default function FluxMap({ data, onChange, onImport }) {
             nodeElement.innerHTML = html.trim();
             console.log('✓ Card HTML atualizado com novos dados');
           }
-          
-          // Re-add edit icon
-          setTimeout(() => {
-            const nodeContainer = document.getElementById(`node-${editDialog.nodeId}`);
-            if (nodeContainer && !nodeContainer.querySelector('.edit-icon')) {
-              const editIcon = document.createElement('div');
-              editIcon.className = 'edit-icon';
-              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-              editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const updatedNodeData = editorRef.current.getNodeFromId(editDialog.nodeId);
-                setEditDialog({ 
-                  open: true, 
-                  nodeId: editDialog.nodeId, 
-                  data: updatedNodeData.data || {},
-                  nodeType: updatedNodeData.name
-                });
-              });
-              nodeContainer.appendChild(editIcon);
-            }
-          }, 10);
         } else if (editDialog.nodeType === 'sticky-note') {
           const { html } = createNodeHTML('sticky-note', newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
@@ -1030,27 +1009,6 @@ export default function FluxMap({ data, onChange, onImport }) {
               }
             }, 50);
           }
-          
-          // Re-add edit icon
-          setTimeout(() => {
-            const nodeContainer = document.getElementById(`node-${editDialog.nodeId}`);
-            if (nodeContainer && !nodeContainer.querySelector('.edit-icon')) {
-              const editIcon = document.createElement('div');
-              editIcon.className = 'edit-icon';
-              editIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-              editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const updatedNodeData = editorRef.current.getNodeFromId(editDialog.nodeId);
-                setEditDialog({ 
-                  open: true, 
-                  nodeId: editDialog.nodeId, 
-                  data: updatedNodeData.data || {},
-                  nodeType: updatedNodeData.name
-                });
-              });
-              nodeContainer.appendChild(editIcon);
-            }
-          }, 10);
         } else {
           // rectangle, circle, name-bubble, text-box, url-link
           const { html } = createNodeHTML(editDialog.nodeType, newData);
