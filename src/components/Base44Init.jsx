@@ -5,18 +5,18 @@ import { base44 } from '@/api/base44Client';
 export default function Base44Init({ children }) {
   useEffect(() => {
     // Forçar inicialização manual do SDK
-    const apiUrl = import.meta.env.VITE_BASE44_API_URL || 'https://app.base44.com/api';
+    const baseUrl = import.meta.env.VITE_BASE44_API_URL || 'https://app.base44.com/api';
     const appId = import.meta.env.VITE_BASE44_APP_ID;
     const apiKey = import.meta.env.VITE_BASE44_API_KEY;
 
     console.log('🔧 Inicializando Base44 SDK:', {
-      apiUrl,
+      baseUrl,
       appId,
       hasApiKey: !!apiKey,
     });
 
     // Verificar se o SDK está configurado corretamente
-    if (!apiUrl || apiUrl === 'undefined') {
+    if (!baseUrl || baseUrl === 'undefined') {
       console.error('❌ VITE_BASE44_API_URL não está definida!');
     }
     if (!appId || appId === 'undefined') {
@@ -30,11 +30,12 @@ export default function Base44Init({ children }) {
     try {
       if (base44.init && typeof base44.init === 'function') {
         base44.init({
-          apiUrl,
+          baseUrl,
           appId,
           apiKey,
         });
         console.log('✅ Base44 SDK inicializado com sucesso');
+        console.log('[Base44 CONFIG]', base44.config || base44);
       }
     } catch (error) {
       console.error('❌ Erro ao inicializar Base44:', error);
