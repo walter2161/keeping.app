@@ -695,58 +695,48 @@ export default function FluxMap({ data, onChange, onImport }) {
                   contentNode.innerHTML = html.trim();
                 }
                 
-                // Add menu icon if not exists
-                if (!nodeElement.querySelector('.node-menu-icon')) {
-                  const menuIcon = document.createElement('div');
-                  menuIcon.className = 'node-menu-icon';
-                  menuIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+                // Add menu if not exists
+                if (!nodeElement.querySelector('.node-menu-container')) {
+                  const menuContainer = document.createElement('div');
+                  menuContainer.className = 'node-menu-container';
                   
-                  const dropdown = document.createElement('div');
-                  dropdown.className = 'node-menu-dropdown';
-                  dropdown.style.display = 'none';
-                  dropdown.innerHTML = `
+                  const menuButton = document.createElement('button');
+                  menuButton.className = 'node-menu-trigger';
+                  menuButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+                  
+                  menuButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    document.querySelectorAll('.node-menu-content.open').forEach(menu => {
+                      menu.classList.remove('open');
+                    });
+                    const menuContent = menuButton.nextElementSibling;
+                    menuContent.classList.toggle('open');
+                  });
+                  
+                  const menuContent = document.createElement('div');
+                  menuContent.className = 'node-menu-content';
+                  menuContent.innerHTML = `
                     <div class="node-menu-item" data-action="edit">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                       <span>Editar</span>
                     </div>
                     <div class="node-menu-item" data-action="clone">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                       <span>Clonar</span>
                     </div>
                     <div class="node-menu-item node-menu-delete" data-action="delete">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                       <span>Excluir</span>
                     </div>
                   `;
                   
-                  menuIcon.addEventListener('click', (e) => {
+                  menuContent.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const isOpen = dropdown.style.display === 'block';
-                    dropdown.style.display = isOpen ? 'none' : 'block';
-                  });
-                  
-                  // Close dropdown when mouse leaves both icon and dropdown
-                  let leaveTimer;
-                  const hideDropdown = () => {
-                    leaveTimer = setTimeout(() => {
-                      dropdown.style.display = 'none';
-                    }, 200);
-                  };
-                  
-                  const cancelHide = () => {
-                    clearTimeout(leaveTimer);
-                  };
-                  
-                  menuIcon.addEventListener('mouseleave', hideDropdown);
-                  menuIcon.addEventListener('mouseenter', cancelHide);
-                  dropdown.addEventListener('mouseenter', cancelHide);
-                  dropdown.addEventListener('mouseleave', hideDropdown);
-                  
-                  dropdown.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const action = e.target.closest('.node-menu-item')?.dataset.action;
-                    if (!action) return;
+                    const menuItem = e.target.closest('.node-menu-item');
+                    if (!menuItem) return;
                     
+                    const action = menuItem.dataset.action;
                     const currentNodeData = editor.getNodeFromId(nodeId);
                     
                     if (action === 'edit') {
@@ -774,15 +764,18 @@ export default function FluxMap({ data, onChange, onImport }) {
                       if (onChange) onChange(editor.export());
                     }
                     
-                    dropdown.style.display = 'none';
+                    menuContent.classList.remove('open');
                   });
                   
-                  document.addEventListener('click', () => {
-                    dropdown.style.display = 'none';
-                  });
+                  menuContainer.appendChild(menuButton);
+                  menuContainer.appendChild(menuContent);
+                  nodeElement.appendChild(menuContainer);
                   
-                  nodeElement.appendChild(menuIcon);
-                  nodeElement.appendChild(dropdown);
+                  document.addEventListener('click', (e) => {
+                    if (!menuContainer.contains(e.target)) {
+                      menuContent.classList.remove('open');
+                    }
+                  });
                 }
                 
                 // Add manual resize for sticky notes
@@ -1317,75 +1310,88 @@ export default function FluxMap({ data, onChange, onImport }) {
           border-color: #3b82f6;
         }
 
-        .drawflow .drawflow-node .node-menu-icon {
+        .drawflow .drawflow-node .node-menu-container {
           position: absolute;
           top: 8px;
           right: 8px;
-          width: 24px;
-          height: 24px;
+          z-index: 15;
+        }
+
+        .drawflow .drawflow-node .node-menu-trigger {
+          width: 28px;
+          height: 28px;
           background: white;
-          border-radius: 4px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          border: none;
+          border-radius: 6px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           opacity: 0;
-          transition: opacity 0.2s, background 0.2s;
-          z-index: 15;
+          transition: opacity 0.2s, background 0.15s;
           pointer-events: all;
         }
 
-        .drawflow .drawflow-node:hover .node-menu-icon {
+        .drawflow .drawflow-node:hover .node-menu-trigger {
           opacity: 1;
         }
 
-        .drawflow .drawflow-node .node-menu-icon:hover {
+        .drawflow .drawflow-node .node-menu-trigger:hover {
           background: #f3f4f6;
         }
 
-        .drawflow .drawflow-node .node-menu-icon svg {
-          width: 14px;
-          height: 14px;
+        .drawflow .drawflow-node .node-menu-trigger svg {
           color: #64748b;
         }
         
-        .node-menu-dropdown {
+        .node-menu-content {
           position: absolute;
-          top: 36px;
-          right: 8px;
+          top: 100%;
+          right: 0;
+          margin-top: 4px;
           background: white;
-          border-radius: 6px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          border-radius: 8px;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
           overflow: hidden;
-          min-width: 140px;
-          z-index: 20;
-          white-space: nowrap;
+          min-width: 160px;
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(-8px);
+          transition: opacity 0.15s, transform 0.15s;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .node-menu-content.open {
+          opacity: 1;
+          pointer-events: all;
+          transform: translateY(0);
         }
         
         .node-menu-item {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 14px;
+          gap: 8px;
+          padding: 10px 12px;
           cursor: pointer;
-          transition: background 0.2s;
-          font-size: 13px;
-          color: #1e293b;
+          transition: background 0.15s;
+          font-size: 14px;
+          color: #374151;
           font-family: 'Montserrat', sans-serif;
         }
         
         .node-menu-item:hover {
-          background: #f1f5f9;
+          background: #f9fafb;
         }
         
         .node-menu-item svg {
-          color: #64748b;
+          color: #6b7280;
           flex-shrink: 0;
         }
         
         .node-menu-item span {
           flex: 1;
+          white-space: nowrap;
         }
         
         .node-menu-delete {
@@ -1397,7 +1403,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         }
         
         .node-menu-delete:hover {
-          background: #fee2e2;
+          background: #fef2f2;
         }
         
         .drawflow .drawflow-node .inputs {
