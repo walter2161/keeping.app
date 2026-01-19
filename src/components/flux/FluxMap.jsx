@@ -252,8 +252,26 @@ export default function FluxMap({ data, onChange, onImport }) {
           
           menuIcon.addEventListener('click', (e) => {
             e.stopPropagation();
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            const isOpen = dropdown.style.display === 'block';
+            dropdown.style.display = isOpen ? 'none' : 'block';
           });
+          
+          // Close dropdown when mouse leaves both icon and dropdown
+          let leaveTimer;
+          const hideDropdown = () => {
+            leaveTimer = setTimeout(() => {
+              dropdown.style.display = 'none';
+            }, 200);
+          };
+          
+          const cancelHide = () => {
+            clearTimeout(leaveTimer);
+          };
+          
+          menuIcon.addEventListener('mouseleave', hideDropdown);
+          menuIcon.addEventListener('mouseenter', cancelHide);
+          dropdown.addEventListener('mouseenter', cancelHide);
+          dropdown.addEventListener('mouseleave', hideDropdown);
           
           dropdown.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -579,8 +597,26 @@ export default function FluxMap({ data, onChange, onImport }) {
                     
                     menuIcon.addEventListener('click', (e) => {
                       e.stopPropagation();
-                      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                      const isOpen = dropdown.style.display === 'block';
+                      dropdown.style.display = isOpen ? 'none' : 'block';
                     });
+                    
+                    // Close dropdown when mouse leaves both icon and dropdown
+                    let leaveTimer;
+                    const hideDropdown = () => {
+                      leaveTimer = setTimeout(() => {
+                        dropdown.style.display = 'none';
+                      }, 200);
+                    };
+                    
+                    const cancelHide = () => {
+                      clearTimeout(leaveTimer);
+                    };
+                    
+                    menuIcon.addEventListener('mouseleave', hideDropdown);
+                    menuIcon.addEventListener('mouseenter', cancelHide);
+                    dropdown.addEventListener('mouseenter', cancelHide);
+                    dropdown.addEventListener('mouseleave', hideDropdown);
                     
                     dropdown.addEventListener('click', (e) => {
                       e.stopPropagation();
@@ -698,8 +734,26 @@ export default function FluxMap({ data, onChange, onImport }) {
                   
                   menuIcon.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                    const isOpen = dropdown.style.display === 'block';
+                    dropdown.style.display = isOpen ? 'none' : 'block';
                   });
+                  
+                  // Close dropdown when mouse leaves both icon and dropdown
+                  let leaveTimer;
+                  const hideDropdown = () => {
+                    leaveTimer = setTimeout(() => {
+                      dropdown.style.display = 'none';
+                    }, 200);
+                  };
+                  
+                  const cancelHide = () => {
+                    clearTimeout(leaveTimer);
+                  };
+                  
+                  menuIcon.addEventListener('mouseleave', hideDropdown);
+                  menuIcon.addEventListener('mouseenter', cancelHide);
+                  dropdown.addEventListener('mouseenter', cancelHide);
+                  dropdown.addEventListener('mouseleave', hideDropdown);
                   
                   dropdown.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1319,6 +1373,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           overflow: hidden;
           min-width: 140px;
           z-index: 20;
+          white-space: nowrap;
         }
         
         .node-menu-item {
@@ -1330,6 +1385,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           transition: background 0.2s;
           font-size: 13px;
           color: #1e293b;
+          font-family: 'Montserrat', sans-serif;
         }
         
         .node-menu-item:hover {
@@ -1338,6 +1394,11 @@ export default function FluxMap({ data, onChange, onImport }) {
         
         .node-menu-item svg {
           color: #64748b;
+          flex-shrink: 0;
+        }
+        
+        .node-menu-item span {
+          flex: 1;
         }
         
         .node-menu-delete {
