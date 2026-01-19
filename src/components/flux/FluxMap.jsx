@@ -244,6 +244,8 @@ export default function FluxMap({ data, onChange, onImport }) {
           menuButton.setAttribute('data-node-id', nodeId);
           menuButton.setAttribute('data-node-type', name);
           
+          let menuLeaveTimer;
+          
           menuButton.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -256,6 +258,18 @@ export default function FluxMap({ data, onChange, onImport }) {
             // Toggle this menu
             const menuContent = menuButton.nextElementSibling;
             menuContent.classList.toggle('open');
+          });
+          
+          // Close menu when mouse leaves
+          menuContainer.addEventListener('mouseleave', () => {
+            menuLeaveTimer = setTimeout(() => {
+              const menuContent = menuButton.nextElementSibling;
+              menuContent.classList.remove('open');
+            }, 300);
+          });
+          
+          menuContainer.addEventListener('mouseenter', () => {
+            clearTimeout(menuLeaveTimer);
           });
           
           // Create menu content
@@ -574,6 +588,8 @@ export default function FluxMap({ data, onChange, onImport }) {
                     menuButton.className = 'node-menu-trigger';
                     menuButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
                     
+                    let menuLeaveTimer;
+                    
                     menuButton.addEventListener('click', (e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -582,6 +598,17 @@ export default function FluxMap({ data, onChange, onImport }) {
                       });
                       const menuContent = menuButton.nextElementSibling;
                       menuContent.classList.toggle('open');
+                    });
+                    
+                    menuContainer.addEventListener('mouseleave', () => {
+                      menuLeaveTimer = setTimeout(() => {
+                        const menuContent = menuButton.nextElementSibling;
+                        menuContent.classList.remove('open');
+                      }, 300);
+                    });
+                    
+                    menuContainer.addEventListener('mouseenter', () => {
+                      clearTimeout(menuLeaveTimer);
                     });
                     
                     const menuContent = document.createElement('div');
@@ -640,6 +667,16 @@ export default function FluxMap({ data, onChange, onImport }) {
                     menuContainer.appendChild(menuButton);
                     menuContainer.appendChild(menuContent);
                     nodeElement.appendChild(menuContainer);
+                    
+                    menuContainer.addEventListener('mouseleave', () => {
+                      menuLeaveTimer = setTimeout(() => {
+                        menuContent.classList.remove('open');
+                      }, 300);
+                    });
+                    
+                    menuContainer.addEventListener('mouseenter', () => {
+                      clearTimeout(menuLeaveTimer);
+                    });
                     
                     document.addEventListener('click', (e) => {
                       if (!menuContainer.contains(e.target)) {
@@ -704,6 +741,8 @@ export default function FluxMap({ data, onChange, onImport }) {
                   menuButton.className = 'node-menu-trigger';
                   menuButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
                   
+                  let menuLeaveTimer;
+
                   menuButton.addEventListener('click', (e) => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -713,7 +752,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                     const menuContent = menuButton.nextElementSibling;
                     menuContent.classList.toggle('open');
                   });
-                  
+
                   const menuContent = document.createElement('div');
                   menuContent.className = 'node-menu-content';
                   menuContent.innerHTML = `
@@ -1371,7 +1410,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         .node-menu-item {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           padding: 10px 12px;
           cursor: pointer;
           transition: background 0.15s;
