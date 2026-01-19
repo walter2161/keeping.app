@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, ChevronRight, Image, Video, Palette, Presentation, ArrowRight
+  MoreVertical, Trash2, Edit2, Download, ChevronRight, Image, Video, Palette, Presentation, ArrowRight, Archive
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -48,11 +48,13 @@ export default function ListView({
   onFolderDelete,
   onFolderRename,
   onFolderExport,
+  onFolderCompress,
   onFolderColorChange,
   onFolderMove,
   onFileDelete,
   onFileRename,
   onFileExport,
+  onFileExtract,
   onFileMove,
   level = 0,
   allFolders = [],
@@ -162,6 +164,10 @@ export default function ListView({
                   <Download className="w-4 h-4 mr-2" />
                   Exportar (.zip)
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderCompress?.(folder); }}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Compactar (.zip)
+                </DropdownMenuItem>
                 {folder.owner === currentUserEmail && (
                   <>
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFolderMove?.(folder); }}>
@@ -193,11 +199,13 @@ export default function ListView({
             onFolderDelete={onFolderDelete}
             onFolderRename={onFolderRename}
             onFolderExport={onFolderExport}
+            onFolderCompress={onFolderCompress}
             onFolderColorChange={onFolderColorChange}
             onFolderMove={onFolderMove}
             onFileDelete={onFileDelete}
             onFileRename={onFileRename}
             onFileExport={onFileExport}
+            onFileExtract={onFileExtract}
             onFileMove={onFileMove}
             level={level + 1}
             allFolders={allFolders}
@@ -248,6 +256,12 @@ export default function ListView({
                     <Download className="w-4 h-4 mr-2" />
                     Exportar
                   </DropdownMenuItem>
+                  {file.name.toLowerCase().endsWith('.zip') && file.file_url && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileExtract?.(file); }}>
+                      <Archive className="w-4 h-4 mr-2" />
+                      Descompactar Aqui
+                    </DropdownMenuItem>
+                  )}
                   {file.owner === currentUserEmail && (
                     <>
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onFileMove?.(file); }}>
