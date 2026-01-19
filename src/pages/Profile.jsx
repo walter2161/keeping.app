@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity } from 'lucide-react';
+import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -62,6 +62,28 @@ export default function Profile() {
     onError: (error) => {
       setSaving(false);
       alert('Erro ao atualizar perfil: ' + error.message);
+    },
+  });
+
+  const emptyTrashMutation = useMutation({
+    mutationFn: async () => {
+      const deletedFolders = folders.filter(f => f.deleted && f.owner === user?.email);
+      const deletedFiles = files.filter(f => f.deleted && f.owner === user?.email);
+      
+      const deletePromises = [
+        ...deletedFolders.map(f => base44.entities.Folder.delete(f.id)),
+        ...deletedFiles.map(f => base44.entities.File.delete(f.id))
+      ];
+      
+      await Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      alert('Lixeira esvaziada com sucesso!');
+    },
+    onError: (error) => {
+      alert('Erro ao esvaziar lixeira: ' + error.message);
     },
   });
 
@@ -174,6 +196,11 @@ export default function Profile() {
   const myTeams = teams.filter(t => t.owner === user?.email || (t.members && t.members.includes(user?.email)));
   const sharedFolders = folders.filter(f => f.team_id && !f.deleted);
   const sharedFiles = files.filter(f => f.team_id && !f.deleted);
+
+  // Lixeira
+  const trashedFolders = folders.filter(f => f.deleted && f.owner === user?.email);
+  const trashedFiles = files.filter(f => f.deleted && f.owner === user?.email);
+  const trashedStorageUsed = calculateStorageSize(trashedFiles);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -339,24 +366,24 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Total de Pastas */}
+              {/* Total de Pastas (excluindo lixeira) */}
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <Folder className="w-8 h-8 text-blue-600" />
                   <span className="text-2xl font-bold text-blue-900">{myFolders.length}</span>
                 </div>
-                <p className="text-sm font-medium text-blue-800">Pastas Criadas</p>
-                <p className="text-xs text-blue-600 mt-1">Estrutura organizada</p>
+                <p className="text-sm font-medium text-blue-800">Pastas Ativas</p>
+                <p className="text-xs text-blue-600 mt-1">Excluindo lixeira</p>
               </div>
 
-              {/* Total de Arquivos */}
+              {/* Total de Arquivos (excluindo lixeira) */}
               <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
                 <div className="flex items-center justify-between mb-2">
                   <File className="w-8 h-8 text-green-600" />
                   <span className="text-2xl font-bold text-green-900">{myFiles.length}</span>
                 </div>
-                <p className="text-sm font-medium text-green-800">Arquivos Criados</p>
-                <p className="text-xs text-green-600 mt-1">Conteúdo produzido</p>
+                <p className="text-sm font-medium text-green-800">Arquivos Ativos</p>
+                <p className="text-xs text-green-600 mt-1">Excluindo lixeira</p>
               </div>
 
               {/* Armazenamento Usado */}
@@ -517,6 +544,76 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Lixeira */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Lixeira
+                </h3>
+                {(trashedFolders.length > 0 || trashedFiles.length > 0) && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(`Tem certeza que deseja esvaziar a lixeira permanentemente? Isso irá excluir ${trashedFolders.length} pasta(s) e ${trashedFiles.length} arquivo(s).`)) {
+                        emptyTrashMutation.mutate();
+                      }
+                    }}
+                    disabled={emptyTrashMutation.isPending}
+                  >
+                    {emptyTrashMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Esvaziando...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Esvaziar Lixeira
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <Folder className="w-6 h-6 text-red-600" />
+                    <span className="text-2xl font-bold text-red-900">{trashedFolders.length}</span>
+                  </div>
+                  <p className="text-sm font-medium text-red-800">Pastas na Lixeira</p>
+                  <p className="text-xs text-red-600 mt-1">Aguardando exclusão</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <File className="w-6 h-6 text-red-600" />
+                    <span className="text-2xl font-bold text-red-900">{trashedFiles.length}</span>
+                  </div>
+                  <p className="text-sm font-medium text-red-800">Arquivos na Lixeira</p>
+                  <p className="text-xs text-red-600 mt-1">Aguardando exclusão</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <HardDrive className="w-6 h-6 text-red-600" />
+                    <span className="text-xl font-bold text-red-900">{formatBytes(trashedStorageUsed)}</span>
+                  </div>
+                  <p className="text-sm font-medium text-red-800">Espaço Ocupado</p>
+                  <p className="text-xs text-red-600 mt-1">Pode ser liberado</p>
+                </div>
+              </div>
+
+              {(trashedFolders.length === 0 && trashedFiles.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  <Trash2 className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">A lixeira está vazia</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
