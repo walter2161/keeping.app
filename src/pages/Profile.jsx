@@ -67,22 +67,37 @@ export default function Profile() {
 
   const emptyTrashMutation = useMutation({
     mutationFn: async () => {
-      const deletedFolders = folders.filter(f => f.deleted && f.owner === user?.email);
-      const deletedFiles = files.filter(f => f.deleted && f.owner === user?.email);
+      // Buscar itens deletados diretamente
+      const deletedFolders = folders.filter(f => f.deleted === true && f.owner === user?.email);
+      const deletedFiles = files.filter(f => f.deleted === true && f.owner === user?.email);
       
+      console.log('Esvaziando lixeira:', {
+        folders: deletedFolders.length,
+        files: deletedFiles.length,
+        folderIds: deletedFolders.map(f => f.id),
+        fileIds: deletedFiles.map(f => f.id)
+      });
+
+      if (deletedFolders.length === 0 && deletedFiles.length === 0) {
+        throw new Error('Nenhum item para excluir');
+      }
+      
+      // Deletar permanentemente
       const deletePromises = [
         ...deletedFolders.map(f => base44.entities.Folder.delete(f.id)),
         ...deletedFiles.map(f => base44.entities.File.delete(f.id))
       ];
       
       await Promise.all(deletePromises);
+      return { folders: deletedFolders.length, files: deletedFiles.length };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       queryClient.invalidateQueries({ queryKey: ['files'] });
-      alert('Lixeira esvaziada com sucesso!');
+      alert(`Lixeira esvaziada! ${data.folders} pasta(s) e ${data.files} arquivo(s) excluídos permanentemente.`);
     },
     onError: (error) => {
+      console.error('Erro ao esvaziar lixeira:', error);
       alert('Erro ao esvaziar lixeira: ' + error.message);
     },
   });
@@ -197,10 +212,21 @@ export default function Profile() {
   const sharedFolders = folders.filter(f => f.team_id && !f.deleted);
   const sharedFiles = files.filter(f => f.team_id && !f.deleted);
 
-  // Lixeira
-  const trashedFolders = folders.filter(f => f.deleted && f.owner === user?.email);
-  const trashedFiles = files.filter(f => f.deleted && f.owner === user?.email);
+  // Lixeira - Usar === true para garantir que pegue apenas itens realmente deletados
+  const trashedFolders = folders.filter(f => f.deleted === true && f.owner === user?.email);
+  const trashedFiles = files.filter(f => f.deleted === true && f.owner === user?.email);
   const trashedStorageUsed = calculateStorageSize(trashedFiles);
+
+  console.log('Lixeira Debug:', {
+    totalFolders: folders.length,
+    totalFiles: files.length,
+    trashedFolders: trashedFolders.length,
+    trashedFiles: trashedFiles.length,
+    trashedIds: {
+      folders: trashedFolders.map(f => ({ id: f.id, name: f.name, deleted: f.deleted })),
+      files: trashedFiles.map(f => ({ id: f.id, name: f.name, deleted: f.deleted }))
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
