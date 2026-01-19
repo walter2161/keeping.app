@@ -1379,8 +1379,8 @@ export default function FluxMap({ data, onChange, onImport }) {
         .node-menu-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 10px 12px;
+          gap: 10px;
+          padding: 10px 14px;
           cursor: pointer;
           transition: background 0.2s;
           font-size: 13px;
