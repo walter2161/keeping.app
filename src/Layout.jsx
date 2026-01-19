@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Base44Init from '@/components/Base44Init';
 
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(false);
@@ -44,23 +45,25 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Dark Mode Toggle - Fixed position */}
-      <div className="fixed bottom-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleDarkMode}
-          className="rounded-full shadow-lg bg-white dark:bg-gray-800"
-        >
-          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </Button>
-      </div>
+    <Base44Init>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Dark Mode Toggle - Fixed position */}
+        <div className="fixed bottom-4 left-4 z-50">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleDarkMode}
+            className="rounded-full shadow-lg bg-white dark:bg-gray-800"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
+        </div>
 
-      {/* Main Content */}
-      <main>
-        {children}
-      </main>
-    </div>
+        {/* Main Content */}
+        <main>
+          {children}
+        </main>
+      </div>
+    </Base44Init>
   );
 }
