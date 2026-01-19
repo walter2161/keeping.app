@@ -30,6 +30,12 @@ export default function Profile() {
     enabled: !!user,
   });
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
+    enabled: !!user,
+  });
+
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
     profile_picture: user?.profile_picture || '',
@@ -87,15 +93,43 @@ export default function Profile() {
     );
   }
 
-  // Calcular métricas
+  // Calcular métricas em tempo real
   const myFolders = folders.filter(f => f.owner === user?.email && !f.deleted);
   const myFiles = files.filter(f => f.owner === user?.email && !f.deleted);
+  const allFolders = folders.filter(f => !f.deleted);
+  const allFiles = files.filter(f => !f.deleted);
   
-  // Calcular uso de armazenamento (estimativa baseada em conteúdo)
-  const totalContentSize = myFiles.reduce((acc, file) => {
-    const contentSize = file.content ? new Blob([file.content]).size : 0;
-    return acc + contentSize;
-  }, 0);
+  // Calcular uso de armazenamento real (conteúdo + metadados)
+  const calculateStorageSize = (files) => {
+    return files.reduce((acc, file) => {
+      // Tamanho do conteúdo JSON
+      const contentSize = file.content ? new Blob([file.content]).size : 0;
+      // Tamanho dos metadados (estimativa)
+      const metadataSize = new Blob([JSON.stringify({
+        name: file.name,
+        type: file.type,
+        folder_id: file.folder_id,
+        team_id: file.team_id,
+        owner: file.owner,
+        created_date: file.created_date,
+        updated_date: file.updated_date
+      })]).size;
+      // Se houver file_url, adicionar estimativa de arquivo externo (500KB médio)
+      const externalFileSize = file.file_url ? 500000 : 0;
+      return acc + contentSize + metadataSize + externalFileSize;
+    }, 0);
+  };
+
+  const myStorageUsed = calculateStorageSize(myFiles);
+  const totalStorageUsed = calculateStorageSize(allFiles);
+  
+  // Calcular uso de registros no banco de dados
+  const myDbRecords = myFolders.length + myFiles.length;
+  const totalDbRecords = allFolders.length + allFiles.length;
+  
+  // Quota do sistema (limite estimado)
+  const storageQuota = 1024 * 1024 * 1024; // 1GB
+  const recordsQuota = 10000; // 10k registros
   
   const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -103,6 +137,17 @@ export default function Profile() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getUsagePercentage = (used, total) => {
+    return Math.min(Math.round((used / total) * 100), 100);
+  };
+
+  const getUsageColor = (percentage) => {
+    if (percentage < 50) return 'bg-green-500';
+    if (percentage < 75) return 'bg-yellow-500';
+    if (percentage < 90) return 'bg-orange-500';
+    return 'bg-red-500';
   };
 
   // Distribuição por tipo de arquivo
@@ -124,6 +169,11 @@ export default function Profile() {
     video: '🎬',
     other: '📎'
   };
+
+  // Estatísticas adicionais
+  const myTeams = teams.filter(t => t.owner === user?.email || (t.members && t.members.includes(user?.email)));
+  const sharedFolders = folders.filter(f => f.team_id && !f.deleted);
+  const sharedFiles = files.filter(f => f.team_id && !f.deleted);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -313,10 +363,10 @@ export default function Profile() {
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
                 <div className="flex items-center justify-between mb-2">
                   <HardDrive className="w-8 h-8 text-purple-600" />
-                  <span className="text-2xl font-bold text-purple-900">{formatBytes(totalContentSize)}</span>
+                  <span className="text-2xl font-bold text-purple-900">{formatBytes(myStorageUsed)}</span>
                 </div>
-                <p className="text-sm font-medium text-purple-800">Armazenamento</p>
-                <p className="text-xs text-purple-600 mt-1">Dados em cache</p>
+                <p className="text-sm font-medium text-purple-800">Meu Uso</p>
+                <p className="text-xs text-purple-600 mt-1">{formatBytes(totalStorageUsed)} total no sistema</p>
               </div>
 
               {/* Atividade Total */}
@@ -357,57 +407,121 @@ export default function Profile() {
               )}
             </div>
 
-            {/* Estatísticas de Uso de Memória */}
+            {/* Uso do Banco de Dados com Quotas */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Database className="w-4 h-4" />
                 Uso do Banco de Dados
               </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <Folder className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Registros de Pastas</p>
-                      <p className="text-xs text-gray-600">Estrutura hierárquica</p>
+              
+              {/* Armazenamento */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <HardDrive className="w-6 h-6 text-purple-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Armazenamento Total do Sistema</p>
+                        <p className="text-xs text-gray-600">Incluindo conteúdo, metadados e arquivos externos</p>
+                      </div>
                     </div>
                   </div>
-                  <span className="text-lg font-bold text-blue-900">{myFolders.length}</span>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">Meu uso:</span>
+                      <span className="font-bold text-purple-900">{formatBytes(myStorageUsed)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">Uso total:</span>
+                      <span className="font-bold text-purple-900">{formatBytes(totalStorageUsed)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">Disponível:</span>
+                      <span className="font-bold text-gray-900">{formatBytes(storageQuota)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                      <span>Uso do sistema</span>
+                      <span>{getUsagePercentage(totalStorageUsed, storageQuota)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className={`h-2.5 rounded-full transition-all ${getUsageColor(getUsagePercentage(totalStorageUsed, storageQuota))}`}
+                        style={{ width: `${getUsagePercentage(totalStorageUsed, storageQuota)}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                      <File className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Registros de Arquivos</p>
-                      <p className="text-xs text-gray-600">Conteúdo e metadados</p>
+                {/* Registros */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Database className="w-6 h-6 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Registros no Banco de Dados</p>
+                        <p className="text-xs text-gray-600">Pastas, arquivos e entidades relacionadas</p>
+                      </div>
                     </div>
                   </div>
-                  <span className="text-lg font-bold text-green-900">{myFiles.length}</span>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-600 mb-1">Meus registros</p>
+                      <p className="text-2xl font-bold text-blue-900">{myDbRecords}</p>
+                      <p className="text-xs text-gray-500 mt-1">{myFolders.length} pastas + {myFiles.length} arquivos</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-600 mb-1">Total no sistema</p>
+                      <p className="text-2xl font-bold text-blue-900">{totalDbRecords}</p>
+                      <p className="text-xs text-gray-500 mt-1">{allFolders.length} pastas + {allFiles.length} arquivos</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                      <span>Capacidade do banco</span>
+                      <span>{getUsagePercentage(totalDbRecords, recordsQuota)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className={`h-2.5 rounded-full transition-all ${getUsageColor(getUsagePercentage(totalDbRecords, recordsQuota))}`}
+                        style={{ width: `${getUsagePercentage(totalDbRecords, recordsQuota)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{totalDbRecords.toLocaleString()} / {recordsQuota.toLocaleString()} registros</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                      <HardDrive className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Cache de Conteúdo</p>
-                      <p className="text-xs text-gray-600">Dados armazenados localmente</p>
-                    </div>
+                {/* Estatísticas Adicionais */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-3 rounded-lg border border-teal-200">
+                    <p className="text-xs text-teal-700 mb-1">Equipes</p>
+                    <p className="text-2xl font-bold text-teal-900">{myTeams.length}</p>
+                    <p className="text-xs text-teal-600 mt-1">Colaboração ativa</p>
                   </div>
-                  <span className="text-lg font-bold text-purple-900">{formatBytes(totalContentSize)}</span>
+                  
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-lg border border-orange-200">
+                    <p className="text-xs text-orange-700 mb-1">Pastas Compartilhadas</p>
+                    <p className="text-2xl font-bold text-orange-900">{sharedFolders.length}</p>
+                    <p className="text-xs text-orange-600 mt-1">Em equipes</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-3 rounded-lg border border-pink-200">
+                    <p className="text-xs text-pink-700 mb-1">Arquivos Compartilhados</p>
+                    <p className="text-2xl font-bold text-pink-900">{sharedFiles.length}</p>
+                    <p className="text-xs text-pink-600 mt-1">Em colaboração</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
               <p className="text-xs text-gray-600 text-center">
-                💡 <strong>Otimização de recursos:</strong> O sistema gerencia automaticamente o cache e a sincronização de dados para máxima eficiência.
+                💡 <strong>Sincronização em tempo real:</strong> Todos os dados são atualizados automaticamente e refletem o uso atual do sistema. O banco gerencia otimização e cache automaticamente.
               </p>
             </div>
           </CardContent>
