@@ -1127,14 +1127,49 @@ export default function FluxMap({ data, onChange, onImport }) {
       if (onImport) {
         onImport(importDialog.data);
       } else if (editorRef.current) {
-        editorRef.current.clear();
         try {
+          console.log('=== IMPORTANDO FLUXMAP ===');
+          console.log('Dados importados:', importDialog.data);
+          
+          editorRef.current.clear();
           editorRef.current.import(importDialog.data);
+          
+          // Carregar áreas se existirem
+          if (importDialog.data.areas) {
+            console.log('Carregando áreas:', importDialog.data.areas);
+            setAreas(importDialog.data.areas);
+          } else {
+            setAreas([]);
+          }
+          
+          // Recriar HTML e menus dos nodes
+          setTimeout(() => {
+            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+            if (importDialog.data.drawflow && importDialog.data.drawflow.Home) {
+              Object.keys(importDialog.data.drawflow.Home.data).forEach(nodeId => {
+                const nodeData = importDialog.data.drawflow.Home.data[nodeId];
+                if (editableNodes.includes(nodeData.name)) {
+                  const nodeElement = document.getElementById(`node-${nodeId}`);
+                  if (nodeElement) {
+                    const contentNode = nodeElement.querySelector('.drawflow_content_node');
+                    if (contentNode) {
+                      const { html } = createNodeHTML(nodeData.name, nodeData.data || {});
+                      contentNode.innerHTML = html.trim();
+                    }
+                  }
+                }
+              });
+            }
+          }, 100);
+          
           if (onChange) {
             onChange(importDialog.data);
           }
+          
+          console.log('✓ FluxMap importado com sucesso');
         } catch (error) {
-          alert('Erro ao importar o FluxMap');
+          console.error('Erro ao importar:', error);
+          alert('Erro ao importar o FluxMap: ' + error.message);
         }
       }
     }
