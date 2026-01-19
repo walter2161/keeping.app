@@ -744,11 +744,11 @@ export default function FluxMap({ data, onChange, onImport }) {
         
         // Then update HTML visualization
         if (editDialog.nodeType === 'card-kanban') {
-          const { html } = createNodeHTML('card-kanban', newData);
           const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
           if (nodeElement) {
+            const { html } = createNodeHTML('card-kanban', newData);
             nodeElement.innerHTML = html.trim();
-            console.log('✓ Card HTML atualizado');
+            console.log('✓ Card HTML atualizado com novos dados');
           }
           
           // Re-add edit icon
