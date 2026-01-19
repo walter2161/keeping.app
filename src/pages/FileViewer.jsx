@@ -382,24 +382,44 @@ export default function FileViewer() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const importedData = JSON.parse(event.target.result);
+        console.log('=== IMPORTANDO JSON ===');
+        const rawContent = event.target.result;
+        console.log('Conteúdo bruto (primeiros 500 chars):', rawContent.substring(0, 500));
+        
+        const importedData = JSON.parse(rawContent);
+        console.log('JSON parseado:', importedData);
+        
         if (importedData.type === 'single_file' && importedData.file) {
+          console.log('Tipo do arquivo importado:', importedData.file.type);
+          console.log('Tipo do arquivo atual:', file.type);
+          
           if (importedData.file.type === file.type) {
             const content = importedData.file.content;
+            console.log('Conteúdo a ser importado:', typeof content);
+            
             try {
-              setLocalContent(JSON.parse(content));
+              const parsed = JSON.parse(content);
+              console.log('Conteúdo parseado com sucesso:', parsed);
+              setLocalContent(parsed);
             } catch {
+              console.log('Conteúdo já é string/objeto, usando diretamente');
               setLocalContent(content);
             }
+            
             setHasChanges(true);
+            console.log('✓ Importação concluída - hasChanges=true');
+            alert('✓ Arquivo importado com sucesso!');
           } else {
-            alert('Tipo de arquivo incompatível!');
+            console.error('Tipo incompatível!');
+            alert(`Tipo de arquivo incompatível! Esperado: ${file.type}, Recebido: ${importedData.file.type}`);
           }
         } else {
-          alert('Formato de arquivo inválido!');
+          console.error('Formato inválido - estrutura incorreta');
+          alert('Formato de arquivo inválido! O arquivo deve ter a estrutura: { type: "single_file", file: {...} }');
         }
       } catch (error) {
-        alert('Erro ao ler o arquivo. Certifique-se de que é um JSON válido.');
+        console.error('Erro ao ler o arquivo:', error);
+        alert('Erro ao ler o arquivo: ' + error.message + '\n\nCertifique-se de que é um JSON válido.');
       }
     };
     reader.readAsText(importFile);
