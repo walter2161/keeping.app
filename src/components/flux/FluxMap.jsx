@@ -556,10 +556,22 @@ export default function FluxMap({ data, onChange, onImport }) {
     // Se já existe um editor, limpar e reimportar
     if (editorRef.current) {
       console.log('=== REIMPORTANDO DADOS NO FLUXMAP ===');
+      console.log('Data recebido:', data);
+      
       if (data && data.drawflow) {
         try {
+          console.log('Nodes no data:', Object.keys(data.drawflow.Home.data || {}).length);
+          
           editorRef.current.clear();
           editorRef.current.import(data);
+          
+          // Carregar áreas
+          if (data.areas) {
+            console.log('Carregando áreas:', data.areas.length);
+            setAreas(data.areas);
+          } else {
+            setAreas([]);
+          }
           
           const nodeCount = Object.keys(data.drawflow.Home.data).length;
           console.log(`✓ FluxMap reimportado com ${nodeCount} nodes`);
@@ -569,6 +581,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
             Object.keys(data.drawflow.Home.data).forEach(nodeId => {
               const nodeData = data.drawflow.Home.data[nodeId];
+              console.log(`Recriando node ${nodeId}:`, nodeData.name);
+              
               if (editableNodes.includes(nodeData.name)) {
                 const nodeElement = document.getElementById(`node-${nodeId}`);
                 if (nodeElement) {
@@ -577,6 +591,9 @@ export default function FluxMap({ data, onChange, onImport }) {
                   if (contentNode) {
                     const { html } = createNodeHTML(nodeData.name, nodeData.data || {});
                     contentNode.innerHTML = html.trim();
+                    console.log(`✓ HTML recriado para node ${nodeId}`);
+                  } else {
+                    console.warn(`⚠ Não encontrou .drawflow_content_node para node ${nodeId}`);
                   }
                   
                   // Add menu if not exists
@@ -683,14 +700,24 @@ export default function FluxMap({ data, onChange, onImport }) {
                         menuContent.classList.remove('open');
                       }
                     });
+                    
+                    console.log(`✓ Menu adicionado ao node ${nodeId}`);
+                  } else {
+                    console.log(`Menu já existe para node ${nodeId}`);
                   }
+                } else {
+                  console.warn(`⚠ Elemento node-${nodeId} não encontrado no DOM`);
                 }
               }
             });
-          }, 100);
+            console.log('✓ Todos os nodes foram processados');
+          }, 150);
         } catch (e) {
-          console.error('Erro ao reimportar dados:', e);
+          console.error('❌ Erro ao reimportar dados:', e);
+          alert('Erro ao importar FluxMap: ' + e.message);
         }
+      } else {
+        console.warn('⚠ Data não tem estrutura drawflow válida');
       }
       return;
     }
