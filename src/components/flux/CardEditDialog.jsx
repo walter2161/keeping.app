@@ -176,11 +176,13 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                           <img 
                             src={editData.coverImage} 
                             style={{ 
-                              maxWidth: `${editData.coverImageZoom}%`,
-                              maxHeight: `${editData.coverImageZoom}%`,
+                              maxWidth: '100%',
+                              maxHeight: '100%',
                               width: 'auto',
                               height: 'auto',
-                              objectFit: 'contain'
+                              objectFit: 'contain',
+                              transform: `scale(${editData.coverImageZoom / 100})`,
+                              transformOrigin: 'center center'
                             }}
                           />
                         </div>
