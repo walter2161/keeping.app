@@ -57,6 +57,28 @@ export default function FileViewer() {
   
   const queryClient = useQueryClient();
   
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: file, isLoading, error } = useQuery({
+    queryKey: ['file', fileId],
+    queryFn: async () => {
+      const files = await base44.entities.File.list();
+      const file = files.find(f => f.id === fileId);
+      console.log('Loaded file from DB:', file);
+      console.log('Content length:', file?.content?.length || 0);
+      return file;
+    },
+    enabled: !!fileId,
+    refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
+    staleTime: 0,
+    cacheTime: 0,
+    refetchInterval: hasChanges ? false : 5000, // CRÍTICO: Desabilitar auto-refresh quando houver mudanças não salvas
+  });
+  
   // Store fluxFileId globally for FluxMap nodes to access
   useEffect(() => {
     if (file?.type === 'flux') {
@@ -83,28 +105,6 @@ export default function FileViewer() {
     window.addEventListener('openMedia', handleOpenMedia);
     return () => window.removeEventListener('openMedia', handleOpenMedia);
   }, []);
-
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: file, isLoading, error } = useQuery({
-    queryKey: ['file', fileId],
-    queryFn: async () => {
-      const files = await base44.entities.File.list();
-      const file = files.find(f => f.id === fileId);
-      console.log('Loaded file from DB:', file);
-      console.log('Content length:', file?.content?.length || 0);
-      return file;
-    },
-    enabled: !!fileId,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
-    staleTime: 0,
-    cacheTime: 0,
-    refetchInterval: hasChanges ? false : 5000, // CRÍTICO: Desabilitar auto-refresh quando houver mudanças não salvas
-  });
 
   useEffect(() => {
     if (file) {
