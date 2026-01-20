@@ -183,6 +183,10 @@ export default function Wiki() {
                   <li><strong>Círculo:</strong> Destacar pontos importantes</li>
                   <li><strong>Nome:</strong> Bolhas para nomes/etiquetas</li>
                   <li><strong>Texto:</strong> Caixas de texto simples</li>
+                  <li><strong>Link:</strong> Hyperlinks para URLs externas ou arquivos internos</li>
+                  <li><strong>Documento:</strong> Miniaturas de documentos que abrem o editor DOCX</li>
+                  <li><strong>Planilha:</strong> Miniaturas de planilhas que abrem o editor XLSX</li>
+                  <li><strong>Apresentação:</strong> Miniaturas de apresentações que abrem o editor PPTX</li>
                 </ul>
                 <div className="bg-teal-50 p-4 rounded-lg border-l-4 border-teal-500">
                   <strong>💡 Dica:</strong> Conecte elementos clicando nas bolinhas que aparecem ao passar o mouse!
@@ -437,7 +441,7 @@ export default function Wiki() {
                   <div className="space-y-2 text-sm">
                     <div>
                       <code className="text-teal-600 font-mono font-semibold">flux-add-node [arquivo] [tipo] [x] [y] "Texto"</code>
-                      <p className="text-gray-600 ml-4 mt-1">Tipos: sticky-note, card, rectangle, circle, name, text, link</p>
+                      <p className="text-gray-600 ml-4 mt-1">Tipos: sticky-note, card, rectangle, circle, name, text, link, document, spreadsheet, presentation</p>
                     </div>
                     <div>
                       <code className="text-teal-600 font-mono font-semibold">flux-connect [arquivo] [node_from_id] [node_to_id]</code>
