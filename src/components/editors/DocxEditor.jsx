@@ -216,6 +216,8 @@ const DocxEditor = forwardRef(({ value, onChange, zoom = 100 }, ref) => {
         .ql-editor.ql-blank::before {
           color: #9ca3af;
           font-style: normal;
+          left: 2cm !important;
+          right: 2cm !important;
         }
         .ql-editor h1 {
           font-size: 2em;
