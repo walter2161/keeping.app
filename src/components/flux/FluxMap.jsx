@@ -397,6 +397,21 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                   pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                 };
 
+                // Salvar FluxMap antes de abrir
+                if (onChange) {
+                  onChange(editorRef.current.export());
+                }
+
+                // Salvar FluxMap antes de abrir
+                if (onChange) {
+                  onChange(editor.export());
+                }
+
+                // Salvar FluxMap antes de abrir
+                if (onChange) {
+                  onChange(editorRef.current.export());
+                }
+
                 base44.auth.me().then(user => {
                   return base44.entities.File.create({
                     name: fileName,
