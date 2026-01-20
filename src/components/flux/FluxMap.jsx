@@ -304,7 +304,7 @@ export default function FluxMap({ data, onChange, onImport }) {
     
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
-    // Add edit icon to all editable nodes and setup listeners
+    // Add menu to all editable nodes
     const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'document', 'spreadsheet', 'presentation'];
     if (editableNodes.includes(name)) {
       setTimeout(() => {
@@ -356,7 +356,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           menuContent.innerHTML = `
             <div class="node-menu-item" data-action="edit">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-              <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Editar</span>
+              <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Abrir</span>
             </div>
             <div class="node-menu-item" data-action="clone">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -565,7 +565,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
           // Recreate HTML and re-add edit icons
           setTimeout(() => {
-            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'document', 'spreadsheet', 'presentation'];
             Object.keys(data.drawflow.Home.data).forEach(nodeId => {
               const nodeData = data.drawflow.Home.data[nodeId];
               console.log(`Recriando node ${nodeId}:`, nodeData.name);
@@ -618,18 +618,18 @@ export default function FluxMap({ data, onChange, onImport }) {
                     const menuContent = document.createElement('div');
                     menuContent.className = 'node-menu-content';
                     menuContent.innerHTML = `
-                      <div class="node-menu-item" data-action="edit">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                        <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Editar</span>
-                      </div>
-                      <div class="node-menu-item" data-action="clone">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clonar</span>
-                      </div>
-                      <div class="node-menu-item node-menu-delete" data-action="delete">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Excluir</span>
-                      </div>
+                    <div class="node-menu-item" data-action="edit">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                      <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Abrir</span>
+                    </div>
+                    <div class="node-menu-item" data-action="clone">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clonar</span>
+                    </div>
+                    <div class="node-menu-item node-menu-delete" data-action="delete">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Excluir</span>
+                    </div>
                     `;
                     
                     menuContent.addEventListener('click', (e) => {
@@ -728,7 +728,7 @@ export default function FluxMap({ data, onChange, onImport }) {
 
         // Recreate HTML for all nodes with updated data and add edit icons
         setTimeout(() => {
-          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+          const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'document', 'spreadsheet', 'presentation'];
           Object.keys(data.drawflow.Home.data).forEach(nodeId => {
             const nodeData = data.drawflow.Home.data[nodeId];
             if (editableNodes.includes(nodeData.name)) {
@@ -767,7 +767,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                   menuContent.innerHTML = `
                   <div class="node-menu-item" data-action="edit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                    <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Editar</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Abrir</span>
                   </div>
                   <div class="node-menu-item" data-action="clone">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -1148,7 +1148,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           
           // Recriar HTML e menus dos nodes
           setTimeout(() => {
-            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+            const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'document', 'spreadsheet', 'presentation'];
             if (importDialog.data.drawflow && importDialog.data.drawflow.Home) {
               Object.keys(importDialog.data.drawflow.Home.data).forEach(nodeId => {
                 const nodeData = importDialog.data.drawflow.Home.data[nodeId];
@@ -1461,10 +1461,10 @@ export default function FluxMap({ data, onChange, onImport }) {
         }
 
         .sidebar-flux {
-          width: 140px;
+          width: 130px;
           background: white;
           border-right: 1px solid #e2e8f0;
-          padding: 10px;
+          padding: 8px;
           overflow-y: auto;
         }
         
@@ -1476,15 +1476,23 @@ export default function FluxMap({ data, onChange, onImport }) {
         .drag-drawflow {
           cursor: grab;
           user-select: none;
-          margin-bottom: 6px;
-          padding: 8px 10px;
+          margin-bottom: 5px;
+          padding: 6px 8px;
           border-radius: 6px;
           border: 1.5px solid;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
           transition: all 0.2s;
           font-family: 'Montserrat', sans-serif;
+        }
+
+        .drag-drawflow span:first-child {
+          font-size: 16px;
+        }
+
+        .drag-drawflow span:last-child {
+          font-size: 10px;
         }
 
         .drag-drawflow:hover {
@@ -1518,8 +1526,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
             title="Sticky Note"
           >
-            <span style={{ fontSize: '18px' }}>📝</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Note</span>
+            <span>📝</span>
+            <span style={{ fontWeight: '600', color: '#92400e' }}>Note</span>
           </div>
 
           <div
@@ -1533,8 +1541,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
             title="Card"
           >
-            <span style={{ fontSize: '18px' }}>🎯</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Card</span>
+            <span>🎯</span>
+            <span style={{ fontWeight: '600', color: '#1e40af' }}>Card</span>
           </div>
 
           <div
@@ -1548,8 +1556,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#e0f2fe', borderColor: '#0284c7' }}
             title="Retângulo"
           >
-            <span style={{ fontSize: '18px' }}>▭</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#075985' }}>Retângulo</span>
+            <span>▭</span>
+            <span style={{ fontWeight: '600', color: '#075985' }}>Retângulo</span>
           </div>
 
           <div
@@ -1563,8 +1571,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#fef9c3', borderColor: '#eab308' }}
             title="Círculo"
           >
-            <span style={{ fontSize: '18px' }}>●</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#713f12' }}>Círculo</span>
+            <span>●</span>
+            <span style={{ fontWeight: '600', color: '#713f12' }}>Círculo</span>
           </div>
 
           <div
@@ -1578,8 +1586,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#f3e8ff', borderColor: '#a855f7' }}
             title="Nome"
           >
-            <span style={{ fontSize: '18px' }}>👤</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b21a8' }}>Nome</span>
+            <span>👤</span>
+            <span style={{ fontWeight: '600', color: '#6b21a8' }}>Nome</span>
           </div>
 
           <div
@@ -1593,8 +1601,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#f1f5f9', borderColor: '#64748b' }}
             title="Texto"
           >
-            <span style={{ fontSize: '18px' }}>T</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#334155' }}>Texto</span>
+            <span>T</span>
+            <span style={{ fontWeight: '600', color: '#334155' }}>Texto</span>
           </div>
 
           <div
@@ -1608,8 +1616,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
             title="Link"
           >
-            <span style={{ fontSize: '18px' }}>🔗</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Link</span>
+            <span>🔗</span>
+            <span style={{ fontWeight: '600', color: '#1e40af' }}>Link</span>
           </div>
 
           <div
@@ -1623,8 +1631,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
             title="Documento"
           >
-            <span style={{ fontSize: '18px' }}>📄</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Documento</span>
+            <span>📄</span>
+            <span style={{ fontWeight: '600', color: '#1e40af' }}>Documento</span>
           </div>
 
           <div
@@ -1638,8 +1646,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#d1fae5', borderColor: '#10b981' }}
             title="Planilha"
           >
-            <span style={{ fontSize: '18px' }}>📊</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#065f46' }}>Planilha</span>
+            <span>📊</span>
+            <span style={{ fontWeight: '600', color: '#065f46' }}>Planilha</span>
           </div>
 
           <div
@@ -1653,8 +1661,8 @@ export default function FluxMap({ data, onChange, onImport }) {
             style={{ background: '#fef3c7', borderColor: '#f59e0b' }}
             title="Apresentação"
           >
-            <span style={{ fontSize: '18px' }}>📽️</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Apresentação</span>
+            <span>📽️</span>
+            <span style={{ fontWeight: '600', color: '#92400e' }}>Apresentação</span>
           </div>
         </div>
 
