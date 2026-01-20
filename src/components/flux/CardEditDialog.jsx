@@ -72,11 +72,54 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
   
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showInternalFiles, setShowInternalFiles] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: allFolders = [] } = useQuery({
+    queryKey: ['all-folders'],
+    queryFn: () => base44.entities.Folder.list(),
+  });
 
   const { data: allFiles = [] } = useQuery({
     queryKey: ['all-files'],
     queryFn: () => base44.entities.File.list(),
   });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list(),
+  });
+
+  const myTeams = teams.filter(t => t.members?.includes(user?.email));
+  const accessibleFolders = allFolders.filter(f => 
+    !f.deleted && (!f.team_id || myTeams.some(t => t.id === f.team_id))
+  );
+  const accessibleFiles = allFiles.filter(f => 
+    !f.deleted && (!f.team_id || myTeams.some(t => t.id === f.team_id))
+  );
+
+  const currentFolders = accessibleFolders.filter(f => f.parent_id === currentFolderId);
+  const currentFiles = accessibleFiles.filter(f => f.folder_id === currentFolderId);
+
+  const getCurrentFolderPath = () => {
+    if (!currentFolderId) return [];
+    const path = [];
+    let folderId = currentFolderId;
+    while (folderId) {
+      const folder = accessibleFolders.find(f => f.id === folderId);
+      if (folder) {
+        path.unshift(folder);
+        folderId = folder.parent_id;
+      } else {
+        break;
+      }
+    }
+    return path;
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -303,18 +346,73 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
               </div>
               
               {showInternalFiles && (
-                <div className="border rounded p-3 max-h-60 overflow-y-auto space-y-1">
-                  <p className="text-xs text-gray-500 mb-2">Selecione um arquivo do app:</p>
-                  {allFiles.filter(f => !f.deleted).map(file => (
-                    <button
-                      key={file.id}
-                      className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded text-left text-sm"
-                      onClick={() => addInternalFileLink(file)}
-                    >
-                      <span className="text-lg">{file.type === 'kbn' ? '📋' : file.type === 'gnt' ? '📊' : file.type === 'docx' ? '📄' : file.type === 'xlsx' ? '📈' : file.type === 'pptx' ? '📽️' : file.type === 'flux' ? '🌊' : '📎'}</span>
-                      <span className="truncate flex-1">{file.name}</span>
-                    </button>
-                  ))}
+                <div className="border rounded p-3 max-h-80 overflow-y-auto space-y-2">
+                  <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+                    {currentFolderId && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const currentFolder = accessibleFolders.find(f => f.id === currentFolderId);
+                          setCurrentFolderId(currentFolder?.parent_id || null);
+                        }}
+                      >
+                        ← Voltar
+                      </Button>
+                    )}
+                    <div className="flex items-center gap-1 text-xs text-gray-500 flex-1">
+                      <button onClick={() => setCurrentFolderId(null)} className="hover:text-gray-700">
+                        Drive
+                      </button>
+                      {getCurrentFolderPath().map(folder => (
+                        <React.Fragment key={folder.id}>
+                          <span>/</span>
+                          <button 
+                            onClick={() => setCurrentFolderId(folder.id)}
+                            className="hover:text-gray-700 truncate max-w-[100px]"
+                          >
+                            {folder.name}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+
+                  {currentFolders.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-400 mb-1">Pastas:</p>
+                      {currentFolders.map(folder => (
+                        <button
+                          key={folder.id}
+                          className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded text-left text-sm"
+                          onClick={() => setCurrentFolderId(folder.id)}
+                        >
+                          <span className="text-lg">📁</span>
+                          <span className="truncate flex-1">{folder.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentFiles.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-400 mb-1">Arquivos:</p>
+                      {currentFiles.map(file => (
+                        <button
+                          key={file.id}
+                          className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded text-left text-sm"
+                          onClick={() => addInternalFileLink(file)}
+                        >
+                          <span className="text-lg">{file.type === 'kbn' ? '📋' : file.type === 'gnt' ? '📊' : file.type === 'docx' ? '📄' : file.type === 'xlsx' ? '📈' : file.type === 'pptx' ? '📽️' : file.type === 'flux' ? '🌊' : '📎'}</span>
+                          <span className="truncate flex-1">{file.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentFolders.length === 0 && currentFiles.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">Pasta vazia</p>
+                  )}
                 </div>
               )}
               
