@@ -379,15 +379,26 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
             const currentNodeData = editor.getNodeFromId(nodeId);
 
             if (action === 'edit') {
-              // Para document, spreadsheet e presentation - criar arquivo temporário e abrir editor
+              // Para document, spreadsheet e presentation - criar arquivo ou abrir existente
               if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
+                // Salvar FluxMap antes de abrir
+                if (onChange) {
+                  onChange(editor.export());
+                }
+                
+                // Se já existe fileId, abrir arquivo existente
+                if (currentNodeData.data.fileId) {
+                  window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                  return;
+                }
+                
+                // Se não existe, criar novo arquivo
                 const typeMap = {
                   'document': 'docx',
                   'spreadsheet': 'xlsx',
                   'presentation': 'pptx'
                 };
 
-                // Criar arquivo temporário para edição
                 const fileType = typeMap[currentNodeData.name];
                 const fileName = currentNodeData.data.title || `Novo ${currentNodeData.name}`;
 
@@ -396,21 +407,6 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                   xlsx: '',
                   pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                 };
-
-                // Salvar FluxMap antes de abrir
-                if (onChange) {
-                  onChange(editorRef.current.export());
-                }
-
-                // Salvar FluxMap antes de abrir
-                if (onChange) {
-                  onChange(editor.export());
-                }
-
-                // Salvar FluxMap antes de abrir
-                if (onChange) {
-                  onChange(editorRef.current.export());
-                }
 
                 base44.auth.me().then(user => {
                   return base44.entities.File.create({
@@ -422,6 +418,13 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                     owner: user.email
                   });
                 }).then(file => {
+                  // Salvar fileId no node
+                  editor.updateNodeDataFromId(nodeId, {
+                    ...currentNodeData.data,
+                    fileId: file.id
+                  });
+                  if (onChange) onChange(editor.export());
+                  
                   window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
                 });
               } else {
@@ -683,6 +686,18 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
 
                       if (action === 'edit') {
                         if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
+                          // Salvar FluxMap antes de abrir
+                          if (onChange) {
+                            onChange(editorRef.current.export());
+                          }
+                          
+                          // Se já existe fileId, abrir arquivo existente
+                          if (currentNodeData.data.fileId) {
+                            window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                            return;
+                          }
+                          
+                          // Se não existe, criar novo arquivo
                           const typeMap = {
                             'document': 'docx',
                             'spreadsheet': 'xlsx',
@@ -708,6 +723,13 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                               owner: user.email
                             });
                           }).then(file => {
+                            // Salvar fileId no node
+                            editorRef.current.updateNodeDataFromId(nodeId, {
+                              ...currentNodeData.data,
+                              fileId: file.id
+                            });
+                            if (onChange) onChange(editorRef.current.export());
+                            
                             window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
                           });
                         } else {
@@ -860,6 +882,18 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
 
                     if (action === 'edit') {
                       if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
+                        // Salvar FluxMap antes de abrir
+                        if (onChange) {
+                          onChange(editor.export());
+                        }
+                        
+                        // Se já existe fileId, abrir arquivo existente
+                        if (currentNodeData.data.fileId) {
+                          window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                          return;
+                        }
+                        
+                        // Se não existe, criar novo arquivo
                         const typeMap = {
                           'document': 'docx',
                           'spreadsheet': 'xlsx',
@@ -885,6 +919,13 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                             owner: user.email
                           });
                         }).then(file => {
+                          // Salvar fileId no node
+                          editor.updateNodeDataFromId(nodeId, {
+                            ...currentNodeData.data,
+                            fileId: file.id
+                          });
+                          if (onChange) onChange(editor.export());
+                          
                           window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
                         });
                       } else {
