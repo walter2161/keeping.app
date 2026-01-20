@@ -196,9 +196,9 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     const handleOpenMediaPopup = (e) => {
       const { url, type } = e.detail;
       // Trigger o popup nativo do FileViewer se existir
-      const event = new Event('openMedia');
-      event.url = url;
-      event.type = type === 'video' ? 'video' : 'img';
+      const event = new CustomEvent('openMedia', {
+        detail: { url, type: type === 'video' ? 'video' : 'img' }
+      });
       window.dispatchEvent(event);
     };
 

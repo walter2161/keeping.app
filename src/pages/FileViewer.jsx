@@ -63,8 +63,8 @@ export default function FileViewer() {
   // Listener para abrir popup de mídia
   useEffect(() => {
     const handleOpenMedia = (e) => {
-      if (e.url && e.type) {
-        setMediaPopup({ open: true, url: e.url, type: e.type });
+      if (e.detail?.url && e.detail?.type) {
+        setMediaPopup({ open: true, url: e.detail.url, type: e.detail.type });
       }
     };
 
