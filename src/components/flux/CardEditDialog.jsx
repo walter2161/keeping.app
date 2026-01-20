@@ -46,6 +46,8 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     attachments: [],
   });
   
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  
   // Update editData when dialog opens with new data
   React.useEffect(() => {
     if (open && data) {
@@ -58,6 +60,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
         coverImage: data.coverImage || '',
         attachments: data.attachments || [],
       });
+      setIsEditingDescription(false);
     }
   }, [open, data]);
   
@@ -106,23 +109,13 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
         </DialogHeader>
         
         <div className="grid grid-cols-2 gap-6">
-          {/* Lado esquerdo: Edição */}
+          {/* Lado esquerdo: Configurações */}
           <div className="space-y-4">
             <Input
               placeholder="Título"
               value={editData.title}
               onChange={(e) => setEditData({ ...editData, title: e.target.value })}
             />
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Descrição (suporta Markdown)</label>
-              <Textarea
-                placeholder="**Negrito** _Itálico_ `Código`&#10;- Item lista&#10;1. Item numerado"
-                value={editData.description || ''}
-                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                rows={12}
-              />
-            </div>
             
             <select
               className="w-full p-2 border rounded-md"
@@ -249,19 +242,51 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
             </div>
           </div>
 
-          {/* Lado direito: Preview */}
+          {/* Lado direito: Descrição com Toggle Preview/Editor */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Preview do Conteúdo</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Descrição (suporta Markdown)</label>
+              {!isEditingDescription ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsEditingDescription(true)}
+                >
+                  Editar Descrição
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => setIsEditingDescription(false)}
+                >
+                  Salvar Edição
+                </Button>
+              )}
+            </div>
+            
             <div 
-              className="w-full aspect-square border-2 border-gray-200 rounded-lg overflow-auto p-4 bg-gray-50"
+              className="w-full aspect-square border-2 border-gray-200 rounded-lg overflow-auto bg-white"
               style={{ maxHeight: '500px' }}
             >
-              {editData.description ? (
-                <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown>{editData.description}</ReactMarkdown>
-                </div>
+              {isEditingDescription ? (
+                <Textarea
+                  placeholder="**Negrito** _Itálico_ `Código`&#10;- Item lista&#10;1. Item numerado"
+                  value={editData.description || ''}
+                  onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                  className="w-full h-full resize-none border-0 focus-visible:ring-0"
+                  style={{ minHeight: '500px' }}
+                />
               ) : (
-                <p className="text-gray-400 text-sm">O preview da descrição aparecerá aqui...</p>
+                <div className="p-4">
+                  {editData.description ? (
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown>{editData.description}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm">Clique em "Editar Descrição" para adicionar conteúdo...</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
