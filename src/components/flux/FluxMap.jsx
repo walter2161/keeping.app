@@ -3,6 +3,7 @@ import Drawflow from 'drawflow';
 import 'drawflow/dist/drawflow.min.css';
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Minus, Upload, Edit2, Copy, MoreVertical } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import {
   Dialog,
   DialogContent,
