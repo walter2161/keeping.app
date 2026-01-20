@@ -57,6 +57,18 @@ export default function FileViewer() {
   
   const queryClient = useQueryClient();
   
+  // Store fluxFileId globally for FluxMap nodes to access
+  useEffect(() => {
+    if (file?.type === 'flux') {
+      window.fluxFileId = fileId;
+    }
+    return () => {
+      if (window.fluxFileId === fileId) {
+        delete window.fluxFileId;
+      }
+    };
+  }, [file, fileId]);
+  
   // SYNC DIRECTIVE: Real-time synchronization with database
   useSyncData();
 

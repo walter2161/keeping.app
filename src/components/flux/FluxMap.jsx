@@ -153,6 +153,80 @@ export default function FluxMap({ data, onChange, onImport }) {
         `;
         break;
 
+      case 'document':
+        const docTitle = nodeData.title || 'Documento';
+        html = `
+          <div style="width: 200px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); height: 100px; display: flex; align-items: center; justify-content: center;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="10" y1="9" x2="8" y2="9"/>
+              </svg>
+            </div>
+            <div style="padding: 12px;">
+              <p style="font-size: 14px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${docTitle}
+              </p>
+              <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; margin-top: 4px;">
+                📄 Documento
+              </p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'spreadsheet':
+        const sheetTitle = nodeData.title || 'Planilha';
+        html = `
+          <div style="width: 200px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); height: 100px; display: flex; align-items: center; justify-content: center;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <rect x="8" y="12" width="8" height="8"/>
+                <line x1="12" y1="12" x2="12" y2="20"/>
+                <line x1="8" y1="16" x2="16" y2="16"/>
+              </svg>
+            </div>
+            <div style="padding: 12px;">
+              <p style="font-size: 14px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${sheetTitle}
+              </p>
+              <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; margin-top: 4px;">
+                📊 Planilha
+              </p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'presentation':
+        const presTitle = nodeData.title || 'Apresentação';
+        html = `
+          <div style="width: 200px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); height: 100px; display: flex; align-items: center; justify-content: center;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+                <rect x="6" y="7" width="12" height="6" rx="1"/>
+              </svg>
+            </div>
+            <div style="padding: 12px;">
+              <p style="font-size: 14px; font-weight: 600; color: #1e293b; font-family: 'Montserrat', sans-serif; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${presTitle}
+              </p>
+              <p style="font-size: 11px; color: #64748b; font-family: 'Montserrat', sans-serif; margin-top: 4px;">
+                📽️ Apresentação
+              </p>
+            </div>
+          </div>
+        `;
+        break;
+
       case 'url-link':
         const linkUrl = nodeData.url || 'https://google.com';
         const linkTitle = nodeData.title || 'Link';
@@ -224,11 +298,23 @@ export default function FluxMap({ data, onChange, onImport }) {
       initialData.url = 'https://google.com';
       initialData.title = 'Link';
     }
+    else if (name === 'document') {
+      initialData.title = 'Documento';
+      initialData.content = '';
+    }
+    else if (name === 'spreadsheet') {
+      initialData.title = 'Planilha';
+      initialData.content = '';
+    }
+    else if (name === 'presentation') {
+      initialData.title = 'Apresentação';
+      initialData.content = JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] });
+    }
     
     const nodeId = editor.addNode(name, inputs, outputs, pos_x, pos_y, name, initialData, html);
 
     // Add edit icon to all editable nodes and setup listeners
-    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
+    const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link', 'document', 'spreadsheet', 'presentation'];
     if (editableNodes.includes(name)) {
       setTimeout(() => {
         const nodeElement = document.getElementById(`node-${nodeId}`);
@@ -300,12 +386,20 @@ export default function FluxMap({ data, onChange, onImport }) {
             const currentNodeData = editor.getNodeFromId(nodeId);
             
             if (action === 'edit') {
-              setEditDialog({ 
-                open: true, 
-                nodeId: nodeId, 
-                data: currentNodeData.data || {},
-                nodeType: currentNodeData.name
-              });
+              // Para document, spreadsheet e presentation - abrir editor dedicado
+              if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
+                const editorType = currentNodeData.name === 'document' ? 'docx' : 
+                                   currentNodeData.name === 'spreadsheet' ? 'xlsx' : 'pptx';
+                const editorUrl = `/flux-editor?nodeId=${nodeId}&type=${editorType}&fluxFileId=${window.fluxFileId || ''}`;
+                window.location.href = editorUrl;
+              } else {
+                setEditDialog({ 
+                  open: true, 
+                  nodeId: nodeId, 
+                  data: currentNodeData.data || {},
+                  nodeType: currentNodeData.name
+                });
+              }
             } else if (action === 'clone') {
               const { html, inputs, outputs } = createNodeHTML(currentNodeData.name, currentNodeData.data);
               editor.addNode(
@@ -1216,6 +1310,9 @@ export default function FluxMap({ data, onChange, onImport }) {
       'name-bubble': { emoji: '👤', bg: '#f3e8ff', border: '#a855f7', text: 'Nome' },
       'text-box': { emoji: 'T', bg: '#f1f5f9', border: '#64748b', text: 'Texto' },
       'url-link': { emoji: '🔗', bg: '#dbeafe', border: '#3b82f6', text: 'Link' },
+      'document': { emoji: '📄', bg: '#dbeafe', border: '#3b82f6', text: 'Documento' },
+      'spreadsheet': { emoji: '📊', bg: '#d1fae5', border: '#10b981', text: 'Planilha' },
+      'presentation': { emoji: '📽️', bg: '#fef3c7', border: '#f59e0b', text: 'Apresentação' },
       'area': { emoji: '📦', bg: '#f0fdf4', border: '#22c55e', text: 'Área' },
     };
 
