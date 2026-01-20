@@ -33,7 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function FluxMap({ data, onChange, onImport }) {
+export default function FluxMap({ data, onChange, onImport, folderId }) {
   const drawflowRef = useRef(null);
   const editorRef = useRef(null);
   const [zoom, setZoom] = useState(100);
@@ -402,7 +402,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                     name: fileName,
                     type: fileType,
                     content: currentNodeData.data.content || defaultContent[fileType],
-                    folder_id: null,
+                    folder_id: folderId || null,
                     team_id: null,
                     owner: user.email
                   });
@@ -688,7 +688,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                               name: fileName,
                               type: fileType,
                               content: currentNodeData.data.content || defaultContent[fileType],
-                              folder_id: null,
+                              folder_id: folderId || null,
                               team_id: null,
                               owner: user.email
                             });
@@ -865,7 +865,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                             name: fileName,
                             type: fileType,
                             content: currentNodeData.data.content || defaultContent[fileType],
-                            folder_id: null,
+                            folder_id: folderId || null,
                             team_id: null,
                             owner: user.email
                           });
