@@ -678,6 +678,7 @@ export default function FileViewer() {
               setLocalContent(importedData);
               setHasChanges(true);
             }}
+            folderId={file.folder_id}
           />
         )}
         
