@@ -103,7 +103,20 @@ export default function FluxMap({ data, onChange, onImport }) {
 
         const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
                           coverType === 'image' && coverImage ? `<div style="width: 100%; height: 160px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center;"><img src="${coverImage}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; transform: scale(${coverImageZoom / 100}); transform-origin: center center;" /></div>` : '';
-        
+
+        const attachmentsHTML = attachments.length > 0 ? `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+            ${attachments.map(att => {
+              const isInternal = att.isInternal || att.url?.startsWith('/file/');
+              const icon = isInternal ? '🔗' : '📎';
+              return `<div class="card-attachment" data-attachment='${JSON.stringify(att).replace(/'/g, '&apos;')}' style="display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: #f8fafc; border-radius: 4px; margin-bottom: 4px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='#f8fafc'">
+                <span style="font-size: 12px;">${icon}</span>
+                <span style="font-size: 11px; color: #3b82f6; font-family: 'Montserrat', sans-serif; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${att.name}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        ` : '';
+
         html = `
           <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
             ${coverHTML}
@@ -116,6 +129,7 @@ export default function FluxMap({ data, onChange, onImport }) {
                 <span style="background: ${priorityBgMap[priority]}; color: ${priorityTextMap[priority]}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: 'Montserrat', sans-serif;">${priorityLabel}</span>
                 ${attachments.length > 0 ? `<span style="border: 1px solid #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px; font-family: 'Montserrat', sans-serif;"><span style="font-size: 14px;">📎</span> ${attachments.length}</span>` : ''}
               </div>
+              ${attachmentsHTML}
             </div>
           </div>
         `;
@@ -337,6 +351,32 @@ export default function FluxMap({ data, onChange, onImport }) {
               menuContent.classList.remove('open');
             }
           });
+
+          // Add attachment click handlers
+          if (name === 'card-kanban') {
+            const attachmentElements = nodeElement.querySelectorAll('.card-attachment');
+            attachmentElements.forEach(attachEl => {
+              attachEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const attData = JSON.parse(attachEl.getAttribute('data-attachment'));
+
+                if (attData.isInternal || attData.url?.startsWith('/file/')) {
+                  // Internal file - navigate to FileViewer
+                  const fileId = attData.fileId || attData.url.split('/file/')[1];
+                  window.location.href = `/file-viewer?fileId=${fileId}`;
+                } else if (attData.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)) {
+                  // Image or video - trigger media popup
+                  const event = new CustomEvent('openMediaPopup', { 
+                    detail: { url: attData.url, type: attData.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' }
+                  });
+                  window.dispatchEvent(event);
+                } else {
+                  // Other files - open in new tab
+                  window.open(attData.url, '_blank');
+                }
+              });
+            });
+          }
 
           // Add manual resize for sticky notes
           if (name === 'sticky-note') {
@@ -593,6 +633,29 @@ export default function FluxMap({ data, onChange, onImport }) {
                     const { html } = createNodeHTML(nodeData.name, nodeData.data || {});
                     contentNode.innerHTML = html.trim();
                     console.log(`✓ HTML recriado para node ${nodeId}`);
+
+                    // Re-add attachment click handlers for cards
+                    if (nodeData.name === 'card-kanban') {
+                      const attachmentElements = nodeElement.querySelectorAll('.card-attachment');
+                      attachmentElements.forEach(attachEl => {
+                        attachEl.addEventListener('click', (e) => {
+                          e.stopPropagation();
+                          const attData = JSON.parse(attachEl.getAttribute('data-attachment'));
+
+                          if (attData.isInternal || attData.url?.startsWith('/file/')) {
+                            const fileId = attData.fileId || attData.url.split('/file/')[1];
+                            window.location.href = `/file-viewer?fileId=${fileId}`;
+                          } else if (attData.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)) {
+                            const event = new CustomEvent('openMediaPopup', { 
+                              detail: { url: attData.url, type: attData.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' }
+                            });
+                            window.dispatchEvent(event);
+                          } else {
+                            window.open(attData.url, '_blank');
+                          }
+                        });
+                      });
+                    }
                   } else {
                     console.warn(`⚠ Não encontrou .drawflow_content_node para node ${nodeId}`);
                   }
@@ -1039,14 +1102,38 @@ export default function FluxMap({ data, onChange, onImport }) {
         
         // CRITICAL: Update node data FIRST
         editorRef.current.updateNodeDataFromId(editDialog.nodeId, newData);
-        
+
         // Then update HTML visualization
         if (editDialog.nodeType === 'card-kanban') {
-          const nodeElement = document.querySelector(`#node-${editDialog.nodeId} .drawflow_content_node`);
+          const nodeElement = document.querySelector(`#node-${editDialog.nodeId}`);
           if (nodeElement) {
-            const { html } = createNodeHTML('card-kanban', newData);
-            nodeElement.innerHTML = html.trim();
-            console.log('✓ Card HTML atualizado com novos dados');
+            const contentNode = nodeElement.querySelector('.drawflow_content_node');
+            if (contentNode) {
+              const { html } = createNodeHTML('card-kanban', newData);
+              contentNode.innerHTML = html.trim();
+              console.log('✓ Card HTML atualizado com novos dados');
+
+              // Re-add attachment click handlers
+              const attachmentElements = nodeElement.querySelectorAll('.card-attachment');
+              attachmentElements.forEach(attachEl => {
+                attachEl.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  const attData = JSON.parse(attachEl.getAttribute('data-attachment'));
+
+                  if (attData.isInternal || attData.url?.startsWith('/file/')) {
+                    const fileId = attData.fileId || attData.url.split('/file/')[1];
+                    window.location.href = `/file-viewer?fileId=${fileId}`;
+                  } else if (attData.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)) {
+                    const event = new CustomEvent('openMediaPopup', { 
+                      detail: { url: attData.url, type: attData.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' }
+                    });
+                    window.dispatchEvent(event);
+                  } else {
+                    window.open(attData.url, '_blank');
+                  }
+                });
+              });
+            }
           }
         } else if (editDialog.nodeType === 'sticky-note') {
           const { html } = createNodeHTML('sticky-note', newData);
