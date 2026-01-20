@@ -397,13 +397,15 @@ export default function FluxMap({ data, onChange, onImport }) {
                   pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                 };
 
-                base44.entities.File.create({
-                  name: fileName,
-                  type: fileType,
-                  content: currentNodeData.data.content || defaultContent[fileType],
-                  folder_id: null,
-                  team_id: null,
-                  owner: base44.auth.me().then(u => u.email).catch(() => 'unknown')
+                base44.auth.me().then(user => {
+                  return base44.entities.File.create({
+                    name: fileName,
+                    type: fileType,
+                    content: currentNodeData.data.content || defaultContent[fileType],
+                    folder_id: null,
+                    team_id: null,
+                    owner: user.email
+                  });
                 }).then(file => {
                   window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
                 });
@@ -681,13 +683,15 @@ export default function FluxMap({ data, onChange, onImport }) {
                             pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                           };
 
-                          base44.entities.File.create({
-                            name: fileName,
-                            type: fileType,
-                            content: currentNodeData.data.content || defaultContent[fileType],
-                            folder_id: null,
-                            team_id: null,
-                            owner: base44.auth.me().then(u => u.email).catch(() => 'unknown')
+                          base44.auth.me().then(user => {
+                            return base44.entities.File.create({
+                              name: fileName,
+                              type: fileType,
+                              content: currentNodeData.data.content || defaultContent[fileType],
+                              folder_id: null,
+                              team_id: null,
+                              owner: user.email
+                            });
                           }).then(file => {
                             window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
                           });
@@ -856,13 +860,15 @@ export default function FluxMap({ data, onChange, onImport }) {
                           pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                         };
 
-                        base44.entities.File.create({
-                          name: fileName,
-                          type: fileType,
-                          content: currentNodeData.data.content || defaultContent[fileType],
-                          folder_id: null,
-                          team_id: null,
-                          owner: base44.auth.me().then(u => u.email).catch(() => 'unknown')
+                        base44.auth.me().then(user => {
+                          return base44.entities.File.create({
+                            name: fileName,
+                            type: fileType,
+                            content: currentNodeData.data.content || defaultContent[fileType],
+                            folder_id: null,
+                            team_id: null,
+                            owner: user.email
+                          });
                         }).then(file => {
                           window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
                         });
