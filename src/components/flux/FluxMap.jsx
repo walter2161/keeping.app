@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import CardEditDialog from './CardEditDialog';
 import URLLinkEditDialog from './URLLinkEditDialog';
-import AreaEditDialog from './AreaEditDialog';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,15 +43,6 @@ export default function FluxMap({ data, onChange, onImport }) {
   const [dragNodeType, setDragNodeType] = useState(null);
   const dragStartPosRef = useRef(null);
   const [dragPreviewPos, setDragPreviewPos] = useState({ x: 0, y: 0 });
-  
-  // Areas system - separate from nodes
-  const [areas, setAreas] = useState([]);
-  const [selectedAreaId, setSelectedAreaId] = useState(null);
-  const [areaEditDialog, setAreaEditDialog] = useState({ open: false, areaId: null, data: {} });
-  const [isDraggingArea, setIsDraggingArea] = useState(false);
-  const [isResizingArea, setIsResizingArea] = useState(false);
-  const [dragAreaStart, setDragAreaStart] = useState({ x: 0, y: 0 });
-  const [resizeAreaStart, setResizeAreaStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const createNodeHTML = (name, nodeData = {}) => {
     let html = '';
@@ -504,46 +495,7 @@ export default function FluxMap({ data, onChange, onImport }) {
     const centerX = rect.left + (rect.width / 2);
     const centerY = rect.top + (rect.height / 2);
     
-    if (nodeType === 'area') {
-      addAreaToCanvas(centerX, centerY);
-    } else {
-      addNodeToDrawFlow(nodeType, centerX, centerY);
-    }
-  };
-  
-  const addAreaToCanvas = (clientX, clientY) => {
-    const editor = editorRef.current;
-    const rect = drawflowRef.current.getBoundingClientRect();
-    const scale = editor ? editor.zoom : 1;
-    const translateX = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0') : 0;
-    const translateY = editor ? parseFloat(editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0') : 0;
-    
-    const x = (clientX - rect.left - translateX) / scale;
-    const y = (clientY - rect.top - translateY) / scale;
-    
-    const newArea = {
-      id: Date.now().toString(),
-      title: 'Área',
-      x: x - 150,
-      y: y - 100,
-      width: 300,
-      height: 200,
-      color: 'rgba(59, 130, 246, 0.1)',
-    };
-    
-    console.log('🟢 CRIANDO ÁREA:', newArea);
-    const newAreas = [...areas, newArea];
-    console.log('📦 Total de áreas:', newAreas.length);
-    setAreas(newAreas);
-    saveAreasToData(newAreas);
-  };
-  
-  const saveAreasToData = (newAreas) => {
-    if (onChange && editorRef.current) {
-      const exportData = editorRef.current.export();
-      exportData.areas = newAreas;
-      onChange(exportData);
-    }
+    addNodeToDrawFlow(nodeType, centerX, centerY);
   };
 
   const handleMouseDownOnButton = (e, nodeType) => {
@@ -570,11 +522,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         e.clientY <= rect.bottom;
 
       if (isOverCanvas) {
-        if (dragNodeType === 'area') {
-          addAreaToCanvas(e.clientX, e.clientY);
-        } else {
-          addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
-        }
+        addNodeToDrawFlow(dragNodeType, e.clientX, e.clientY);
       }
     }
     
@@ -595,54 +543,6 @@ export default function FluxMap({ data, onChange, onImport }) {
       };
     }
   }, [isDraggingNew, dragNodeType]);
-  
-  // Handle area dragging
-  useEffect(() => {
-    if (!isDraggingArea && !isResizingArea) return;
-    
-    const handleAreaMouseMove = (e) => {
-      if (isDraggingArea && selectedAreaId) {
-        const editor = editorRef.current;
-        const scale = editor ? editor.zoom : 1;
-        const newX = (e.clientX - dragAreaStart.x) / scale;
-        const newY = (e.clientY - dragAreaStart.y) / scale;
-        
-        const newAreas = areas.map(a =>
-          a.id === selectedAreaId ? { ...a, x: newX, y: newY } : a
-        );
-        setAreas(newAreas);
-      } else if (isResizingArea && selectedAreaId) {
-        const editor = editorRef.current;
-        const scale = editor ? editor.zoom : 1;
-        const deltaX = e.clientX - resizeAreaStart.x;
-        const deltaY = e.clientY - resizeAreaStart.y;
-        const newWidth = Math.max(200, resizeAreaStart.width + deltaX / scale);
-        const newHeight = Math.max(200, resizeAreaStart.height + deltaY / scale);
-        
-        const newAreas = areas.map(a =>
-          a.id === selectedAreaId ? { ...a, width: newWidth, height: newHeight } : a
-        );
-        setAreas(newAreas);
-      }
-    };
-    
-    const handleAreaMouseUp = () => {
-      if (isDraggingArea || isResizingArea) {
-        saveAreasToData(areas);
-      }
-      setIsDraggingArea(false);
-      setIsResizingArea(false);
-    };
-    
-    window.addEventListener('mousemove', handleAreaMouseMove);
-    window.addEventListener('mouseup', handleAreaMouseUp);
-    
-    return () => {
-      window.removeEventListener('mousemove', handleAreaMouseMove);
-      window.removeEventListener('mouseup', handleAreaMouseUp);
-    };
-  }, [isDraggingArea, isResizingArea, selectedAreaId, dragAreaStart, resizeAreaStart, areas]);
-  
 
 
   useEffect(() => {
@@ -659,14 +559,6 @@ export default function FluxMap({ data, onChange, onImport }) {
           
           editorRef.current.clear();
           editorRef.current.import(data);
-          
-          // Carregar áreas
-          if (data.areas) {
-            console.log('Carregando áreas:', data.areas.length);
-            setAreas(data.areas);
-          } else {
-            setAreas([]);
-          }
           
           const nodeCount = Object.keys(data.drawflow.Home.data).length;
           console.log(`✓ FluxMap reimportado com ${nodeCount} nodes`);
@@ -826,11 +718,6 @@ export default function FluxMap({ data, onChange, onImport }) {
     editor.start();
     
     editorRef.current = editor;
-
-    // Load areas if they exist
-    if (data && data.areas) {
-      setAreas(data.areas);
-    }
 
     if (data && data.drawflow) {
       try {
@@ -1259,14 +1146,6 @@ export default function FluxMap({ data, onChange, onImport }) {
           editorRef.current.clear();
           editorRef.current.import(importDialog.data);
           
-          // Carregar áreas se existirem
-          if (importDialog.data.areas) {
-            console.log('Carregando áreas:', importDialog.data.areas);
-            setAreas(importDialog.data.areas);
-          } else {
-            setAreas([]);
-          }
-          
           // Recriar HTML e menus dos nodes
           setTimeout(() => {
             const editableNodes = ['card-kanban', 'rectangle-shape', 'circle-shape', 'name-bubble', 'text-box', 'sticky-note', 'url-link'];
@@ -1313,7 +1192,6 @@ export default function FluxMap({ data, onChange, onImport }) {
       'document': { emoji: '📄', bg: '#dbeafe', border: '#3b82f6', text: 'Documento' },
       'spreadsheet': { emoji: '📊', bg: '#d1fae5', border: '#10b981', text: 'Planilha' },
       'presentation': { emoji: '📽️', bg: '#fef3c7', border: '#f59e0b', text: 'Apresentação' },
-      'area': { emoji: '📦', bg: '#f0fdf4', border: '#22c55e', text: 'Área' },
     };
 
     const style = previewStyles[dragNodeType];
@@ -1369,106 +1247,7 @@ export default function FluxMap({ data, onChange, onImport }) {
           z-index: 10 !important;
         }
         
-        .flux-area {
-          position: absolute;
-          border: 2px dashed rgba(59, 130, 246, 0.4);
-          border-radius: 8px;
-          cursor: move;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          padding-top: 16px;
-        }
-        
-        .flux-area-selected {
-          border-color: rgba(59, 130, 246, 0.8);
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-        
-        .flux-area-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: rgba(30, 41, 59, 0.7);
-          font-family: 'Montserrat', sans-serif;
-          user-select: none;
-          pointer-events: none;
-        }
-        
-        .flux-area-resize {
-          position: absolute;
-          bottom: 4px;
-          right: 4px;
-          width: 24px;
-          height: 24px;
-          cursor: nwse-resize;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(255, 255, 255, 0.9);
-          border-radius: 4px;
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          pointer-events: auto;
-        }
-        
-        .flux-area-resize:hover {
-          background: white;
-          border-color: rgba(148, 163, 184, 0.6);
-        }
-        
-        .flux-area-edit {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 24px;
-          height: 24px;
-          background: white;
-          border-radius: 4px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          opacity: 0;
-          transition: opacity 0.2s, background 0.2s;
-          z-index: 10;
-          pointer-events: auto;
-        }
-        
-        .flux-area:hover .flux-area-edit {
-          opacity: 1;
-        }
-        
-        .flux-area-edit:hover {
-          background: #f3f4f6;
-        }
-        
-        .flux-area-delete {
-          position: absolute;
-          top: 8px;
-          right: 40px;
-          width: 24px;
-          height: 24px;
-          background: white;
-          border-radius: 4px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          opacity: 0;
-          transition: opacity 0.2s, background 0.2s;
-          z-index: 10;
-          pointer-events: auto;
-        }
-        
-        .flux-area:hover .flux-area-delete {
-          opacity: 1;
-        }
-        
-        .flux-area-delete:hover {
-          background: #fee2e2;
-        }
-        
+
         .drawflow .drawflow-node .drawflow_content_node {
           padding: 0 !important;
           margin: 0 !important;
@@ -1891,133 +1670,19 @@ export default function FluxMap({ data, onChange, onImport }) {
           </div>
         </div>
 
-        <div className="pt-3 border-t border-gray-200 mt-3">
-          <div
-            className="drag-drawflow"
-            draggable="true"
-            data-node="area"
-            onMouseDown={(e) => handleMouseDownOnButton(e, 'area')}
-            onClick={(e) => {
-              if (!isDraggingNew) handleClickToAdd('area');
-            }}
-            style={{ background: '#f0fdf4', borderColor: '#22c55e' }}
-            title="Área"
-          >
-            <span style={{ fontSize: '18px' }}>📦</span>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#166534' }}>Área</span>
-          </div>
-        </div>
+
       </div>
 
       <div className="flex-1 relative">
-        {/* Render areas BEHIND drawflow canvas */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          {areas.map((area) => {
-          const editor = editorRef.current;
-          const scale = editor ? editor.zoom : 1;
-          const translateX = editor ? editor.precanvas.style.transform.match(/translate\(([^,]+)/)?.[1] || '0px' : '0px';
-          const translateY = editor ? editor.precanvas.style.transform.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || '0px' : '0px';
-          
-          return (
-            <div
-              key={area.id}
-              className={`flux-area ${selectedAreaId === area.id ? 'flux-area-selected' : ''}`}
-              style={{
-                left: `calc(${translateX} + ${area.x * scale}px)`,
-                top: `calc(${translateY} + ${area.y * scale}px)`,
-                width: `${area.width * scale}px`,
-                height: `${area.height * scale}px`,
-                background: area.color,
-                transform: 'translate(0, 0)',
-                zIndex: 0,
-              }}
-              onMouseDown={(e) => {
-                if (e.target.classList.contains('flux-area') || e.target.classList.contains('flux-area-title')) {
-                  setSelectedAreaId(area.id);
-                  setIsDraggingArea(true);
-                  setDragAreaStart({ x: e.clientX - area.x * scale, y: e.clientY - area.y * scale });
-                }
-              }}
-            >
-              <span className="flux-area-title">{area.title}</span>
-              
-              <div
-                className="flux-area-edit"
-                onClick={() => {
-                  setAreaEditDialog({ open: true, areaId: area.id, data: area });
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                  <path d="m15 5 4 4"/>
-                </svg>
-              </div>
-              
-              <div
-                className="flux-area-delete"
-                onClick={() => {
-                  const newAreas = areas.filter(a => a.id !== area.id);
-                  setAreas(newAreas);
-                  saveAreasToData(newAreas);
-                  setSelectedAreaId(null);
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18"/>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                </svg>
-              </div>
-              
-              <div
-                className="flux-area-resize"
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setIsResizingArea(true);
-                  setSelectedAreaId(area.id);
-                  setResizeAreaStart({
-                    x: e.clientX,
-                    y: e.clientY,
-                    width: area.width,
-                    height: area.height,
-                  });
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14 14L10 14M14 14L14 10M14 14L8 8M14 8L8 8M14 8L14 2" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
-            </div>
-          );
-        })}
-        </div>
-
-        {/* Drawflow canvas on top */}
+        {/* Drawflow canvas */}
         <div
           id="drawflow"
           ref={drawflowRef}
-          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+          style={{ position: 'absolute', inset: 0 }}
           onDrop={(e) => e.preventDefault()}
           onDragOver={(e) => e.preventDefault()}
         />
-        
-
       </div>
-
-      {/* Area Edit Dialog */}
-      <AreaEditDialog
-        open={areaEditDialog.open}
-        onOpenChange={(open) => setAreaEditDialog({ ...areaEditDialog, open })}
-        data={areaEditDialog.data}
-        onSave={(newData) => {
-          const newAreas = areas.map(a => 
-            a.id === areaEditDialog.areaId ? { ...a, ...newData } : a
-          );
-          setAreas(newAreas);
-          saveAreasToData(newAreas);
-          setAreaEditDialog({ open: false, areaId: null, data: {} });
-        }}
-      />
       
       {/* Edit Dialog */}
       {editDialog.nodeType === 'card-kanban' ? (
