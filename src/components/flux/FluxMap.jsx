@@ -1832,6 +1832,51 @@ export default function FluxMap({ data, onChange, onImport }) {
             <span style={{ fontSize: '18px' }}>🔗</span>
             <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Link</span>
           </div>
+
+          <div
+            className="drag-drawflow"
+            draggable="true"
+            data-node="document"
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'document')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('document');
+            }}
+            style={{ background: '#dbeafe', borderColor: '#3b82f6' }}
+            title="Documento"
+          >
+            <span style={{ fontSize: '18px' }}>📄</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>Documento</span>
+          </div>
+
+          <div
+            className="drag-drawflow"
+            draggable="true"
+            data-node="spreadsheet"
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'spreadsheet')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('spreadsheet');
+            }}
+            style={{ background: '#d1fae5', borderColor: '#10b981' }}
+            title="Planilha"
+          >
+            <span style={{ fontSize: '18px' }}>📊</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#065f46' }}>Planilha</span>
+          </div>
+
+          <div
+            className="drag-drawflow"
+            draggable="true"
+            data-node="presentation"
+            onMouseDown={(e) => handleMouseDownOnButton(e, 'presentation')}
+            onClick={(e) => {
+              if (!isDraggingNew) handleClickToAdd('presentation');
+            }}
+            style={{ background: '#fef3c7', borderColor: '#f59e0b' }}
+            title="Apresentação"
+          >
+            <span style={{ fontSize: '18px' }}>📽️</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Apresentação</span>
+          </div>
         </div>
 
         <div className="pt-2 border-t border-gray-200">
