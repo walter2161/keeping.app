@@ -421,10 +421,28 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                   {editData.attachments.map(att => (
                     <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
                       {att.isInternal ? (
-                        <span className="text-blue-600 truncate flex-1 flex items-center gap-1">
+                        <a 
+                          href={`/file-viewer?fileId=${att.fileId}`}
+                          className="text-blue-600 hover:underline truncate flex-1 flex items-center gap-1"
+                        >
                           <LinkIcon className="w-3 h-3" />
                           {att.name}
-                        </span>
+                        </a>
+                      ) : att.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i) ? (
+                        <button
+                          onClick={() => {
+                            const event = new CustomEvent('openMediaPopup', { 
+                              detail: { 
+                                url: att.url, 
+                                type: att.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' 
+                              }
+                            });
+                            window.dispatchEvent(event);
+                          }}
+                          className="text-blue-600 hover:underline truncate flex-1 text-left"
+                        >
+                          {att.name}
+                        </button>
                       ) : (
                         <a href={att.url} target="_blank" className="text-blue-600 hover:underline truncate flex-1">
                           {att.name}
