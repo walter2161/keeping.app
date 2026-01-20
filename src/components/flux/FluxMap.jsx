@@ -1254,7 +1254,7 @@ export default function FluxMap({ data, onChange, onImport }) {
       )}
       <style>{`
         #drawflow {
-          background: #f8fafc;
+          background: #e2e8f0;
           position: relative;
         }
         
