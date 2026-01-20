@@ -164,15 +164,26 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                 <div className="space-y-3">
                   {editData.coverImage ? (
                     <div className="space-y-2">
-                      <div className="relative overflow-hidden rounded" style={{ aspectRatio: '1/1' }}>
-                        <img 
-                          src={editData.coverImage} 
-                          className="w-full h-full object-cover" 
-                          style={{ 
-                            transform: `scale(${editData.coverImageZoom / 100})`,
-                            transformOrigin: 'center center'
-                          }}
-                        />
+                      <div className="relative overflow-hidden rounded bg-gray-100" style={{ height: '300px' }}>
+                        <div style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          overflow: 'hidden'
+                        }}>
+                          <img 
+                            src={editData.coverImage} 
+                            style={{ 
+                              maxWidth: `${editData.coverImageZoom}%`,
+                              maxHeight: `${editData.coverImageZoom}%`,
+                              width: 'auto',
+                              height: 'auto',
+                              objectFit: 'contain'
+                            }}
+                          />
+                        </div>
                         <Button
                           variant="destructive"
                           size="icon"

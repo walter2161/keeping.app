@@ -102,7 +102,7 @@ export default function FluxMap({ data, onChange, onImport }) {
         const priorityLabel = priority === 'high' ? 'Alta' : priority === 'medium' ? 'Média' : 'Baixa';
 
         const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
-                          coverType === 'image' && coverImage ? `<div style="width: 100%; aspect-ratio: 1/1; overflow: hidden;"><img src="${coverImage}" style="width: 100%; height: 100%; object-fit: cover; transform: scale(${coverImageZoom / 100}); transform-origin: center center;" /></div>` : '';
+                          coverType === 'image' && coverImage ? `<div style="width: 100%; height: 160px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center;"><img src="${coverImage}" style="max-width: ${coverImageZoom}%; max-height: ${coverImageZoom}%; width: auto; height: auto; object-fit: contain;" /></div>` : '';
         
         html = `
           <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
