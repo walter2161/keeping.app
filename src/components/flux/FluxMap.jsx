@@ -83,25 +83,26 @@ export default function FluxMap({ data, onChange, onImport }) {
         const coverType = nodeData.coverType || 'none';
         const coverColor = nodeData.coverColor || '#3b82f6';
         const coverImage = nodeData.coverImage || '';
+        const coverImageZoom = nodeData.coverImageZoom || 100;
         const attachments = nodeData.attachments || [];
         const description = nodeData.description || '';
-        
+
         const priorityBgMap = {
           low: '#f3f4f6',
           medium: '#fef3c7',
           high: '#fee2e2',
         };
-        
+
         const priorityTextMap = {
           low: '#374151',
           medium: '#854d0e',
           high: '#991b1b',
         };
-        
+
         const priorityLabel = priority === 'high' ? 'Alta' : priority === 'medium' ? 'Média' : 'Baixa';
-        
+
         const coverHTML = coverType === 'color' ? `<div style="height: 40px; background-color: ${coverColor};"></div>` :
-                          coverType === 'image' && coverImage ? `<img src="${coverImage}" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;" />` : '';
+                          coverType === 'image' && coverImage ? `<div style="width: 100%; aspect-ratio: 1/1; overflow: hidden;"><img src="${coverImage}" style="width: 100%; height: 100%; object-fit: cover; transform: scale(${coverImageZoom / 100}); transform-origin: center center;" /></div>` : '';
         
         html = `
           <div style="width: 280px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">

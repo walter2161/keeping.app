@@ -16,7 +16,9 @@ import {
   Check,
   Upload,
   Image as ImageIcon,
-  Paperclip
+  Paperclip,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -43,6 +45,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     coverType: 'none',
     coverColor: coverColors[0],
     coverImage: '',
+    coverImageZoom: 100,
     attachments: [],
   });
   
@@ -58,6 +61,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
         coverType: data.coverType || 'none',
         coverColor: data.coverColor || coverColors[0],
         coverImage: data.coverImage || '',
+        coverImageZoom: data.coverImageZoom || 100,
         attachments: data.attachments || [],
       });
       setIsEditingDescription(false);
@@ -159,16 +163,46 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
               {editData.coverType === 'image' && (
                 <div className="space-y-3">
                   {editData.coverImage ? (
-                    <div className="relative">
-                      <img src={editData.coverImage} className="w-full aspect-square object-cover rounded" />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-6 w-6"
-                        onClick={() => setEditData({ ...editData, coverImage: '' })}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="relative overflow-hidden rounded" style={{ aspectRatio: '1/1' }}>
+                        <img 
+                          src={editData.coverImage} 
+                          className="w-full h-full object-cover" 
+                          style={{ 
+                            transform: `scale(${editData.coverImageZoom / 100})`,
+                            transformOrigin: 'center center'
+                          }}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6"
+                          onClick={() => setEditData({ ...editData, coverImage: '', coverImageZoom: 100 })}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditData({ ...editData, coverImageZoom: Math.max(50, editData.coverImageZoom - 10) })}
+                          disabled={editData.coverImageZoom <= 50}
+                        >
+                          <ZoomOut className="w-4 h-4" />
+                        </Button>
+                        <span className="text-sm font-medium text-gray-600 min-w-[50px] text-center">
+                          {editData.coverImageZoom}%
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditData({ ...editData, coverImageZoom: Math.min(200, editData.coverImageZoom + 10) })}
+                          disabled={editData.coverImageZoom >= 200}
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
