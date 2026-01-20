@@ -201,10 +201,17 @@ export default function FileViewer() {
         }
       }
       
-      await updateFileMutation.mutateAsync({ 
+      const updateData = { 
         name: fileName,
-        content: contentToSave 
-      });
+        content: contentToSave
+      };
+      
+      // Garantir que o owner está presente
+      if (!file.owner && currentUser?.email) {
+        updateData.owner = currentUser.email;
+      }
+      
+      await updateFileMutation.mutateAsync(updateData);
       
       // Invalidar query para forçar reload
       await queryClient.invalidateQueries({ queryKey: ['file', fileId] });
