@@ -111,7 +111,7 @@ export default function FluxMap({ data, onChange, onImport }) {
               <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: ${description ? '4px' : '8px'}; font-family: 'Montserrat', sans-serif;">
                 ${title || 'Título do card'}
               </p>
-              ${description ? `<p style="font-size: 12px; color: #64748b; margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Montserrat', sans-serif;">${description}</p>` : ''}
+              ${description ? `<p style="font-size: 11px; color: #64748b; margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: 'Montserrat', sans-serif;">${description}</p>` : ''}
               <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
                 <span style="background: ${priorityBgMap[priority]}; color: ${priorityTextMap[priority]}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: 'Montserrat', sans-serif;">${priorityLabel}</span>
                 ${attachments.length > 0 ? `<span style="border: 1px solid #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px; font-family: 'Montserrat', sans-serif;"><span style="font-size: 14px;">📎</span> ${attachments.length}</span>` : ''}
