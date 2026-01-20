@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ import { base44 } from '@/api/base44Client';
 import ReactMarkdown from 'react-markdown';
 import { useQuery } from '@tanstack/react-query';
 import { Link as LinkIcon } from 'lucide-react';
+import { createPageUrl } from '@/utils';
 
 const priorityColors = {
   low: 'bg-gray-100 text-gray-700',
@@ -170,6 +171,40 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     onSave(editData);
     onOpenChange(false);
   };
+
+  const handleAttachmentClick = (att) => {
+    if (att.isInternal) {
+      // Navegar para FileViewer com o fileId correto
+      window.location.href = createPageUrl(`FileViewer?id=${att.fileId}`);
+    } else if (att.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)) {
+      // Abrir popup de mídia
+      const event = new CustomEvent('openMediaPopup', { 
+        detail: { 
+          url: att.url, 
+          type: att.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' 
+        }
+      });
+      window.dispatchEvent(event);
+    } else {
+      // Outros arquivos - abrir em nova aba
+      window.open(att.url, '_blank');
+    }
+  };
+
+  // Listener para o evento de abrir mídia popup
+  useEffect(() => {
+    const handleOpenMediaPopup = (e) => {
+      const { url, type } = e.detail;
+      // Trigger o popup nativo do FileViewer se existir
+      const event = new Event('openMedia');
+      event.url = url;
+      event.type = type === 'video' ? 'video' : 'img';
+      window.dispatchEvent(event);
+    };
+
+    window.addEventListener('openMediaPopup', handleOpenMediaPopup);
+    return () => window.removeEventListener('openMediaPopup', handleOpenMediaPopup);
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -420,34 +455,13 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                 <div className="space-y-1">
                   {editData.attachments.map(att => (
                     <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                      {att.isInternal ? (
-                        <a 
-                          href={`/file-viewer?fileId=${att.fileId}`}
-                          className="text-blue-600 hover:underline truncate flex-1 flex items-center gap-1"
-                        >
-                          <LinkIcon className="w-3 h-3" />
-                          {att.name}
-                        </a>
-                      ) : att.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i) ? (
-                        <button
-                          onClick={() => {
-                            const event = new CustomEvent('openMediaPopup', { 
-                              detail: { 
-                                url: att.url, 
-                                type: att.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' 
-                              }
-                            });
-                            window.dispatchEvent(event);
-                          }}
-                          className="text-blue-600 hover:underline truncate flex-1 text-left"
-                        >
-                          {att.name}
-                        </button>
-                      ) : (
-                        <a href={att.url} target="_blank" className="text-blue-600 hover:underline truncate flex-1">
-                          {att.name}
-                        </a>
-                      )}
+                      <button
+                        onClick={() => handleAttachmentClick(att)}
+                        className="text-blue-600 hover:underline truncate flex-1 text-left flex items-center gap-1"
+                      >
+                        {att.isInternal && <LinkIcon className="w-3 h-3" />}
+                        {att.name}
+                      </button>
                       <Button
                         variant="ghost"
                         size="icon"

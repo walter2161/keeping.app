@@ -60,6 +60,18 @@ export default function FileViewer() {
   // SYNC DIRECTIVE: Real-time synchronization with database
   useSyncData();
 
+  // Listener para abrir popup de mídia
+  useEffect(() => {
+    const handleOpenMedia = (e) => {
+      if (e.url && e.type) {
+        setMediaPopup({ open: true, url: e.url, type: e.type });
+      }
+    };
+
+    window.addEventListener('openMedia', handleOpenMedia);
+    return () => window.removeEventListener('openMedia', handleOpenMedia);
+  }, []);
+
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
