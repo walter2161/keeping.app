@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import CardEditDialog from './CardEditDialog';
 import URLLinkEditDialog from './URLLinkEditDialog';
+import { createPageUrl } from '@/utils';
 
 import {
   AlertDialog,
@@ -372,17 +373,39 @@ export default function FluxMap({ data, onChange, onImport }) {
             e.stopPropagation();
             const menuItem = e.target.closest('.node-menu-item');
             if (!menuItem) return;
-            
+
             const action = menuItem.dataset.action;
             const currentNodeData = editor.getNodeFromId(nodeId);
-            
+
             if (action === 'edit') {
-              // Para document, spreadsheet e presentation - abrir editor dedicado
+              // Para document, spreadsheet e presentation - criar arquivo temporário e abrir editor
               if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
-                const editorType = currentNodeData.name === 'document' ? 'docx' : 
-                                   currentNodeData.name === 'spreadsheet' ? 'xlsx' : 'pptx';
-                const editorUrl = `/flux-editor?nodeId=${nodeId}&type=${editorType}&fluxFileId=${window.fluxFileId || ''}`;
-                window.location.href = editorUrl;
+                const typeMap = {
+                  'document': 'docx',
+                  'spreadsheet': 'xlsx',
+                  'presentation': 'pptx'
+                };
+
+                // Criar arquivo temporário para edição
+                const fileType = typeMap[currentNodeData.name];
+                const fileName = currentNodeData.data.title || `Novo ${currentNodeData.name}`;
+
+                const defaultContent = {
+                  docx: '',
+                  xlsx: '',
+                  pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
+                };
+
+                base44.entities.File.create({
+                  name: fileName,
+                  type: fileType,
+                  content: currentNodeData.data.content || defaultContent[fileType],
+                  folder_id: null,
+                  team_id: null,
+                  owner: base44.auth.me().then(u => u.email).catch(() => 'unknown')
+                }).then(file => {
+                  window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                });
               } else {
                 setEditDialog({ 
                   open: true, 
@@ -636,17 +659,45 @@ export default function FluxMap({ data, onChange, onImport }) {
                       e.stopPropagation();
                       const menuItem = e.target.closest('.node-menu-item');
                       if (!menuItem) return;
-                      
+
                       const action = menuItem.dataset.action;
                       const currentNodeData = editorRef.current.getNodeFromId(nodeId);
-                      
+
                       if (action === 'edit') {
-                        setEditDialog({ 
-                          open: true, 
-                          nodeId: nodeId, 
-                          data: currentNodeData.data || {},
-                          nodeType: currentNodeData.name
-                        });
+                        if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
+                          const typeMap = {
+                            'document': 'docx',
+                            'spreadsheet': 'xlsx',
+                            'presentation': 'pptx'
+                          };
+
+                          const fileType = typeMap[currentNodeData.name];
+                          const fileName = currentNodeData.data.title || `Novo ${currentNodeData.name}`;
+
+                          const defaultContent = {
+                            docx: '',
+                            xlsx: '',
+                            pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
+                          };
+
+                          base44.entities.File.create({
+                            name: fileName,
+                            type: fileType,
+                            content: currentNodeData.data.content || defaultContent[fileType],
+                            folder_id: null,
+                            team_id: null,
+                            owner: base44.auth.me().then(u => u.email).catch(() => 'unknown')
+                          }).then(file => {
+                            window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                          });
+                        } else {
+                          setEditDialog({ 
+                            open: true, 
+                            nodeId: nodeId, 
+                            data: currentNodeData.data || {},
+                            nodeType: currentNodeData.name
+                          });
+                        }
                       } else if (action === 'clone') {
                         const { html, inputs, outputs } = createNodeHTML(currentNodeData.name, currentNodeData.data);
                         editorRef.current.addNode(
@@ -783,17 +834,45 @@ export default function FluxMap({ data, onChange, onImport }) {
                     e.stopPropagation();
                     const menuItem = e.target.closest('.node-menu-item');
                     if (!menuItem) return;
-                    
+
                     const action = menuItem.dataset.action;
                     const currentNodeData = editor.getNodeFromId(nodeId);
-                    
+
                     if (action === 'edit') {
-                      setEditDialog({ 
-                        open: true, 
-                        nodeId: nodeId, 
-                        data: currentNodeData.data || {},
-                        nodeType: currentNodeData.name
-                      });
+                      if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
+                        const typeMap = {
+                          'document': 'docx',
+                          'spreadsheet': 'xlsx',
+                          'presentation': 'pptx'
+                        };
+
+                        const fileType = typeMap[currentNodeData.name];
+                        const fileName = currentNodeData.data.title || `Novo ${currentNodeData.name}`;
+
+                        const defaultContent = {
+                          docx: '',
+                          xlsx: '',
+                          pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
+                        };
+
+                        base44.entities.File.create({
+                          name: fileName,
+                          type: fileType,
+                          content: currentNodeData.data.content || defaultContent[fileType],
+                          folder_id: null,
+                          team_id: null,
+                          owner: base44.auth.me().then(u => u.email).catch(() => 'unknown')
+                        }).then(file => {
+                          window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                        });
+                      } else {
+                        setEditDialog({ 
+                          open: true, 
+                          nodeId: nodeId, 
+                          data: currentNodeData.data || {},
+                          nodeType: currentNodeData.name
+                        });
+                      }
                     } else if (action === 'clone') {
                       const { html, inputs, outputs } = createNodeHTML(currentNodeData.name, currentNodeData.data);
                       editor.addNode(
