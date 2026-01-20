@@ -274,13 +274,87 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                   placeholder="**Negrito** _Itálico_ `Código`&#10;- Item lista&#10;1. Item numerado"
                   value={editData.description || ''}
                   onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                  className="w-full h-full resize-none border-0 focus-visible:ring-0"
+                  className="w-full h-full resize-none border-0 focus-visible:ring-0 font-mono text-sm"
                   style={{ minHeight: '500px' }}
                 />
               ) : (
                 <div className="p-4">
                   {editData.description ? (
-                    <div className="prose prose-sm max-w-none">
+                    <div className="markdown-preview">
+                      <style>{`
+                        .markdown-preview h1 {
+                          font-size: 1.5rem;
+                          font-weight: 700;
+                          margin-top: 1.5rem;
+                          margin-bottom: 0.75rem;
+                          color: #1e293b;
+                        }
+                        .markdown-preview h2 {
+                          font-size: 1.25rem;
+                          font-weight: 600;
+                          margin-top: 1.25rem;
+                          margin-bottom: 0.5rem;
+                          color: #334155;
+                        }
+                        .markdown-preview h3 {
+                          font-size: 1.1rem;
+                          font-weight: 600;
+                          margin-top: 1rem;
+                          margin-bottom: 0.5rem;
+                          color: #475569;
+                        }
+                        .markdown-preview p {
+                          margin-bottom: 0.75rem;
+                          line-height: 1.6;
+                          color: #475569;
+                        }
+                        .markdown-preview ul, .markdown-preview ol {
+                          margin-left: 1.5rem;
+                          margin-bottom: 0.75rem;
+                        }
+                        .markdown-preview li {
+                          margin-bottom: 0.25rem;
+                          line-height: 1.5;
+                        }
+                        .markdown-preview strong {
+                          font-weight: 700;
+                          color: #1e293b;
+                        }
+                        .markdown-preview em {
+                          font-style: italic;
+                        }
+                        .markdown-preview code {
+                          background: #f1f5f9;
+                          padding: 0.125rem 0.375rem;
+                          border-radius: 0.25rem;
+                          font-family: monospace;
+                          font-size: 0.875rem;
+                          color: #dc2626;
+                        }
+                        .markdown-preview pre {
+                          background: #f1f5f9;
+                          padding: 0.75rem;
+                          border-radius: 0.5rem;
+                          overflow-x: auto;
+                          margin-bottom: 0.75rem;
+                        }
+                        .markdown-preview pre code {
+                          background: transparent;
+                          padding: 0;
+                          color: #1e293b;
+                        }
+                        .markdown-preview blockquote {
+                          border-left: 4px solid #e2e8f0;
+                          padding-left: 1rem;
+                          color: #64748b;
+                          margin-bottom: 0.75rem;
+                        }
+                        .markdown-preview hr {
+                          border: none;
+                          border-top: 2px solid #e2e8f0;
+                          margin: 1.5rem 0;
+                        }
+                      `}</style>
                       <ReactMarkdown>{editData.description}</ReactMarkdown>
                     </div>
                   ) : (
