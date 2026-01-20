@@ -25,6 +25,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { base44 } from '@/api/base44Client';
 import ReactMarkdown from 'react-markdown';
+import { useQuery } from '@tanstack/react-query';
+import { Link as LinkIcon } from 'lucide-react';
 
 const priorityColors = {
   low: 'bg-gray-100 text-gray-700',
@@ -69,6 +71,12 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
   }, [open, data]);
   
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showInternalFiles, setShowInternalFiles] = useState(false);
+
+  const { data: allFiles = [] } = useQuery({
+    queryKey: ['all-files'],
+    queryFn: () => base44.entities.File.list(),
+  });
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -98,6 +106,21 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
   const removeAttachment = (attachmentId) => {
     const updatedAttachments = editData.attachments.filter(a => a.id !== attachmentId);
     setEditData({ ...editData, attachments: updatedAttachments });
+  };
+
+  const addInternalFileLink = (file) => {
+    const newAttachment = {
+      id: Date.now().toString(),
+      name: file.name,
+      url: `/file/${file.id}`,
+      isInternal: true,
+      fileId: file.id
+    };
+    setEditData({ 
+      ...editData, 
+      attachments: [...(editData.attachments || []), newAttachment]
+    });
+    setShowInternalFiles(false);
   };
 
   const handleSave = () => {
@@ -257,23 +280,58 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Anexos:</label>
-              <label className="flex items-center gap-2 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
-                <Paperclip className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Adicionar arquivo</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={uploadingFile}
-                />
-              </label>
+              <div className="flex gap-2">
+                <label className="flex-1 flex items-center gap-2 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
+                  <Paperclip className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">Upload arquivo</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    disabled={uploadingFile}
+                  />
+                </label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInternalFiles(!showInternalFiles)}
+                  className="flex items-center gap-2"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Link interno
+                </Button>
+              </div>
+              
+              {showInternalFiles && (
+                <div className="border rounded p-3 max-h-60 overflow-y-auto space-y-1">
+                  <p className="text-xs text-gray-500 mb-2">Selecione um arquivo do app:</p>
+                  {allFiles.filter(f => !f.deleted).map(file => (
+                    <button
+                      key={file.id}
+                      className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded text-left text-sm"
+                      onClick={() => addInternalFileLink(file)}
+                    >
+                      <span className="text-lg">{file.type === 'kbn' ? '📋' : file.type === 'gnt' ? '📊' : file.type === 'docx' ? '📄' : file.type === 'xlsx' ? '📈' : file.type === 'pptx' ? '📽️' : file.type === 'flux' ? '🌊' : '📎'}</span>
+                      <span className="truncate flex-1">{file.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
               {editData.attachments && editData.attachments.length > 0 && (
                 <div className="space-y-1">
                   {editData.attachments.map(att => (
                     <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                      <a href={att.url} target="_blank" className="text-blue-600 hover:underline truncate flex-1">
-                        {att.name}
-                      </a>
+                      {att.isInternal ? (
+                        <span className="text-blue-600 truncate flex-1 flex items-center gap-1">
+                          <LinkIcon className="w-3 h-3" />
+                          {att.name}
+                        </span>
+                      ) : (
+                        <a href={att.url} target="_blank" className="text-blue-600 hover:underline truncate flex-1">
+                          {att.name}
+                        </a>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
