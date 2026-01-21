@@ -131,12 +131,29 @@ export default function Terminal() {
           const scriptContent = args.join(' ');
           const commands = scriptContent.split(';').map(c => c.trim()).filter(c => c);
           
-          addToHistory(input, `Executing ${commands.length} commands...`);
+          addToHistory(input, `Executing ${commands.length} commands with auto-retry...`);
           
-          for (const singleCmd of commands) {
-            await executeCommand(singleCmd);
-            // Small delay to allow UI updates
-            await new Promise(resolve => setTimeout(resolve, 100));
+          for (let i = 0; i < commands.length; i++) {
+            const singleCmd = commands[i];
+            let success = false;
+            let attempts = 0;
+            
+            while (!success && attempts < 3) {
+              attempts++;
+              try {
+                await executeCommand(singleCmd);
+                success = true;
+                // Wait longer to ensure database/state updates complete
+                await new Promise(resolve => setTimeout(resolve, 500));
+              } catch (error) {
+                if (attempts < 3) {
+                  addToHistory('', `⚠ Retry ${attempts}/3 for: ${singleCmd}`);
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                  addToHistory('', `✗ Failed after 3 attempts: ${singleCmd}`, true);
+                }
+              }
+            }
           }
           
           addToHistory('', `✓ Macro completed: ${commands.length} commands executed`);
@@ -186,13 +203,26 @@ export default function Terminal() {
               addToHistory(input, 'Already at root', true);
             }
           } else {
-            const currentFolderId = currentPath === '/' ? null : currentPath;
-            const targetFolder = findFolderByName(args[0], currentFolderId);
+            // Try to find folder, wait for data refresh if needed
+            let targetFolder = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              const currentFolderId = currentPath === '/' ? null : currentPath;
+              targetFolder = findFolderByName(args[0], currentFolderId);
+              
+              if (targetFolder) break;
+              
+              if (attempt < 2) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                await queryClient.invalidateQueries({ queryKey: ['folders'] });
+              }
+            }
+            
             if (targetFolder) {
               setCurrentPath(targetFolder.id);
               addToHistory(input, `Changed to /${targetFolder.name}`);
             } else {
               addToHistory(input, `Folder not found: ${args[0]}`, true);
+              throw new Error('Folder not found');
             }
           }
           break;
@@ -1095,14 +1125,32 @@ export default function Terminal() {
       const lines = currentInput.trim().split('\n').filter(line => line.trim());
       
       if (lines.length > 1) {
-        // Execute as macro
-        addToHistory('$ ' + currentInput, `Executing ${lines.length} commands from script...`);
+        // Execute as macro with retry logic
+        addToHistory('$ ' + currentInput, `Executing ${lines.length} commands with auto-retry...`);
         
         (async () => {
-          for (const line of lines) {
-            if (line.trim()) {
-              await executeCommand(line.trim());
-              await new Promise(resolve => setTimeout(resolve, 100));
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line) {
+              let success = false;
+              let attempts = 0;
+              
+              while (!success && attempts < 3) {
+                attempts++;
+                try {
+                  await executeCommand(line);
+                  success = true;
+                  // Wait to ensure database/state updates complete
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (error) {
+                  if (attempts < 3) {
+                    addToHistory('', `⚠ Retry ${attempts}/3 for: ${line}`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                  } else {
+                    addToHistory('', `✗ Failed after 3 attempts: ${line}`, true);
+                  }
+                }
+              }
             }
           }
           addToHistory('', `✓ Script completed: ${lines.length} commands executed`);
