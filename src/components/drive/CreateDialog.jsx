@@ -77,9 +77,35 @@ export default function CreateDialog({
     }
   };
 
+  const handleCancel = () => {
+    onOpenChange(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit();
+    }
+    // Bloquear ESC
+    if (e.key === 'Escape') {
+      e.preventDefault();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      // Impedir que o dialog feche a menos que seja cancelado explicitamente
+      if (!newOpen) {
+        // Só fechar se o usuário clicar no botão Cancelar
+        return;
+      }
+      onOpenChange(newOpen);
+    }}>
+      <DialogContent 
+        className="sm:max-w-md" 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon className={`w-5 h-5 ${currentConfig.color}`} />
