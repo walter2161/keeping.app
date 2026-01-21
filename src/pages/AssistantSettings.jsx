@@ -223,7 +223,10 @@ export default function AssistantSettings() {
               <p className="text-xs text-gray-500 mt-1">
                 Defina como você quer que seu assistente se comporte, o tom de voz, estilo de resposta, etc.
               </p>
-            </div>
+              <p className="text-xs text-indigo-600 mt-2">
+                ✨ <strong>Novo:</strong> A assistente pode gerar imagens com IA (Pollinations.ai) para capas de cards no Kanban e FluxMap!
+              </p>
+              </div>
 
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-2">
