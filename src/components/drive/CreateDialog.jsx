@@ -145,7 +145,7 @@ export default function CreateDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleCancel}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!name.trim() || !!error}>
