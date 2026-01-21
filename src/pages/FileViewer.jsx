@@ -9,7 +9,7 @@ import {
         ArrowLeft, Save, Download, FileText, FileSpreadsheet,
         LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
         Image as ImageIcon, Video, ArrowRight, Upload, Presentation, Printer,
-        FileImage, FileType, ZoomIn, ZoomOut
+        FileImage, FileType, ZoomIn, ZoomOut, Sparkles
       } from 'lucide-react';
 import {
   Dialog,
@@ -23,6 +23,7 @@ import FluxMap from '../components/flux/FluxMap';
 import DocxEditor from '../components/editors/DocxEditor';
 import XlsxEditor from '../components/editors/XlsxEditor';
 import PptxEditor from '../components/editors/PptxEditor';
+import PhotoSmartEditor from '../components/editors/PhotoSmartEditor';
 import AIAssistant from '../components/ai/AIAssistant';
 import CollaborationBar from '../components/collaboration/CollaborationBar';
 import { useSyncData } from '../components/sync/useSyncData';
@@ -35,6 +36,7 @@ const fileTypeConfig = {
   gnt: { icon: GanttChartIcon, color: 'text-orange-600', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', label: 'Cronograma' },
   flux: { icon: ArrowRight, color: 'text-teal-600', label: 'FluxMap' },
+  psd: { icon: Sparkles, color: 'text-indigo-600', label: 'PhotoSmart' },
   img: { icon: ImageIcon, color: 'text-cyan-600', label: 'Imagem' },
   video: { icon: Video, color: 'text-purple-600', label: 'Vídeo' },
 };
@@ -705,6 +707,14 @@ export default function FileViewer() {
           <PptxEditor
             ref={pptxEditorRef}
             value={typeof localContent === 'object' ? JSON.stringify(localContent) : (localContent || '')}
+            onChange={handleContentChange}
+            fileName={fileName}
+          />
+        )}
+
+        {file.type === 'psd' && localContent && (
+          <PhotoSmartEditor
+            data={localContent}
             onChange={handleContentChange}
             fileName={fileName}
           />
