@@ -100,6 +100,11 @@ export default function Terminal() {
   };
 
   const executeCommand = async (input) => {
+    // Ignore comments and empty lines
+    if (!input || input.trim().startsWith('#')) {
+      return;
+    }
+    
     const parts = parseCommand(input);
     const cmd = parts[0]?.toLowerCase();
     const args = parts.slice(1);
@@ -129,7 +134,7 @@ export default function Terminal() {
             break;
           }
           const scriptContent = args.join(' ');
-          const commands = scriptContent.split(';').map(c => c.trim()).filter(c => c);
+          const commands = scriptContent.split(';').map(c => c.trim()).filter(c => c && !c.startsWith('#'));
           
           addToHistory(input, `Executing ${commands.length} commands with auto-retry...`);
           
@@ -141,10 +146,10 @@ export default function Terminal() {
             while (!success && attempts < 3) {
               attempts++;
               try {
+                await queryClient.invalidateQueries({ queryKey: ['folders', 'files'] });
                 await executeCommand(singleCmd);
                 success = true;
-                // Wait longer to ensure database/state updates complete
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 800));
               } catch (error) {
                 if (attempts < 3) {
                   addToHistory('', `⚠ Retry ${attempts}/3 for: ${singleCmd}`);
@@ -191,7 +196,7 @@ export default function Terminal() {
           break;
 
         case 'cd': {
-          if (!args[0]) {
+          if (!args[0] || args[0] === '/') {
             setCurrentPath('/');
             addToHistory(input, 'Changed to root directory');
           } else if (args[0] === '..' || args[0] === '../') {
@@ -203,18 +208,17 @@ export default function Terminal() {
               addToHistory(input, 'Already at root', true);
             }
           } else {
-            // Try to find folder, wait for data refresh if needed
+            // Try to find folder with progressive waits
             let targetFolder = null;
+            const currentFolderId = currentPath === '/' ? null : currentPath;
+            
             for (let attempt = 0; attempt < 3; attempt++) {
-              const currentFolderId = currentPath === '/' ? null : currentPath;
+              // Force refresh data from server
+              await queryClient.invalidateQueries({ queryKey: ['folders'] });
+              await new Promise(resolve => setTimeout(resolve, 800)); // Wait for query to complete
+              
               targetFolder = findFolderByName(args[0], currentFolderId);
-              
               if (targetFolder) break;
-              
-              if (attempt < 2) {
-                await new Promise(resolve => setTimeout(resolve, 300));
-                await queryClient.invalidateQueries({ queryKey: ['folders'] });
-              }
             }
             
             if (targetFolder) {
@@ -1122,30 +1126,33 @@ export default function Terminal() {
     e.preventDefault();
     if (currentInput.trim()) {
       // Check if multi-line input (pasted script)
-      const lines = currentInput.trim().split('\n').filter(line => line.trim());
+      const lines = currentInput.trim().split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed && !trimmed.startsWith('#');
+      });
       
       if (lines.length > 1) {
         // Execute as macro with retry logic
-        addToHistory('$ ' + currentInput, `Executing ${lines.length} commands with auto-retry...`);
+        addToHistory('$ [Script]', `Executing ${lines.length} commands with auto-retry...`);
         
         (async () => {
           for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
-            if (line) {
+            if (line && !line.startsWith('#')) {
               let success = false;
               let attempts = 0;
               
               while (!success && attempts < 3) {
                 attempts++;
                 try {
+                  await queryClient.invalidateQueries({ queryKey: ['folders', 'files'] });
                   await executeCommand(line);
                   success = true;
-                  // Wait to ensure database/state updates complete
-                  await new Promise(resolve => setTimeout(resolve, 500));
+                  await new Promise(resolve => setTimeout(resolve, 800));
                 } catch (error) {
                   if (attempts < 3) {
                     addToHistory('', `⚠ Retry ${attempts}/3 for: ${line}`);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 1200));
                   } else {
                     addToHistory('', `✗ Failed after 3 attempts: ${line}`, true);
                   }
