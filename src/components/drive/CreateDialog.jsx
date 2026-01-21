@@ -74,9 +74,6 @@ export default function CreateDialog({
       } else {
         onSubmit(trimmedName);
       }
-      setName('');
-      setColor('blue');
-      setError('');
     }
   };
 
