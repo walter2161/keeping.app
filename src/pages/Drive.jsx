@@ -70,6 +70,8 @@ export default function Drive() {
   // Auto-refresh based on user settings
   React.useEffect(() => {
     if (!user?.auto_refresh_interval) return;
+    // Don't auto-refresh while dialog is open
+    if (createDialog.open || importDialog || uploadDialog || teamDialog.open) return;
 
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -77,7 +79,7 @@ export default function Drive() {
     }, (user.auto_refresh_interval || 120) * 1000);
 
     return () => clearInterval(interval);
-  }, [user?.auto_refresh_interval, queryClient]);
+  }, [user?.auto_refresh_interval, queryClient, createDialog.open, importDialog, uploadDialog, teamDialog.open]);
 
   // Fetch folders
   const { data: allFolders = [], isLoading: foldersLoading } = useQuery({
