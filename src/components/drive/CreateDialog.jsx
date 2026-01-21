@@ -24,6 +24,15 @@ export default function CreateDialog({
   const [color, setColor] = useState('blue');
   const [error, setError] = useState('');
 
+  // Reset state when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      setName('');
+      setColor('blue');
+      setError('');
+    }
+  }, [open]);
+
   const config = {
     folder: { icon: Folder, title: 'Nova Pasta', placeholder: 'Nome da pasta', color: 'text-gray-600' },
     kbn: { icon: LayoutGrid, title: 'Novo Kanban', placeholder: 'Nome do arquivo Kanban', color: 'text-purple-600' },
