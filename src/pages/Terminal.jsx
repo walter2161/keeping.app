@@ -676,10 +676,29 @@ export default function Terminal() {
           break;
         }
 
+        // === AI IMAGE GENERATION ===
+        case 'ai-gen-image': {
+          if (args.length < 1) {
+            addToHistory(input, 'Usage: ai-gen-image "<prompt>"', true);
+            break;
+          }
+          const prompt = args.join(' ');
+          addToHistory(input, 'Generating image with AI...');
+          
+          try {
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&model=flux&nologo=true&enhance=true`;
+            addToHistory('', `✓ Image generated: ${imageUrl}\nUse this URL in your commands!`);
+          } catch (error) {
+            addToHistory('', `Error generating image: ${error.message}`, true);
+          }
+          break;
+        }
+
         // === FLUX COMMANDS ===
         case 'flux-add-node': {
           if (args.length < 4) {
-            addToHistory(input, 'Usage: flux-add-node <file_name> <node_type> <x> <y> [text|title]', true);
+            addToHistory(input, 'Usage: flux-add-node <file_name> <node_type> <x> <y> [text|title] [cover_image_url]', true);
             break;
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
@@ -691,7 +710,20 @@ export default function Terminal() {
           const content = targetFile.content ? JSON.parse(targetFile.content) : { drawflow: { Home: { data: {} } } };
           const nodeId = Date.now().toString();
           const nodeType = args[1];
-          const nodeData = { text: args[4] || 'Node', title: args[4] || 'Node' };
+          const nodeTitle = args[4] || 'Node';
+          const coverImage = args[5] || null;
+          
+          const nodeData = { 
+            text: nodeTitle, 
+            title: nodeTitle,
+            description: '',
+            priority: 'medium',
+            coverType: coverImage ? 'image' : 'color',
+            coverImage: coverImage,
+            coverColor: 'blue',
+            coverZoom: 100
+          };
+          
           content.drawflow.Home.data[nodeId] = {
             id: nodeId,
             name: nodeType,
@@ -708,7 +740,35 @@ export default function Terminal() {
             id: targetFile.id,
             data: { content: JSON.stringify(content) }
           });
-          addToHistory(input, `Node ${nodeId} (${nodeType}) added at (${args[2]}, ${args[3]})`);
+          addToHistory(input, `Node ${nodeId} (${nodeType}) added at (${args[2]}, ${args[3]})${coverImage ? ' with cover image' : ''}`);
+          break;
+        }
+
+        case 'flux-set-cover': {
+          if (args.length < 3) {
+            addToHistory(input, 'Usage: flux-set-cover <file_name> <node_id> <image_url>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'flux') {
+            addToHistory(input, 'File not found or not a flux file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content);
+          const node = content.drawflow.Home.data[args[1]];
+          if (!node) {
+            addToHistory(input, 'Node not found', true);
+            break;
+          }
+          node.data.coverType = 'image';
+          node.data.coverImage = args[2];
+          node.data.coverZoom = 100;
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Cover image set for node ${args[1]}`);
           break;
         }
 
@@ -1222,8 +1282,12 @@ CRONOGRAMA:
   crn-add-item <file> <group_id> <name> <start> <end> [responsible]
   crn-list <file>
 
+AI IMAGES:
+  ai-gen-image "<prompt>"
+
 FLUXMAP:
-  flux-add-node <file> <type> <x> <y> [text]
+  flux-add-node <file> <type> <x> <y> [text] [image_url]
+  flux-set-cover <file> <node_id> <image_url>
   flux-connect <file> <from_id> <to_id>
   flux-list <file>
 
@@ -1387,12 +1451,26 @@ function Documentation() {
             </div>
           </div>
 
+          <h4 className="font-bold text-white text-base mt-4">✨ AI IMAGE GENERATION</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">ai-gen-image "&lt;prompt&gt;"</code>
+              <p className="text-gray-400 text-xs">Generate image with AI (returns URL to use in other commands)</p>
+              <code className="text-green-400 text-xs block mt-1">ai-gen-image "modern luxury house exterior sunset"</code>
+            </div>
+          </div>
+
           <h4 className="font-bold text-white text-base mt-4">🔀 FLUXMAP Commands</h4>
           <div className="pl-2 space-y-2">
             <div>
-              <code className="text-cyan-400">flux-add-node &lt;file&gt; &lt;type&gt; &lt;x&gt; &lt;y&gt; [text]</code>
-              <p className="text-gray-400 text-xs">Add node (types: sticky-note, card-kanban, rectangle-shape, circle-shape, name-bubble, text-box, url-link)</p>
-              <code className="text-green-400 text-xs block mt-1">flux-add-node map sticky-note 100 200 "My Note"</code>
+              <code className="text-cyan-400">flux-add-node &lt;file&gt; &lt;type&gt; &lt;x&gt; &lt;y&gt; [text] [image_url]</code>
+              <p className="text-gray-400 text-xs">Add node with optional cover image (types: sticky-note, card, rectangle, circle, name, text, link)</p>
+              <code className="text-green-400 text-xs block mt-1">flux-add-node map card 100 200 "Scene 1" "https://..."</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">flux-set-cover &lt;file&gt; &lt;node_id&gt; &lt;image_url&gt;</code>
+              <p className="text-gray-400 text-xs">Set cover image for existing node</p>
+              <code className="text-green-400 text-xs block mt-1">flux-set-cover map 12345 "https://..."</code>
             </div>
             <div>
               <code className="text-cyan-400">flux-connect &lt;file&gt; &lt;from_id&gt; &lt;to_id&gt;</code>
