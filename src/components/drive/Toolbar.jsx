@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File, Terminal
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File, Terminal, Sparkles
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -214,6 +214,11 @@ export default function Toolbar({
             <DropdownMenuItem onClick={() => onNewFile?.('pptx')}>
               <Presentation className="w-4 h-4 mr-2 text-amber-600" />
               Apresentação
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onNewFile?.('psd')}>
+              <Sparkles className="w-4 h-4 mr-2 text-indigo-600" />
+              PhotoSmart
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

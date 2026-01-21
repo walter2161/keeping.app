@@ -305,6 +305,7 @@ export default function Drive() {
       docx: '',
       xlsx: '',
       pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
+      psd: JSON.stringify({ layers: [], canvas: { width: 1920, height: 1080, background: '#ffffff' } }),
     };
 
     // Herdar team_id da pasta pai
@@ -546,8 +547,8 @@ export default function Drive() {
   };
 
   const handleFileClick = (file) => {
-    // Abrir arquivos Office em nova aba
-    if (['docx', 'xlsx', 'pptx'].includes(file.type)) {
+    // Abrir arquivos Office e PSD em nova aba
+    if (['docx', 'xlsx', 'pptx', 'psd'].includes(file.type)) {
       window.open(createPageUrl(`FileViewer?id=${file.id}`), '_blank');
     } else {
       // Outros tipos na mesma aba
