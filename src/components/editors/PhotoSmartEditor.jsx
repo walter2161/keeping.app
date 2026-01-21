@@ -1,69 +1,107 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
-  Pencil, Eraser, Type, Download, Upload, Trash2, Copy, Eye, EyeOff,
-  Plus, Minus, Move, Square, Circle, Sparkles, Settings, Pipette,
-  ChevronUp, ChevronDown, Lock, Unlock, Loader2
+  Move, Square, Wand2, Paintbrush, Pencil, Circle as CircleIcon, Minus as LineIcon,
+  Type, Eraser, Palette, Search, Folder, Image as ImageIcon, RefreshCw,
+  Copy, Trash2, Eye, EyeOff, Edit2, Sparkles, Loader2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from '@/api/base44Client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function PhotoSmartEditor({ data, onChange, fileName }) {
   const canvasRef = useRef(null);
   const [layers, setLayers] = useState([]);
   const [selectedLayerId, setSelectedLayerId] = useState(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 1920, height: 1080 });
-  const [tool, setTool] = useState('pencil');
+  const [canvasSize, setCanvasSize] = useState({ width: 2500, height: 1500 });
+  const [tool, setTool] = useState('move');
   const [color, setColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(5);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(75);
+  const [aiPrompt, setAiPrompt] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [undoStack, setUndoStack] = useState([]);
-  const [redoStack, setRedoStack] = useState([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [blendMode, setBlendMode] = useState('normal');
+  const [layerOpacity, setLayerOpacity] = useState(100);
+  const [addMask, setAddMask] = useState(false);
 
-  // Initialize canvas and layers from data
+  // Initialize from data
   useEffect(() => {
     if (data?.layers && Array.isArray(data.layers)) {
-      setLayers(data.layers);
+      const loadedLayers = data.layers.map(l => ({
+        ...l,
+        canvas: loadCanvasFromData(l.canvasData || l.canvas)
+      }));
+      setLayers(loadedLayers);
       if (data.canvas) {
         setCanvasSize(data.canvas);
       }
-      if (data.layers.length > 0) {
-        setSelectedLayerId(data.layers[0].id);
+      if (loadedLayers.length > 0) {
+        setSelectedLayerId(loadedLayers[0].id);
       }
     } else {
-      // Create default layer
-      const defaultLayer = {
-        id: Date.now(),
-        name: 'Layer 1',
-        visible: true,
-        locked: false,
-        canvas: createCanvas(1920, 1080),
-        opacity: 100,
-      };
-      setLayers([defaultLayer]);
-      setSelectedLayerId(defaultLayer.id);
+      // Create default background layer
+      const bg = createLayer('Background', canvasSize.width, canvasSize.height);
+      const ctx = bg.canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+      setLayers([bg]);
+      setSelectedLayerId(bg.id);
     }
-  }, [data]);
+  }, []);
 
-  const createCanvas = (width, height) => {
+  const loadCanvasFromData = (canvasData) => {
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = canvasSize.width;
+    canvas.height = canvasSize.height;
+    
+    if (typeof canvasData === 'string' && canvasData.startsWith('data:image')) {
+      const img = new Image();
+      img.onload = () => {
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = canvasData;
+    }
+    
     return canvas;
   };
 
-  // Render canvas
+  const createLayer = (name, width, height) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return {
+      id: Date.now() + Math.random(),
+      name,
+      visible: true,
+      locked: false,
+      canvas,
+      opacity: 100,
+      blendMode: 'normal',
+      thumbnail: null
+    };
+  };
+
+  // Render main canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || layers.length === 0) return;
 
+    canvas.width = canvasSize.width;
+    canvas.height = canvasSize.height;
+    
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
-    // Draw all visible layers
+    // Render all visible layers
     layers.forEach((layer) => {
       if (layer.visible && layer.canvas) {
         ctx.globalAlpha = layer.opacity / 100;
@@ -72,21 +110,44 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       }
     });
 
-    // Export changes
+    // Save changes
+    saveToData();
+  }, [layers, canvasSize]);
+
+  const saveToData = () => {
     onChange({
       layers: layers.map(l => ({
-        ...l,
-        canvas: l.canvas.toDataURL()
+        id: l.id,
+        name: l.name,
+        visible: l.visible,
+        locked: l.locked,
+        opacity: l.opacity,
+        blendMode: l.blendMode,
+        canvasData: l.canvas.toDataURL(),
+        thumbnail: generateThumbnail(l.canvas)
       })),
       canvas: canvasSize
     });
-  }, [layers, canvasSize, zoom]);
+  };
+
+  const generateThumbnail = (canvas) => {
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = 60;
+    thumbCanvas.height = 40;
+    const ctx = thumbCanvas.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, 60, 40);
+    return thumbCanvas.toDataURL();
+  };
 
   const handleCanvasMouseDown = (e) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvasSize.width / rect.width;
+    const scaleY = canvasSize.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     setIsDrawing(true);
 
@@ -95,40 +156,38 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
 
     const ctx = selectedLayer.canvas.getContext('2d');
 
-    // Save state for undo
-    setUndoStack([...undoStack, selectedLayer.canvas.toDataURL()]);
-    setRedoStack([]);
-
-    if (tool === 'pencil') {
+    if (tool === 'pencil' || tool === 'brush') {
       ctx.strokeStyle = color;
-      ctx.lineWidth = brushSize;
+      ctx.lineWidth = tool === 'brush' ? brushSize * 2 : brushSize;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
       ctx.moveTo(x, y);
     } else if (tool === 'eraser') {
       ctx.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize);
-    } else if (tool === 'colorpicker') {
-      const imageData = ctx.getImageData(x, y, 1, 1);
-      const [r, g, b] = imageData.data;
-      setColor(`#${[r, g, b].map(c => c.toString(16).padStart(2, '0')).join('')}`);
     }
 
     setLayers([...layers]);
   };
 
   const handleCanvasMouseMove = (e) => {
-    if (!isDrawing || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
+    if (!isDrawing) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvasSize.width / rect.width;
+    const scaleY = canvasSize.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     const selectedLayer = layers.find(l => l.id === selectedLayerId);
     if (!selectedLayer) return;
 
     const ctx = selectedLayer.canvas.getContext('2d');
 
-    if (tool === 'pencil') {
+    if (tool === 'pencil' || tool === 'brush') {
       ctx.lineTo(x, y);
       ctx.stroke();
     } else if (tool === 'eraser') {
@@ -142,370 +201,322 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
     setIsDrawing(false);
   };
 
-  const addLayer = () => {
-    const newLayer = {
-      id: Date.now(),
-      name: `Layer ${layers.length + 1}`,
-      visible: true,
-      locked: false,
-      canvas: createCanvas(canvasSize.width, canvasSize.height),
-      opacity: 100,
-    };
-    setLayers([...layers, newLayer]);
+  const addNewLayer = () => {
+    const newLayer = createLayer(`Layer ${layers.length + 1}`, canvasSize.width, canvasSize.height);
+    setLayers([newLayer, ...layers]);
     setSelectedLayerId(newLayer.id);
   };
 
   const deleteLayer = () => {
-    if (layers.length === 1) {
-      alert('Cannot delete the last layer');
-      return;
-    }
+    if (layers.length === 1) return;
     const newLayers = layers.filter(l => l.id !== selectedLayerId);
     setLayers(newLayers);
-    setSelectedLayerId(newLayers[0].id);
+    setSelectedLayerId(newLayers[0]?.id);
   };
 
   const duplicateLayer = () => {
-    const selectedLayer = layers.find(l => l.id === selectedLayerId);
-    if (!selectedLayer) return;
+    const layer = layers.find(l => l.id === selectedLayerId);
+    if (!layer) return;
 
-    const newCanvas = createCanvas(canvasSize.width, canvasSize.height);
+    const newCanvas = document.createElement('canvas');
+    newCanvas.width = canvasSize.width;
+    newCanvas.height = canvasSize.height;
     const ctx = newCanvas.getContext('2d');
-    ctx.drawImage(selectedLayer.canvas, 0, 0);
+    ctx.drawImage(layer.canvas, 0, 0);
 
     const newLayer = {
-      ...selectedLayer,
-      id: Date.now(),
-      name: `${selectedLayer.name} copy`,
-      canvas: newCanvas,
+      ...layer,
+      id: Date.now() + Math.random(),
+      name: `${layer.name} copy`,
+      canvas: newCanvas
     };
-    
-    const layerIndex = layers.findIndex(l => l.id === selectedLayerId);
-    const newLayers = [
-      ...layers.slice(0, layerIndex + 1),
-      newLayer,
-      ...layers.slice(layerIndex + 1)
-    ];
+
+    const idx = layers.findIndex(l => l.id === selectedLayerId);
+    const newLayers = [...layers.slice(0, idx), newLayer, ...layers.slice(idx)];
     setLayers(newLayers);
     setSelectedLayerId(newLayer.id);
   };
 
-  const moveLayer = (direction) => {
-    const layerIndex = layers.findIndex(l => l.id === selectedLayerId);
-    if (layerIndex === -1) return;
-
-    const newIndex = direction === 'up' ? layerIndex + 1 : layerIndex - 1;
-    if (newIndex < 0 || newIndex >= layers.length) return;
-
-    const newLayers = [...layers];
-    [newLayers[layerIndex], newLayers[newIndex]] = [newLayers[newIndex], newLayers[layerIndex]];
-    setLayers(newLayers);
-  };
-
   const toggleLayerVisibility = (layerId) => {
-    setLayers(layers.map(l =>
-      l.id === layerId ? { ...l, visible: !l.visible } : l
-    ));
-  };
-
-  const toggleLayerLock = (layerId) => {
-    setLayers(layers.map(l =>
-      l.id === layerId ? { ...l, locked: !l.locked } : l
-    ));
+    setLayers(layers.map(l => l.id === layerId ? { ...l, visible: !l.visible } : l));
   };
 
   const updateLayerOpacity = (layerId, opacity) => {
-    setLayers(layers.map(l =>
-      l.id === layerId ? { ...l, opacity } : l
-    ));
+    setLayers(layers.map(l => l.id === layerId ? { ...l, opacity } : l));
+    setLayerOpacity(opacity);
+  };
+
+  const updateSelectedLayerOpacity = (opacity) => {
+    if (!selectedLayerId) return;
+    updateLayerOpacity(selectedLayerId, opacity);
   };
 
   const generateWithAI = async () => {
-    if (!fileName) {
-      alert('Please name your design first');
+    if (!aiPrompt.trim()) {
+      alert('Digite um prompt para gerar a imagem');
       return;
     }
 
     setAiGenerating(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Generate a creative, modern design image for "${fileName}". Make it professional and visually appealing. Dimensions: 1920x1080.`,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            description: { type: 'string' },
-            colors: { type: 'array', items: { type: 'string' } }
-          }
-        }
+      const result = await base44.integrations.Core.GenerateImage({
+        prompt: aiPrompt
       });
 
-      const imageUrl = await base44.integrations.Core.GenerateImage({
-        prompt: result?.description || `Professional design for ${fileName}`
-      });
-
-      if (imageUrl?.url) {
+      if (result?.url) {
         const img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = () => {
-          const selectedLayer = layers.find(l => l.id === selectedLayerId);
-          if (selectedLayer) {
-            const ctx = selectedLayer.canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
-            setLayers([...layers]);
-          }
+          const newLayer = createLayer('AI Generated', canvasSize.width, canvasSize.height);
+          const ctx = newLayer.canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+          setLayers([newLayer, ...layers]);
+          setSelectedLayerId(newLayer.id);
         };
-        img.src = imageUrl.url;
+        img.src = result.url;
       }
     } catch (error) {
-      alert('Error generating image: ' + error.message);
+      alert('Erro ao gerar imagem: ' + error.message);
     } finally {
       setAiGenerating(false);
     }
   };
 
+  const selectedLayer = layers.find(l => l.id === selectedLayerId);
+
   return (
-    <div className="flex h-screen bg-gray-900">
-      {/* Toolbar - Left */}
-      <div className="w-16 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-4 gap-2">
-        <ToolButton
-          icon={Pencil}
-          active={tool === 'pencil'}
-          onClick={() => setTool('pencil')}
-          title="Pencil"
+    <div className="flex flex-col h-screen bg-gray-900">
+      {/* Top Menu Bar */}
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-4 text-sm text-gray-300">
+        <button className="hover:text-white">Arquivo</button>
+        <button className="hover:text-white">Editar</button>
+        <button className="hover:text-white">Imagem</button>
+        <button className="hover:text-white">Efeitos</button>
+        <button className="hover:text-white">IA</button>
+        <button className="hover:text-white">Visualizar</button>
+        <button className="hover:text-white">Ajuda</button>
+        <div className="ml-auto flex gap-2">
+          <Button variant="ghost" size="icon" className="text-gray-400 h-8 w-8">
+            <Square className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-gray-400 h-8 w-8">
+            <Copy className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* AI Prompt Bar */}
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center gap-3">
+        <Sparkles className="w-5 h-5 text-gray-400" />
+        <Input
+          value={aiPrompt}
+          onChange={(e) => setAiPrompt(e.target.value)}
+          placeholder="Generate an image of a futuristic city at sunset"
+          className="flex-1 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
+          onKeyDown={(e) => e.key === 'Enter' && generateWithAI()}
         />
-        <ToolButton
-          icon={Eraser}
-          active={tool === 'eraser'}
-          onClick={() => setTool('eraser')}
-          title="Eraser"
-        />
-        <ToolButton
-          icon={Type}
-          active={tool === 'text'}
-          onClick={() => setTool('text')}
-          title="Text"
-        />
-        <ToolButton
-          icon={Square}
-          active={tool === 'rectangle'}
-          onClick={() => setTool('rectangle')}
-          title="Rectangle"
-        />
-        <ToolButton
-          icon={Circle}
-          active={tool === 'circle'}
-          onClick={() => setTool('circle')}
-          title="Circle"
-        />
-        <ToolButton
-          icon={Pipette}
-          active={tool === 'colorpicker'}
-          onClick={() => setTool('colorpicker')}
-          title="Color Picker"
-        />
-        <div className="flex-1" />
-        <Button
-          size="icon"
-          onClick={() => setZoom(Math.min(3, zoom + 0.5))}
-          variant="outline"
-          className="text-white"
+        <Button 
+          onClick={generateWithAI} 
+          disabled={aiGenerating}
+          className="bg-indigo-600 hover:bg-indigo-700"
         >
-          <Plus className="w-4 h-4" />
-        </Button>
-        <span className="text-xs text-gray-300">{Math.round(zoom * 100)}%</span>
-        <Button
-          size="icon"
-          onClick={() => setZoom(Math.max(0.1, zoom - 0.5))}
-          variant="outline"
-          className="text-white"
-        >
-          <Minus className="w-4 h-4" />
+          {aiGenerating ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            'Gerar'
+          )}
         </Button>
       </div>
 
-      {/* Canvas Area - Center */}
-      <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto flex items-center justify-center p-4 bg-gray-900">
-          <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
-            <canvas
-              ref={canvasRef}
-              width={canvasSize.width}
-              height={canvasSize.height}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseUp}
-              className="border border-gray-600 cursor-crosshair bg-white"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
-          </div>
-        </div>
-
-        {/* Color & Brush Controls */}
-        <div className="bg-gray-800 border-t border-gray-700 p-4 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-white text-sm">Color</label>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Toolbar */}
+        <div className="w-14 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-3 gap-1">
+          <ToolButton icon={Move} active={tool === 'move'} onClick={() => setTool('move')} />
+          <ToolButton icon={Square} active={tool === 'rectangle'} onClick={() => setTool('rectangle')} />
+          <ToolButton icon={Wand2} active={tool === 'wand'} onClick={() => setTool('wand')} />
+          <ToolButton icon={Paintbrush} active={tool === 'brush'} onClick={() => setTool('brush')} />
+          <ToolButton icon={Pencil} active={tool === 'pencil'} onClick={() => setTool('pencil')} />
+          <ToolButton icon={CircleIcon} active={tool === 'circle'} onClick={() => setTool('circle')} />
+          <ToolButton icon={LineIcon} active={tool === 'line'} onClick={() => setTool('line')} />
+          <ToolButton icon={Type} active={tool === 'text'} onClick={() => setTool('text')} />
+          <ToolButton icon={Eraser} active={tool === 'eraser'} onClick={() => setTool('eraser')} />
+          <div className="relative">
+            <ToolButton icon={Palette} active={false} onClick={() => {}} />
             <input
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="w-10 h-10 rounded cursor-pointer"
+              className="absolute inset-0 opacity-0 cursor-pointer"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-white text-sm">Brush Size</label>
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={brushSize}
-              onChange={(e) => setBrushSize(parseInt(e.target.value))}
-              className="w-24"
-            />
-            <span className="text-white text-sm">{brushSize}px</span>
+          <ToolButton icon={Search} active={tool === 'zoom'} onClick={() => setTool('zoom')} />
+        </div>
+
+        {/* Canvas Area */}
+        <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
+          <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+            <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center' }}>
+              <canvas
+                ref={canvasRef}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseUp}
+                className="border border-gray-600 cursor-crosshair bg-white shadow-2xl"
+                style={{ maxWidth: '100%', maxHeight: '100%' }}
+              />
+            </div>
           </div>
-          <Button
-            onClick={generateWithAI}
-            disabled={aiGenerating}
-            className="ml-auto"
-          >
-            {aiGenerating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            AI Generate
-          </Button>
-        </div>
-      </div>
 
-      {/* Layers Panel - Right */}
-      <div className="w-72 bg-gray-800 border-l border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="text-white font-semibold mb-3">Layers</h3>
-          <Button onClick={addLayer} size="sm" className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Layer
-          </Button>
+          {/* Bottom Bar */}
+          <div className="bg-gray-800 border-t border-gray-700 px-4 py-2 flex items-center justify-between text-sm text-gray-300">
+            <div className="flex items-center gap-2">
+              <Select value={zoom.toString()} onValueChange={(v) => setZoom(parseInt(v))}>
+                <SelectTrigger className="w-24 h-8 bg-gray-900 border-gray-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25%</SelectItem>
+                  <SelectItem value="50">50%</SelectItem>
+                  <SelectItem value="75">75%</SelectItem>
+                  <SelectItem value="100">100%</SelectItem>
+                  <SelectItem value="150">150%</SelectItem>
+                  <SelectItem value="200">200%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-gray-400">
+              {canvasSize.width} x {canvasSize.height} px
+            </div>
+          </div>
         </div>
 
-        {/* Layer List */}
-        <div className="flex-1 overflow-y-auto">
-          {layers.map((layer, index) => (
-            <div
-              key={layer.id}
-              onClick={() => setSelectedLayerId(layer.id)}
-              className={`p-3 border-b border-gray-700 cursor-pointer ${
-                selectedLayerId === layer.id ? 'bg-blue-900' : 'hover:bg-gray-700'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleLayerVisibility(layer.id);
-                  }}
-                  className="text-white h-6 w-6"
-                >
-                  {layer.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleLayerLock(layer.id);
-                  }}
-                  className="text-white h-6 w-6"
-                >
-                  {layer.locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                </Button>
+        {/* Right Layers Panel */}
+        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+          <div className="p-3 border-b border-gray-700 flex items-center justify-between">
+            <h3 className="text-white font-semibold">Camadas</h3>
+            <Button variant="ghost" size="icon" className="text-gray-400 h-8 w-8">
+              <Square className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Layers List */}
+          <div className="flex-1 overflow-y-auto">
+            {layers.map((layer) => (
+              <div
+                key={layer.id}
+                onClick={() => setSelectedLayerId(layer.id)}
+                className={`p-3 border-b border-gray-700 cursor-pointer flex items-center gap-3 ${
+                  selectedLayerId === layer.id ? 'bg-indigo-900' : 'hover:bg-gray-700'
+                }`}
+              >
+                <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {layer.thumbnail ? (
+                    <img src={layer.thumbnail} alt={layer.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-gray-600" />
+                  )}
+                </div>
                 <span className="text-white flex-1 text-sm truncate">{layer.name}</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLayerVisibility(layer.id);
+                    }}
+                    className="text-gray-400 h-6 w-6"
+                  >
+                    {layer.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 h-6 w-6"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
+            ))}
+          </div>
 
-              <div className="flex items-center gap-1">
-                <label className="text-gray-300 text-xs flex-1">Opacity</label>
+          {/* Layer Controls */}
+          <div className="p-3 border-t border-gray-700 space-y-3">
+            <div>
+              <label className="text-gray-400 text-xs mb-1 block">Modo:</label>
+              <Select value={blendMode} onValueChange={setBlendMode}>
+                <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="multiply">Multiplicar</SelectItem>
+                  <SelectItem value="screen">Tela</SelectItem>
+                  <SelectItem value="overlay">Sobrepor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-gray-400 text-xs mb-1 block">Opacidade:</label>
+              <div className="flex items-center gap-2">
                 <input
                   type="range"
                   min="0"
                   max="100"
-                  value={layer.opacity}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    updateLayerOpacity(layer.id, parseInt(e.target.value));
-                  }}
+                  value={selectedLayer?.opacity || 100}
+                  onChange={(e) => updateSelectedLayerOpacity(parseInt(e.target.value))}
                   className="flex-1"
-                  onClick={(e) => e.stopPropagation()}
                 />
-                <span className="text-gray-300 text-xs w-8">{layer.opacity}%</span>
-              </div>
-
-              <div className="flex gap-1 mt-2">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    moveLayer('up');
-                  }}
-                  className="text-white h-6 w-6 flex-1"
-                >
-                  <ChevronUp className="w-3 h-3" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    moveLayer('down');
-                  }}
-                  className="text-white h-6 w-6 flex-1"
-                >
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    duplicateLayer();
-                  }}
-                  className="text-white h-6 w-6 flex-1"
-                >
-                  <Copy className="w-3 h-3" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteLayer();
-                  }}
-                  className="text-white h-6 w-6 flex-1 hover:text-red-400"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
+                <span className="text-white text-xs w-12">{selectedLayer?.opacity || 100}%</span>
               </div>
             </div>
-          ))}
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={addMask}
+                onChange={(e) => setAddMask(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label className="text-gray-300 text-sm">Adicionar Máscara</label>
+            </div>
+
+            <div className="flex gap-1 pt-2">
+              <Button variant="ghost" size="icon" className="text-gray-400 flex-1" onClick={addNewLayer}>
+                <Folder className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-gray-400 flex-1" onClick={addNewLayer}>
+                <ImageIcon className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-gray-400 flex-1">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-gray-400 flex-1" onClick={duplicateLayer}>
+                <Copy className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-red-400 flex-1 hover:text-red-300" onClick={deleteLayer}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ToolButton({ icon: Icon, active, onClick, title }) {
+function ToolButton({ icon: Icon, active, onClick }) {
   return (
-    <Button
-      size="icon"
+    <button
       onClick={onClick}
-      variant={active ? 'default' : 'ghost'}
-      className={`text-white ${active ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
-      title={title}
+      className={`w-10 h-10 rounded flex items-center justify-center transition-colors ${
+        active ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+      }`}
     >
       <Icon className="w-5 h-5" />
-    </Button>
+    </button>
   );
 }
