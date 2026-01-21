@@ -112,6 +112,11 @@ export default function Wiki() {
                     <strong>FluxMap (.flux)</strong>
                     <p className="text-sm text-gray-600">Fluxogramas e diagramas</p>
                   </div>
+                  <div className="bg-indigo-50 p-3 rounded-lg">
+                    <FileText className="w-5 h-5 text-indigo-600 mb-2" />
+                    <strong>PhotoSmart (.psd)</strong>
+                    <p className="text-sm text-gray-600">Editor de imagens com IA</p>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -133,7 +138,10 @@ export default function Wiki() {
                   <li>Criar colunas personalizadas</li>
                   <li>Adicionar cards com título, descrição e prioridade</li>
                   <li>Upload de anexos e imagens de capa</li>
+                  <li><strong>✨ Gerar capas com IA:</strong> Clique no botão estrela para criar imagens por prompt</li>
                   <li>Cores de capa customizáveis</li>
+                  <li>Zoom na imagem de capa (50%-200%)</li>
+                  <li>Baixar anexos individualmente</li>
                   <li>Arrastar e soltar cards entre colunas</li>
                   <li>Edição rápida ao clicar no card</li>
                 </ul>
@@ -178,7 +186,7 @@ export default function Wiki() {
                 <h3 className="font-semibold text-lg">Elementos disponíveis:</h3>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li><strong>Sticky Note:</strong> Notas adesivas amarelas</li>
-                  <li><strong>Card:</strong> Cards estilo Kanban com detalhes</li>
+                  <li><strong>Card:</strong> Cards estilo Kanban com capas customizáveis e <strong>✨ geração de imagens por IA</strong></li>
                   <li><strong>Retângulo:</strong> Formas para processos</li>
                   <li><strong>Círculo:</strong> Destacar pontos importantes</li>
                   <li><strong>Nome:</strong> Bolhas para nomes/etiquetas</li>
@@ -188,8 +196,65 @@ export default function Wiki() {
                   <li><strong>Planilha:</strong> Miniaturas de planilhas que abrem o editor XLSX</li>
                   <li><strong>Apresentação:</strong> Miniaturas de apresentações que abrem o editor PPTX</li>
                 </ul>
+                
+                <h3 className="font-semibold text-lg mt-4">Recursos dos Cards:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li>Capas com cores ou imagens</li>
+                  <li><strong>✨ Geração de capas com IA:</strong> Botão estrela para criar imagens por prompt</li>
+                  <li>Anexar arquivos ou gerar imagens com IA para anexar</li>
+                  <li>Download individual de anexos</li>
+                  <li>Zoom nas imagens de capa</li>
+                </ul>
                 <div className="bg-teal-50 p-4 rounded-lg border-l-4 border-teal-500">
                   <strong>💡 Dica:</strong> Conecte elementos clicando nas bolinhas que aparecem ao passar o mouse!
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* PhotoSmart */}
+            <AccordionItem value="photosmart" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-xl font-semibold">
+                <div className="flex items-center gap-2">
+                  ✨ PhotoSmart - Editor de Imagens com IA
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-700 space-y-4 pt-4">
+                <p>
+                  Editor profissional de imagens com ferramentas completas e geração de imagens por IA.
+                </p>
+                <h3 className="font-semibold text-lg">Menu Superior:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Arquivo:</strong> Novo documento, importar, salvar, exportar (PNG/JPG/WebP)</li>
+                  <li><strong>Editar:</strong> Desfazer, refazer, duplicar/excluir camadas</li>
+                  <li><strong>IA:</strong> Gerar imagens por prompt, histórico de gerações</li>
+                  <li><strong>Visualizar:</strong> Zoom, grade, tela cheia</li>
+                  <li><strong>Ajuda:</strong> Atalhos do teclado e sobre</li>
+                </ul>
+                
+                <h3 className="font-semibold text-lg mt-4">Ferramentas Disponíveis:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Mover (V):</strong> Move objetos e textos pelo canvas</li>
+                  <li><strong>Pincel (B):</strong> Desenho livre com controle de cor e tamanho</li>
+                  <li><strong>Lápis (P):</strong> Traços finos e precisos</li>
+                  <li><strong>Borracha (E):</strong> Apaga elementos desenhados</li>
+                  <li><strong>Retângulo (R):</strong> Cria retângulos vetoriais</li>
+                  <li><strong>Círculo (C):</strong> Cria círculos perfeitos</li>
+                  <li><strong>Linha (L):</strong> Linhas retas de ponto a ponto</li>
+                  <li><strong>Texto (T):</strong> Adiciona texto com controle de tamanho e cor</li>
+                  <li><strong>Lupa (Z):</strong> Controla zoom da visualização</li>
+                </ul>
+
+                <h3 className="font-semibold text-lg mt-4">Controles:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Cor:</strong> Seletor de cores no topo</li>
+                  <li><strong>Tamanho do Brush:</strong> 1-50px ajustável</li>
+                  <li><strong>Tamanho da Fonte:</strong> 12-120px para textos</li>
+                  <li><strong>Camadas:</strong> Painel direito com visibilidade, lock e opacidade</li>
+                  <li><strong>Zoom:</strong> 25% a 200%</li>
+                </ul>
+
+                <div className="bg-indigo-50 p-4 rounded-lg border-l-4 border-indigo-500">
+                  <strong>✨ IA Integrada:</strong> Digite um prompt na barra superior e clique em "Gerar" para criar imagens com inteligência artificial!
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -601,6 +666,7 @@ export default function Wiki() {
                   <li><strong>Edição inteligente:</strong> "Adicione uma coluna de valores", "Mude o título para..."</li>
                   <li><strong>Automações:</strong> Crie até 15 atalhos personalizados com palavras-chave e ações</li>
                   <li><strong>Contexto:</strong> Entende onde você está (pasta, equipe) e cria arquivos no lugar certo</li>
+                  <li><strong>✨ IA Integrada:</strong> Pode gerar imagens com Pollinations.ai para capas e conteúdos</li>
                 </ul>
 
                 <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border-2 border-blue-200">

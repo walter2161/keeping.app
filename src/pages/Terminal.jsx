@@ -865,6 +865,91 @@ export default function Terminal() {
           break;
         }
 
+        // === CRONOGRAMA COMMANDS ===
+        case 'crn-add-group': {
+          if (args.length < 2) {
+            addToHistory(input, 'Usage: crn-add-group <file_name> <group_name> [color]', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'crn') {
+            addToHistory(input, 'File not found or not a cronograma file', true);
+            break;
+          }
+          const content = targetFile.content ? JSON.parse(targetFile.content) : { groups: [] };
+          const groupName = args[1];
+          const color = args[2] || 'blue';
+          content.groups.push({
+            id: Date.now().toString(),
+            name: groupName,
+            color,
+            items: []
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Group "${groupName}" added`);
+          break;
+        }
+
+        case 'crn-add-item': {
+          if (args.length < 5) {
+            addToHistory(input, 'Usage: crn-add-item <file> <group_id> <name> <start> <end> [responsible]', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'crn') {
+            addToHistory(input, 'File not found or not a cronograma file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"groups":[]}');
+          const group = content.groups.find(g => g.id === args[1]);
+          if (!group) {
+            addToHistory(input, `Group ${args[1]} not found`, true);
+            break;
+          }
+          group.items.push({
+            id: Date.now().toString(),
+            name: args[2],
+            start: args[3],
+            end: args[4],
+            responsible: args[5] || '',
+            status: 'not_started'
+          });
+          await updateFileMutation.mutateAsync({
+            id: targetFile.id,
+            data: { content: JSON.stringify(content) }
+          });
+          addToHistory(input, `Item "${args[2]}" added to group`);
+          break;
+        }
+
+        case 'crn-list': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: crn-list <file_name>', true);
+            break;
+          }
+          const currentFolderId = currentPath === '/' ? null : currentPath;
+          const targetFile = findFileByName(args[0], currentFolderId);
+          if (!targetFile || targetFile.type !== 'crn') {
+            addToHistory(input, 'File not found or not a cronograma file', true);
+            break;
+          }
+          const content = JSON.parse(targetFile.content || '{"groups":[]}');
+          let output = `Cronograma: ${targetFile.name}\n`;
+          content.groups.forEach(group => {
+            output += `\nGroup: ${group.name} (ID: ${group.id})\n`;
+            group.items.forEach(item => {
+              output += `  - ${item.name}: ${item.start} → ${item.end}\n`;
+            });
+          });
+          addToHistory(input, output || 'Empty cronograma');
+          break;
+        }
+
         // === PPTX COMMANDS ===
         case 'pptx-add-slide': {
           if (args.length < 2) {
@@ -1053,7 +1138,7 @@ Navigation:
   cd                Root directory
 
 Basic File Ops:
-  touch <name> [type]    Create file
+  touch <name> [type]    Create file (types: docx, xlsx, pptx, kbn, gnt, crn, flux, psd)
   cat <file>             Display content
   echo "text" > <file>   Write to file
   rm <name>              Delete file
@@ -1071,10 +1156,15 @@ KANBAN:
   kanban-add-card <file> <list_id> <title> [desc] [priority:low|medium|high]
   kanban-list <file>
 
-GANTT/CRONOGRAMA:
+GANTT:
   gantt-add-task <file> <name> <start> <end> <progress>
   gantt-add-milestone <file> <name> <date>
   gantt-list <file>
+
+CRONOGRAMA:
+  crn-add-group <file> <name> [color]
+  crn-add-item <file> <group_id> <name> <start> <end> [responsible]
+  crn-list <file>
 
 FLUXMAP:
   flux-add-node <file> <type> <x> <y> [text]
@@ -1175,7 +1265,7 @@ function Documentation() {
             </div>
             <div>
               <code className="text-cyan-400">touch &lt;name&gt; [type]</code>
-              <p className="text-gray-400 text-xs">Create file (types: docx, xlsx, pptx, kbn, gnt, crn, flux, pdf, img, video)</p>
+              <p className="text-gray-400 text-xs">Create file (types: docx, xlsx, pptx, kbn, gnt, crn, flux, psd, pdf, img, video)</p>
             </div>
             <div>
               <code className="text-cyan-400">cat &lt;file&gt;</code>
@@ -1205,7 +1295,7 @@ function Documentation() {
             </div>
           </div>
 
-          <h4 className="font-bold text-white text-base mt-4">📅 GANTT/CRONOGRAMA Commands</h4>
+          <h4 className="font-bold text-white text-base mt-4">📅 GANTT Commands</h4>
           <div className="pl-2 space-y-2">
             <div>
               <code className="text-cyan-400">gantt-add-task &lt;file&gt; &lt;name&gt; &lt;start&gt; &lt;end&gt; &lt;progress&gt;</code>
@@ -1220,6 +1310,24 @@ function Documentation() {
             <div>
               <code className="text-cyan-400">gantt-list &lt;file&gt;</code>
               <p className="text-gray-400 text-xs">Show all tasks and milestones</p>
+            </div>
+          </div>
+
+          <h4 className="font-bold text-white text-base mt-4">⏱️ CRONOGRAMA Commands</h4>
+          <div className="pl-2 space-y-2">
+            <div>
+              <code className="text-cyan-400">crn-add-group &lt;file&gt; &lt;name&gt; [color]</code>
+              <p className="text-gray-400 text-xs">Add group (colors: blue, green, purple, orange, red)</p>
+              <code className="text-green-400 text-xs block mt-1">crn-add-group schedule "Marketing" purple</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">crn-add-item &lt;file&gt; &lt;group_id&gt; &lt;name&gt; &lt;start&gt; &lt;end&gt; [responsible]</code>
+              <p className="text-gray-400 text-xs">Add item to group</p>
+              <code className="text-green-400 text-xs block mt-1">crn-add-item schedule 123 "Campaign" 2026-01-20 2026-02-15 "João"</code>
+            </div>
+            <div>
+              <code className="text-cyan-400">crn-list &lt;file&gt;</code>
+              <p className="text-gray-400 text-xs">Show all groups and items</p>
             </div>
           </div>
 
