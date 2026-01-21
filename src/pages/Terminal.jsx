@@ -122,6 +122,27 @@ export default function Terminal() {
           setHistory([]);
           break;
 
+        case 'macro':
+        case 'script': {
+          if (!args[0]) {
+            addToHistory(input, 'Usage: macro "<cmd1>; <cmd2>; <cmd3>" OR paste multi-line commands', true);
+            break;
+          }
+          const scriptContent = args.join(' ');
+          const commands = scriptContent.split(';').map(c => c.trim()).filter(c => c);
+          
+          addToHistory(input, `Executing ${commands.length} commands...`);
+          
+          for (const singleCmd of commands) {
+            await executeCommand(singleCmd);
+            // Small delay to allow UI updates
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+          addToHistory('', `✓ Macro completed: ${commands.length} commands executed`);
+          break;
+        }
+
         case 'ls':
         case 'dir': {
           const { folders: foldersHere, files: filesHere } = getItemsInCurrentPath();
@@ -1010,7 +1031,26 @@ export default function Terminal() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (currentInput.trim()) {
-      executeCommand(currentInput.trim());
+      // Check if multi-line input (pasted script)
+      const lines = currentInput.trim().split('\n').filter(line => line.trim());
+      
+      if (lines.length > 1) {
+        // Execute as macro
+        addToHistory('$ ' + currentInput, `Executing ${lines.length} commands from script...`);
+        
+        (async () => {
+          for (const line of lines) {
+            if (line.trim()) {
+              await executeCommand(line.trim());
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+          addToHistory('', `✓ Script completed: ${lines.length} commands executed`);
+        })();
+      } else {
+        executeCommand(currentInput.trim());
+      }
+      
       setCurrentInput('');
     }
   };
@@ -1105,15 +1145,27 @@ export default function Terminal() {
 
           <form onSubmit={handleSubmit} className="border-t border-gray-700 p-4 flex items-center gap-2">
             <span className="text-cyan-400">$</span>
-            <input
+            <textarea
               ref={inputRef}
-              type="text"
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent outline-none text-white"
-              placeholder="Type a command..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                } else {
+                  handleKeyDown(e);
+                }
+              }}
+              rows={1}
+              className="flex-1 bg-transparent outline-none text-white resize-none"
+              placeholder="Type a command or paste script... (Shift+Enter for new line)"
               autoComplete="off"
+              style={{ minHeight: '24px', maxHeight: '200px' }}
+              onInput={(e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+              }}
             />
           </form>
         </div>
@@ -1145,6 +1197,10 @@ Basic File Ops:
   rm -r <name>           Delete folder
   mv <old> <new>         Rename
   mkdir <name>           Create folder
+
+Automation:
+  macro "<cmd1>; <cmd2>"  Execute multiple commands
+  (Or paste multi-line script - each line runs automatically)
 
 Search & Info:
   find <pattern>    Search items
@@ -1490,6 +1546,29 @@ pptx-list pitch
       </section>
 
       <section>
+        <h3 className="text-lg font-bold text-yellow-400 mb-2">🚀 Macros & Scripts</h3>
+        <div className="space-y-2 text-sm pl-4">
+          <p className="text-gray-300">Execute multiple commands at once:</p>
+          <div className="bg-black p-3 rounded">
+            <p className="text-white font-bold mb-1">Method 1: Using macro command</p>
+            <code className="text-cyan-400 block">macro "mkdir project; cd project; touch tasks kbn; touch docs docx"</code>
+          </div>
+          <div className="bg-black p-3 rounded mt-2">
+            <p className="text-white font-bold mb-1">Method 2: Paste multi-line script</p>
+            <code className="text-cyan-400 block">
+              mkdir project<br/>
+              cd project<br/>
+              touch tasks kbn<br/>
+              touch docs docx<br/>
+              kanban-add-list tasks "To Do"
+            </code>
+            <p className="text-gray-400 text-xs mt-1">Just paste and press Enter - each line runs automatically!</p>
+          </div>
+          <p className="text-green-400 mt-2">💡 Use Shift+Enter to add new lines before executing</p>
+        </div>
+      </section>
+
+      <section>
         <h3 className="text-lg font-bold text-yellow-400 mb-2">⚠️ Important Notes</h3>
         <ul className="space-y-1 text-sm pl-4">
           <li>• Commands are case-insensitive</li>
@@ -1498,6 +1577,7 @@ pptx-list pitch
           <li>• Deleted items go to trash (deleted flag set)</li>
           <li>• Navigation is relative to current directory</li>
           <li>• Use arrow keys ↑↓ to navigate command history</li>
+          <li>• Shift+Enter adds new line, Enter executes command</li>
         </ul>
       </section>
 
