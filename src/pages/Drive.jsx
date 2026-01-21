@@ -546,8 +546,13 @@ export default function Drive() {
   };
 
   const handleFileClick = (file) => {
-    // Navigate to file viewer/editor
-    window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+    // Abrir arquivos Office em nova aba
+    if (['docx', 'xlsx', 'pptx'].includes(file.type)) {
+      window.open(createPageUrl(`FileViewer?id=${file.id}`), '_blank');
+    } else {
+      // Outros tipos na mesma aba
+      window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+    }
   };
 
   const handleMoveFolder = (folder) => {
