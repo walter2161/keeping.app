@@ -117,7 +117,7 @@ export default function CreateDialog({
             placeholder={currentConfig.placeholder}
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={handleKeyDown}
             autoFocus
             className={error ? 'border-red-500' : ''}
           />
