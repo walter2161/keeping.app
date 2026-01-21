@@ -381,14 +381,14 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
             if (action === 'edit') {
               // Para document, spreadsheet e presentation - criar arquivo ou abrir existente
               if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
-                // Salvar FluxMap antes de abrir
-                if (onChange) {
-                  onChange(editor.export());
-                }
-                
-                // Se já existe fileId, abrir arquivo existente
+                // Se já existe fileId, salvar FluxMap e abrir arquivo existente
                 if (currentNodeData.data.fileId) {
-                  window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                  if (onChange) {
+                    onChange(editor.export());
+                  }
+                  setTimeout(() => {
+                    window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                  }, 300);
                   return;
                 }
                 
@@ -418,14 +418,20 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                     owner: user.email
                   });
                 }).then(file => {
-                  // Salvar fileId no node
+                  // Atualizar node com fileId
                   editor.updateNodeDataFromId(nodeId, {
                     ...currentNodeData.data,
                     fileId: file.id
                   });
-                  if (onChange) onChange(editor.export());
                   
-                  window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                  // Salvar FluxMap com o fileId e aguardar antes de redirecionar
+                  if (onChange) {
+                    onChange(editor.export());
+                  }
+                  
+                  setTimeout(() => {
+                    window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                  }, 300);
                 });
               } else {
                 setEditDialog({ 
@@ -686,14 +692,14 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
 
                       if (action === 'edit') {
                         if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
-                          // Salvar FluxMap antes de abrir
-                          if (onChange) {
-                            onChange(editorRef.current.export());
-                          }
-                          
-                          // Se já existe fileId, abrir arquivo existente
+                          // Se já existe fileId, salvar FluxMap e abrir arquivo existente
                           if (currentNodeData.data.fileId) {
-                            window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                            if (onChange) {
+                              onChange(editorRef.current.export());
+                            }
+                            setTimeout(() => {
+                              window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                            }, 300);
                             return;
                           }
                           
@@ -723,14 +729,20 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                               owner: user.email
                             });
                           }).then(file => {
-                            // Salvar fileId no node
+                            // Atualizar node com fileId
                             editorRef.current.updateNodeDataFromId(nodeId, {
                               ...currentNodeData.data,
                               fileId: file.id
                             });
-                            if (onChange) onChange(editorRef.current.export());
                             
-                            window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                            // Salvar FluxMap com o fileId e aguardar antes de redirecionar
+                            if (onChange) {
+                              onChange(editorRef.current.export());
+                            }
+                            
+                            setTimeout(() => {
+                              window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                            }, 300);
                           });
                         } else {
                           setEditDialog({ 
@@ -882,14 +894,14 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
 
                     if (action === 'edit') {
                       if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
-                        // Salvar FluxMap antes de abrir
-                        if (onChange) {
-                          onChange(editor.export());
-                        }
-                        
-                        // Se já existe fileId, abrir arquivo existente
+                        // Se já existe fileId, salvar FluxMap e abrir arquivo existente
                         if (currentNodeData.data.fileId) {
-                          window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                          if (onChange) {
+                            onChange(editor.export());
+                          }
+                          setTimeout(() => {
+                            window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                          }, 300);
                           return;
                         }
                         
@@ -919,14 +931,20 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                             owner: user.email
                           });
                         }).then(file => {
-                          // Salvar fileId no node
+                          // Atualizar node com fileId
                           editor.updateNodeDataFromId(nodeId, {
                             ...currentNodeData.data,
                             fileId: file.id
                           });
-                          if (onChange) onChange(editor.export());
                           
-                          window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                          // Salvar FluxMap com o fileId e aguardar antes de redirecionar
+                          if (onChange) {
+                            onChange(editor.export());
+                          }
+                          
+                          setTimeout(() => {
+                            window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
+                          }, 300);
                         });
                       } else {
                         setEditDialog({ 
