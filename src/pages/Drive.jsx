@@ -1323,13 +1323,7 @@ export default function Drive() {
       <CreateDialog
         type={createDialog.type}
         open={createDialog.open}
-        onOpenChange={(open) => {
-          if (open) {
-            setCreateDialog({ ...createDialog, open });
-          } else if (!createFolderMutation.isPending && !createFileMutation.isPending) {
-            setCreateDialog({ ...createDialog, open });
-          }
-        }}
+        onOpenChange={(open) => setCreateDialog({ ...createDialog, open })}
         onSubmit={(name, color) => {
           if (createDialog.type === 'folder') {
             handleCreateFolder(name, color);
