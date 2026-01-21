@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Image, Paperclip, X } from 'lucide-react';
+import { Image, Paperclip, X, Sparkles, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 const priorityColors = {
@@ -31,10 +31,14 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
     coverType: 'none',
     coverColor: coverColors[0],
     coverImage: '',
+    coverImageZoom: 100,
     attachments: [],
   });
   
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   React.useEffect(() => {
     if (data) {
@@ -70,6 +74,39 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
   const removeAttachment = (attachmentId) => {
     const updatedAttachments = editData.attachments.filter(a => a.id !== attachmentId);
     setEditData({ ...editData, attachments: updatedAttachments });
+  };
+
+  const generateAIImage = async () => {
+    if (!aiPrompt.trim()) return;
+
+    setGeneratingAI(true);
+    try {
+      const result = await base44.integrations.Core.GenerateImage({
+        prompt: aiPrompt
+      });
+
+      if (result?.url) {
+        if (editData.coverType === 'image') {
+          setEditData({ ...editData, coverImage: result.url });
+        } else {
+          const newAttachment = {
+            id: Date.now().toString(),
+            name: `AI: ${aiPrompt.substring(0, 30)}...`,
+            url: result.url
+          };
+          setEditData({ 
+            ...editData, 
+            attachments: [...(editData.attachments || []), newAttachment]
+          });
+        }
+        setAiPrompt('');
+        setShowAIGenerator(false);
+      }
+    } catch (error) {
+      alert('Erro ao gerar imagem: ' + error.message);
+    } finally {
+      setGeneratingAI(false);
+    }
   };
 
   const handleSave = () => {
@@ -139,29 +176,113 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
             {editData.coverType === 'image' && (
               <div className="space-y-3">
                 {editData.coverImage ? (
-                  <div className="relative">
-                    <img src={editData.coverImage} className="w-full aspect-square object-cover rounded" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-6 w-6"
-                      onClick={() => setEditData({ ...editData, coverImage: '' })}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="relative overflow-hidden rounded bg-gray-100" style={{ height: '200px' }}>
+                      <div style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}>
+                        <img 
+                          src={editData.coverImage} 
+                          style={{ 
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            transform: `scale(${(editData.coverImageZoom || 100) / 100})`,
+                            transformOrigin: 'center center'
+                          }}
+                        />
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6"
+                        onClick={() => setEditData({ ...editData, coverImage: '', coverImageZoom: 100 })}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditData({ ...editData, coverImageZoom: Math.max(50, (editData.coverImageZoom || 100) - 10) })}
+                        disabled={(editData.coverImageZoom || 100) <= 50}
+                      >
+                        <ZoomOut className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm font-medium text-gray-600 min-w-[50px] text-center">
+                        {editData.coverImageZoom || 100}%
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditData({ ...editData, coverImageZoom: Math.min(200, (editData.coverImageZoom || 100) + 10) })}
+                        disabled={(editData.coverImageZoom || 100) >= 200}
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
-                    <Image className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">Clique para adicionar imagem</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      disabled={uploadingFile}
-                    />
-                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
+                      <Image className="w-5 h-5 text-gray-400" />
+                      <span className="text-sm text-gray-600">Upload imagem</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={uploadingFile}
+                      />
+                    </label>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShowAIGenerator(!showAIGenerator)}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Gerar com IA
+                    </Button>
+
+                    {showAIGenerator && (
+                      <div className="p-3 border rounded space-y-2">
+                        <Input
+                          placeholder="Descreva a imagem que deseja gerar..."
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && generateAIImage()}
+                        />
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={generateAIImage}
+                          disabled={generatingAI || !aiPrompt.trim()}
+                        >
+                          {generatingAI ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Gerar Imagem
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 )}
                 
                 {editData.attachments && editData.attachments.length > 0 && (
@@ -190,16 +311,54 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Anexos:</label>
-            <label className="flex items-center gap-2 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
-              <Paperclip className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Adicionar arquivo</span>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={uploadingFile}
-              />
-            </label>
+            <div className="flex gap-2">
+              <label className="flex-1 flex items-center gap-2 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
+                <Paperclip className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-600">Upload arquivo</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={uploadingFile}
+                />
+              </label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAIGenerator(!showAIGenerator)}
+              >
+                <Sparkles className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {showAIGenerator && (
+              <div className="p-3 border rounded space-y-2">
+                <Input
+                  placeholder="Descreva a imagem para anexar..."
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && generateAIImage()}
+                />
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={generateAIImage}
+                  disabled={generatingAI || !aiPrompt.trim()}
+                >
+                  {generatingAI ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Gerar e Anexar
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
             {editData.attachments && editData.attachments.length > 0 && (
               <div className="space-y-1">
                 {editData.attachments.map(att => (
