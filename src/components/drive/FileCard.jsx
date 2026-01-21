@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive, Sparkles
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,6 +25,7 @@ const fileTypeConfig = {
   gnt: { icon: GanttChart, color: 'text-orange-600', bg: 'bg-orange-50', label: 'Gantt' },
   crn: { icon: Calendar, color: 'text-pink-600', bg: 'bg-pink-50', label: 'Cronograma' },
   flux: { icon: ArrowRight, color: 'text-teal-600', bg: 'bg-teal-50', label: 'FluxMap' },
+  psd: { icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', label: 'PhotoSmart' },
   pdf: { icon: FileText, color: 'text-red-600', bg: 'bg-red-50', label: 'PDF' },
   img: { icon: Image, color: 'text-cyan-600', bg: 'bg-cyan-50', label: 'Imagem' },
   video: { icon: Video, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Vídeo' },
