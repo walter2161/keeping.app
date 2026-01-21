@@ -119,12 +119,7 @@ export default function CreateDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => {
-            onOpenChange(false);
-            setName('');
-            setError('');
-            setColor('blue');
-          }}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!name.trim() || !!error}>
