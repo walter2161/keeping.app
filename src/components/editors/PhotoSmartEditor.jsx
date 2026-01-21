@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import {
   Move, Square, Wand2, Paintbrush, Pencil, Circle as CircleIcon, Minus as LineIcon,
   Type, Eraser, Palette, Search, Folder, Image as ImageIcon, RefreshCw,
-  Copy, Trash2, Eye, EyeOff, Edit2, Sparkles, Loader2
+  Copy, Trash2, Eye, EyeOff, Edit2, Sparkles, Loader2, Crop, RotateCw,
+  ZoomIn, ZoomOut, Grid, Lock, Unlock, Layers, Download, Save, FileUp
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import {
 
 export default function PhotoSmartEditor({ data, onChange, fileName }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [layers, setLayers] = useState([]);
   const [selectedLayerId, setSelectedLayerId] = useState(null);
   const [canvasSize, setCanvasSize] = useState({ width: 2500, height: 1500 });
@@ -27,228 +29,297 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [blendMode, setBlendMode] = useState('normal');
-  const [layerOpacity, setLayerOpacity] = useState(100);
-  const [addMask, setAddMask] = useState(false);
+  const [lastPos, setLastPos] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showGrid, setShowGrid] = useState(false);
 
-  // Initialize from data
+  // Initialize canvas with default layer
   useEffect(() => {
-    if (data?.layers && Array.isArray(data.layers)) {
+    if (data?.layers && Array.isArray(data.layers) && data.layers.length > 0) {
       const loadedLayers = data.layers.map(l => ({
         ...l,
-        canvas: loadCanvasFromData(l.canvasData || l.canvas)
+        imageData: l.imageData || null
       }));
       setLayers(loadedLayers);
-      if (data.canvas) {
-        setCanvasSize(data.canvas);
-      }
-      if (loadedLayers.length > 0) {
-        setSelectedLayerId(loadedLayers[0].id);
-      }
+      setSelectedLayerId(loadedLayers[0].id);
     } else {
       // Create default background layer
-      const bg = createLayer('Background', canvasSize.width, canvasSize.height);
-      const ctx = bg.canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-      setLayers([bg]);
-      setSelectedLayerId(bg.id);
+      createDefaultLayer();
     }
   }, []);
 
-  const loadCanvasFromData = (canvasData) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvasSize.width;
-    canvas.height = canvasSize.height;
-    
-    if (typeof canvasData === 'string' && canvasData.startsWith('data:image')) {
-      const img = new Image();
-      img.onload = () => {
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-      };
-      img.src = canvasData;
-    }
-    
-    return canvas;
-  };
-
-  const createLayer = (name, width, height) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    return {
-      id: Date.now() + Math.random(),
-      name,
+  const createDefaultLayer = () => {
+    const newLayer = {
+      id: Date.now(),
+      name: 'Background',
       visible: true,
       locked: false,
-      canvas,
       opacity: 100,
       blendMode: 'normal',
-      thumbnail: null
+      imageData: null,
+      type: 'raster'
     };
+    setLayers([newLayer]);
+    setSelectedLayerId(newLayer.id);
+    saveState([newLayer]);
   };
 
-  // Render main canvas
+  const saveState = (currentLayers) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(JSON.parse(JSON.stringify(currentLayers)));
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setLayers(JSON.parse(JSON.stringify(history[historyIndex - 1])));
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setLayers(JSON.parse(JSON.stringify(history[historyIndex + 1])));
+    }
+  };
+
+  // Render canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || layers.length === 0) return;
+    if (!canvas) return;
 
     canvas.width = canvasSize.width;
     canvas.height = canvasSize.height;
     
     const ctx = canvas.getContext('2d');
+    
+    // Clear canvas
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
-    // Render all visible layers
-    layers.forEach((layer) => {
-      if (layer.visible && layer.canvas) {
-        ctx.globalAlpha = layer.opacity / 100;
-        ctx.drawImage(layer.canvas, 0, 0);
-        ctx.globalAlpha = 1;
+    // Draw grid if enabled
+    if (showGrid) {
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvasSize.width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvasSize.height);
+        ctx.stroke();
       }
+      for (let y = 0; y < canvasSize.height; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvasSize.width, y);
+        ctx.stroke();
+      }
+    }
+
+    // Render layers
+    layers.forEach((layer) => {
+      if (!layer.visible) return;
+      
+      ctx.globalAlpha = layer.opacity / 100;
+      ctx.globalCompositeOperation = layer.blendMode || 'normal';
+
+      if (layer.imageData) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+        };
+        img.src = layer.imageData;
+      } else if (layer.fillColor) {
+        ctx.fillStyle = layer.fillColor;
+        ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
     });
 
     // Save changes
-    saveToData();
-  }, [layers, canvasSize]);
+    if (onChange) {
+      onChange({
+        layers: layers.map(l => ({
+          ...l,
+          thumbnail: null
+        })),
+        canvas: canvasSize
+      });
+    }
+  }, [layers, canvasSize, showGrid]);
 
-  const saveToData = () => {
-    onChange({
-      layers: layers.map(l => ({
-        id: l.id,
-        name: l.name,
-        visible: l.visible,
-        locked: l.locked,
-        opacity: l.opacity,
-        blendMode: l.blendMode,
-        canvasData: l.canvas.toDataURL(),
-        thumbnail: generateThumbnail(l.canvas)
-      })),
-      canvas: canvasSize
-    });
-  };
-
-  const generateThumbnail = (canvas) => {
-    const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = 60;
-    thumbCanvas.height = 40;
-    const ctx = thumbCanvas.getContext('2d');
-    ctx.drawImage(canvas, 0, 0, 60, 40);
-    return thumbCanvas.toDataURL();
-  };
-
-  const handleCanvasMouseDown = (e) => {
+  const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvasSize.width / rect.width;
     const scaleY = canvasSize.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
 
+  const handleCanvasMouseDown = (e) => {
+    const pos = getCanvasCoords(e);
     setIsDrawing(true);
+    setLastPos(pos);
 
     const selectedLayer = layers.find(l => l.id === selectedLayerId);
     if (!selectedLayer || selectedLayer.locked) return;
 
-    const ctx = selectedLayer.canvas.getContext('2d');
+    if (tool === 'pencil' || tool === 'brush') {
+      // Drawing will be handled on mouse move
+    }
+  };
+
+  const handleCanvasMouseMove = (e) => {
+    if (!isDrawing) return;
+    
+    const pos = getCanvasCoords(e);
+    const selectedLayer = layers.find(l => l.id === selectedLayerId);
+    if (!selectedLayer || selectedLayer.locked) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
 
     if (tool === 'pencil' || tool === 'brush') {
       ctx.strokeStyle = color;
       ctx.lineWidth = tool === 'brush' ? brushSize * 2 : brushSize;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
+      
+      if (lastPos) {
+        ctx.beginPath();
+        ctx.moveTo(lastPos.x, lastPos.y);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+      }
+
+      // Update layer imageData
+      const updatedLayers = layers.map(l => 
+        l.id === selectedLayerId 
+          ? { ...l, imageData: canvas.toDataURL() }
+          : l
+      );
+      setLayers(updatedLayers);
+    } else if (tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.moveTo(x, y);
-    } else if (tool === 'eraser') {
-      ctx.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize);
+      ctx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+
+      const updatedLayers = layers.map(l => 
+        l.id === selectedLayerId 
+          ? { ...l, imageData: canvas.toDataURL() }
+          : l
+      );
+      setLayers(updatedLayers);
     }
 
-    setLayers([...layers]);
-  };
-
-  const handleCanvasMouseMove = (e) => {
-    if (!isDrawing) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvasSize.width / rect.width;
-    const scaleY = canvasSize.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    const selectedLayer = layers.find(l => l.id === selectedLayerId);
-    if (!selectedLayer) return;
-
-    const ctx = selectedLayer.canvas.getContext('2d');
-
-    if (tool === 'pencil' || tool === 'brush') {
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    } else if (tool === 'eraser') {
-      ctx.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize);
-    }
-
-    setLayers([...layers]);
+    setLastPos(pos);
   };
 
   const handleCanvasMouseUp = () => {
+    if (isDrawing) {
+      saveState(layers);
+    }
     setIsDrawing(false);
+    setLastPos(null);
   };
 
-  const addNewLayer = () => {
-    const newLayer = createLayer(`Layer ${layers.length + 1}`, canvasSize.width, canvasSize.height);
-    setLayers([newLayer, ...layers]);
+  const addNewLayer = (type = 'raster') => {
+    const newLayer = {
+      id: Date.now(),
+      name: `Layer ${layers.length + 1}`,
+      visible: true,
+      locked: false,
+      opacity: 100,
+      blendMode: 'normal',
+      imageData: null,
+      type
+    };
+    const updatedLayers = [newLayer, ...layers];
+    setLayers(updatedLayers);
     setSelectedLayerId(newLayer.id);
+    saveState(updatedLayers);
   };
 
   const deleteLayer = () => {
     if (layers.length === 1) return;
-    const newLayers = layers.filter(l => l.id !== selectedLayerId);
-    setLayers(newLayers);
-    setSelectedLayerId(newLayers[0]?.id);
+    const updatedLayers = layers.filter(l => l.id !== selectedLayerId);
+    setLayers(updatedLayers);
+    setSelectedLayerId(updatedLayers[0]?.id);
+    saveState(updatedLayers);
   };
 
   const duplicateLayer = () => {
     const layer = layers.find(l => l.id === selectedLayerId);
     if (!layer) return;
 
-    const newCanvas = document.createElement('canvas');
-    newCanvas.width = canvasSize.width;
-    newCanvas.height = canvasSize.height;
-    const ctx = newCanvas.getContext('2d');
-    ctx.drawImage(layer.canvas, 0, 0);
-
     const newLayer = {
       ...layer,
-      id: Date.now() + Math.random(),
-      name: `${layer.name} copy`,
-      canvas: newCanvas
+      id: Date.now(),
+      name: `${layer.name} copy`
     };
 
     const idx = layers.findIndex(l => l.id === selectedLayerId);
-    const newLayers = [...layers.slice(0, idx), newLayer, ...layers.slice(idx)];
-    setLayers(newLayers);
+    const updatedLayers = [...layers.slice(0, idx), newLayer, ...layers.slice(idx)];
+    setLayers(updatedLayers);
     setSelectedLayerId(newLayer.id);
+    saveState(updatedLayers);
   };
 
   const toggleLayerVisibility = (layerId) => {
-    setLayers(layers.map(l => l.id === layerId ? { ...l, visible: !l.visible } : l));
+    const updatedLayers = layers.map(l => 
+      l.id === layerId ? { ...l, visible: !l.visible } : l
+    );
+    setLayers(updatedLayers);
   };
 
-  const updateLayerOpacity = (layerId, opacity) => {
-    setLayers(layers.map(l => l.id === layerId ? { ...l, opacity } : l));
-    setLayerOpacity(opacity);
+  const toggleLayerLock = (layerId) => {
+    const updatedLayers = layers.map(l => 
+      l.id === layerId ? { ...l, locked: !l.locked } : l
+    );
+    setLayers(updatedLayers);
   };
 
-  const updateSelectedLayerOpacity = (opacity) => {
+  const updateLayerOpacity = (opacity) => {
     if (!selectedLayerId) return;
-    updateLayerOpacity(selectedLayerId, opacity);
+    const updatedLayers = layers.map(l => 
+      l.id === selectedLayerId ? { ...l, opacity } : l
+    );
+    setLayers(updatedLayers);
+  };
+
+  const updateLayerBlendMode = (mode) => {
+    if (!selectedLayerId) return;
+    const updatedLayers = layers.map(l => 
+      l.id === selectedLayerId ? { ...l, blendMode: mode } : l
+    );
+    setLayers(updatedLayers);
+  };
+
+  const moveLayer = (direction) => {
+    const idx = layers.findIndex(l => l.id === selectedLayerId);
+    if (idx === -1) return;
+
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= layers.length) return;
+
+    const updatedLayers = [...layers];
+    [updatedLayers[idx], updatedLayers[newIdx]] = [updatedLayers[newIdx], updatedLayers[idx]];
+    setLayers(updatedLayers);
+    saveState(updatedLayers);
   };
 
   const generateWithAI = async () => {
@@ -264,16 +335,20 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       });
 
       if (result?.url) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          const newLayer = createLayer('AI Generated', canvasSize.width, canvasSize.height);
-          const ctx = newLayer.canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
-          setLayers([newLayer, ...layers]);
-          setSelectedLayerId(newLayer.id);
+        const newLayer = {
+          id: Date.now(),
+          name: 'AI Generated',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blendMode: 'normal',
+          imageData: result.url,
+          type: 'raster'
         };
-        img.src = result.url;
+        const updatedLayers = [newLayer, ...layers];
+        setLayers(updatedLayers);
+        setSelectedLayerId(newLayer.id);
+        saveState(updatedLayers);
       }
     } catch (error) {
       alert('Erro ao gerar imagem: ' + error.message);
@@ -282,25 +357,73 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
     }
   };
 
+  const addTextLayer = () => {
+    const text = prompt('Digite o texto:');
+    if (!text) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvasSize.width;
+    tempCanvas.height = canvasSize.height;
+    const ctx = tempCanvas.getContext('2d');
+    
+    ctx.font = '48px Arial';
+    ctx.fillStyle = color;
+    ctx.fillText(text, 100, 100);
+
+    const newLayer = {
+      id: Date.now(),
+      name: `Text: ${text.substring(0, 20)}`,
+      visible: true,
+      locked: false,
+      opacity: 100,
+      blendMode: 'normal',
+      imageData: tempCanvas.toDataURL(),
+      type: 'text',
+      textContent: text
+    };
+
+    const updatedLayers = [newLayer, ...layers];
+    setLayers(updatedLayers);
+    setSelectedLayerId(newLayer.id);
+    saveState(updatedLayers);
+  };
+
   const selectedLayer = layers.find(l => l.id === selectedLayerId);
 
   return (
     <div className="flex flex-col h-screen bg-gray-900">
       {/* Top Menu Bar */}
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-4 text-sm text-gray-300">
-        <button className="hover:text-white">Arquivo</button>
-        <button className="hover:text-white">Editar</button>
+        <button className="hover:text-white" onClick={createDefaultLayer}>Arquivo</button>
+        <button className="hover:text-white" onClick={undo} disabled={historyIndex <= 0}>Editar</button>
         <button className="hover:text-white">Imagem</button>
         <button className="hover:text-white">Efeitos</button>
-        <button className="hover:text-white">IA</button>
-        <button className="hover:text-white">Visualizar</button>
+        <button className="hover:text-white" onClick={generateWithAI}>IA</button>
+        <button className="hover:text-white" onClick={() => setShowGrid(!showGrid)}>Visualizar</button>
         <button className="hover:text-white">Ajuda</button>
         <div className="ml-auto flex gap-2">
-          <Button variant="ghost" size="icon" className="text-gray-400 h-8 w-8">
-            <Square className="w-4 h-4" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-gray-400 h-8 w-8"
+            onClick={undo}
+            disabled={historyIndex <= 0}
+            title="Desfazer"
+          >
+            <RefreshCw className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-gray-400 h-8 w-8">
-            <Copy className="w-4 h-4" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-gray-400 h-8 w-8"
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+            title="Refazer"
+          >
+            <RefreshCw className="w-4 h-4 scale-x-[-1]" />
           </Button>
         </div>
       </div>
@@ -331,17 +454,18 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Toolbar */}
         <div className="w-14 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-3 gap-1">
-          <ToolButton icon={Move} active={tool === 'move'} onClick={() => setTool('move')} />
-          <ToolButton icon={Square} active={tool === 'rectangle'} onClick={() => setTool('rectangle')} />
-          <ToolButton icon={Wand2} active={tool === 'wand'} onClick={() => setTool('wand')} />
-          <ToolButton icon={Paintbrush} active={tool === 'brush'} onClick={() => setTool('brush')} />
-          <ToolButton icon={Pencil} active={tool === 'pencil'} onClick={() => setTool('pencil')} />
-          <ToolButton icon={CircleIcon} active={tool === 'circle'} onClick={() => setTool('circle')} />
-          <ToolButton icon={LineIcon} active={tool === 'line'} onClick={() => setTool('line')} />
-          <ToolButton icon={Type} active={tool === 'text'} onClick={() => setTool('text')} />
-          <ToolButton icon={Eraser} active={tool === 'eraser'} onClick={() => setTool('eraser')} />
+          <ToolButton icon={Move} active={tool === 'move'} onClick={() => setTool('move')} title="Mover" />
+          <ToolButton icon={Square} active={tool === 'rectangle'} onClick={() => setTool('rectangle')} title="Retângulo" />
+          <ToolButton icon={Wand2} active={tool === 'wand'} onClick={() => setTool('wand')} title="Varinha Mágica" />
+          <ToolButton icon={Paintbrush} active={tool === 'brush'} onClick={() => setTool('brush')} title="Pincel" />
+          <ToolButton icon={Pencil} active={tool === 'pencil'} onClick={() => setTool('pencil')} title="Lápis" />
+          <ToolButton icon={CircleIcon} active={tool === 'circle'} onClick={() => setTool('circle')} title="Círculo" />
+          <ToolButton icon={LineIcon} active={tool === 'line'} onClick={() => setTool('line')} title="Linha" />
+          <ToolButton icon={Type} active={tool === 'text'} onClick={() => { setTool('text'); addTextLayer(); }} title="Texto" />
+          <ToolButton icon={Eraser} active={tool === 'eraser'} onClick={() => setTool('eraser')} title="Borracha" />
+          <ToolButton icon={Crop} active={tool === 'crop'} onClick={() => setTool('crop')} title="Cortar" />
           <div className="relative">
-            <ToolButton icon={Palette} active={false} onClick={() => {}} />
+            <ToolButton icon={Palette} active={false} title="Cor" />
             <input
               type="color"
               value={color}
@@ -349,11 +473,25 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
           </div>
-          <ToolButton icon={Search} active={tool === 'zoom'} onClick={() => setTool('zoom')} />
+          <ToolButton icon={Search} active={tool === 'zoom'} onClick={() => setTool('zoom')} title="Zoom" />
+          
+          <div className="flex-1" />
+          
+          <div className="text-xs text-gray-400 px-1">
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={brushSize}
+              onChange={(e) => setBrushSize(parseInt(e.target.value))}
+              className="w-10 h-2"
+              style={{ writingMode: 'bt-lr', transform: 'rotate(-90deg)' }}
+            />
+          </div>
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
+        <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden" ref={containerRef}>
           <div className="flex-1 overflow-auto flex items-center justify-center p-4">
             <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center' }}>
               <canvas
@@ -384,6 +522,15 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   <SelectItem value="200">200%</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setShowGrid(!showGrid)}
+                title="Grade"
+              >
+                <Grid className={`w-4 h-4 ${showGrid ? 'text-indigo-400' : 'text-gray-400'}`} />
+              </Button>
             </div>
             <div className="text-gray-400">
               {canvasSize.width} x {canvasSize.height} px
@@ -395,14 +542,22 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
         <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
           <div className="p-3 border-b border-gray-700 flex items-center justify-between">
             <h3 className="text-white font-semibold">Camadas</h3>
-            <Button variant="ghost" size="icon" className="text-gray-400 h-8 w-8">
-              <Square className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-gray-400 h-6 w-6"
+                onClick={() => addNewLayer('raster')}
+                title="Nova Camada"
+              >
+                <Layers className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Layers List */}
           <div className="flex-1 overflow-y-auto">
-            {layers.map((layer) => (
+            {layers.map((layer, index) => (
               <div
                 key={layer.id}
                 onClick={() => setSelectedLayerId(layer.id)}
@@ -410,9 +565,9 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   selectedLayerId === layer.id ? 'bg-indigo-900' : 'hover:bg-gray-700'
                 }`}
               >
-                <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {layer.thumbnail ? (
-                    <img src={layer.thumbnail} alt={layer.name} className="w-full h-full object-cover" />
+                <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-600">
+                  {layer.imageData ? (
+                    <img src={layer.imageData} alt={layer.name} className="w-full h-full object-cover" />
                   ) : (
                     <ImageIcon className="w-6 h-6 text-gray-600" />
                   )}
@@ -433,9 +588,13 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLayerLock(layer.id);
+                    }}
                     className="text-gray-400 h-6 w-6"
                   >
-                    <Edit2 className="w-3 h-3" />
+                    {layer.locked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
                   </Button>
                 </div>
               </div>
@@ -446,7 +605,10 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           <div className="p-3 border-t border-gray-700 space-y-3">
             <div>
               <label className="text-gray-400 text-xs mb-1 block">Modo:</label>
-              <Select value={blendMode} onValueChange={setBlendMode}>
+              <Select 
+                value={selectedLayer?.blendMode || 'normal'} 
+                onValueChange={updateLayerBlendMode}
+              >
                 <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
@@ -455,6 +617,8 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   <SelectItem value="multiply">Multiplicar</SelectItem>
                   <SelectItem value="screen">Tela</SelectItem>
                   <SelectItem value="overlay">Sobrepor</SelectItem>
+                  <SelectItem value="darken">Escurecer</SelectItem>
+                  <SelectItem value="lighten">Clarear</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -467,37 +631,57 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   min="0"
                   max="100"
                   value={selectedLayer?.opacity || 100}
-                  onChange={(e) => updateSelectedLayerOpacity(parseInt(e.target.value))}
+                  onChange={(e) => updateLayerOpacity(parseInt(e.target.value))}
                   className="flex-1"
                 />
                 <span className="text-white text-xs w-12">{selectedLayer?.opacity || 100}%</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={addMask}
-                onChange={(e) => setAddMask(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <label className="text-gray-300 text-sm">Adicionar Máscara</label>
-            </div>
-
             <div className="flex gap-1 pt-2">
-              <Button variant="ghost" size="icon" className="text-gray-400 flex-1" onClick={addNewLayer}>
-                <Folder className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-gray-400 flex-1" onClick={addNewLayer}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-gray-400 flex-1" 
+                onClick={() => addNewLayer('raster')}
+                title="Nova Camada"
+              >
                 <ImageIcon className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-gray-400 flex-1">
-                <RefreshCw className="w-4 h-4" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-gray-400 flex-1"
+                onClick={() => moveLayer('up')}
+                title="Mover para Cima"
+              >
+                <Layers className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-gray-400 flex-1" onClick={duplicateLayer}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-gray-400 flex-1"
+                onClick={() => moveLayer('down')}
+                title="Mover para Baixo"
+              >
+                <Layers className="w-4 h-4 rotate-180" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-gray-400 flex-1" 
+                onClick={duplicateLayer}
+                title="Duplicar"
+              >
                 <Copy className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-red-400 flex-1 hover:text-red-300" onClick={deleteLayer}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-red-400 flex-1 hover:text-red-300" 
+                onClick={deleteLayer}
+                title="Excluir"
+              >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
@@ -508,10 +692,11 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
   );
 }
 
-function ToolButton({ icon: Icon, active, onClick }) {
+function ToolButton({ icon: Icon, active, onClick, title }) {
   return (
     <button
       onClick={onClick}
+      title={title}
       className={`w-10 h-10 rounded flex items-center justify-center transition-colors ${
         active ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
       }`}
