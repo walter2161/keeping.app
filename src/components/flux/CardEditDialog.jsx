@@ -20,7 +20,8 @@ import {
   ZoomIn,
   ZoomOut,
   Sparkles,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -575,14 +576,31 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                         {att.isInternal && <LinkIcon className="w-3 h-3" />}
                         {att.name}
                       </button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => removeAttachment(att.id)}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
+                      <div className="flex gap-1">
+                        {!att.isInternal && (
+                          <a
+                            href={att.url}
+                            download={att.name}
+                            target="_blank"
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                            >
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          </a>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => removeAttachment(att.id)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Image, Paperclip, X, Sparkles, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Image, Paperclip, X, Sparkles, Loader2, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 const priorityColors = {
@@ -366,14 +366,29 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
                     <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1">
                       {att.name}
                     </a>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => removeAttachment(att.id)}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <a
+                        href={att.url}
+                        download={att.name}
+                        target="_blank"
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                        >
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeAttachment(att.id)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
