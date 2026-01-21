@@ -6,7 +6,7 @@ import {
   ZoomIn, ZoomOut, Grid, Lock, Unlock, Layers, Download, Save, FileUp,
   FileText, FolderOpen, Upload, FilePlus, RotateCcw, Scissors, Clipboard,
   Settings, Maximize, Minimize, Sun, Moon, Droplet, Contrast, Sliders,
-  Info, Keyboard, HelpCircle, ChevronRight
+  Info, Keyboard, HelpCircle, ChevronRight, Triangle
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,11 +35,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 
 export default function PhotoSmartEditor({ data, onChange, fileName }) {
   const canvasRef = useRef(null);
-  const containerRef = useRef(null);
+  const drawingCanvasRef = useRef(null);
   const [layers, setLayers] = useState([]);
   const [selectedLayerId, setSelectedLayerId] = useState(null);
   const [canvasSize, setCanvasSize] = useState({ width: 2500, height: 1500 });
@@ -50,35 +49,31 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [lastPos, setLastPos] = useState(null);
+  const [startPos, setStartPos] = useState(null);
+  const [currentPath, setCurrentPath] = useState([]);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showGrid, setShowGrid] = useState(false);
-  const [showRulers, setShowRulers] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [saturation, setSaturation] = useState(100);
+  const [fontSize, setFontSize] = useState(48);
+  const [selectedObject, setSelectedObject] = useState(null);
   
   // Dialogs
   const [showNewDocDialog, setShowNewDocDialog] = useState(false);
-  const [showExportDialog, setShowExportDialog] = useState(false);
   const [showResizeDialog, setShowResizeDialog] = useState(false);
   const [showAIHistoryDialog, setShowAIHistoryDialog] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [aiHistory, setAiHistory] = useState([]);
 
-  // Initialize canvas with default layer
+  // Initialize
   useEffect(() => {
     if (data?.layers && Array.isArray(data.layers) && data.layers.length > 0) {
-      const loadedLayers = data.layers.map(l => ({
-        ...l,
-        imageData: l.imageData || null
-      }));
-      setLayers(loadedLayers);
-      setSelectedLayerId(loadedLayers[0].id);
+      setLayers(data.layers);
+      setSelectedLayerId(data.layers[0].id);
     } else {
-      // Create default background layer
       createDefaultLayer();
     }
   }, []);
@@ -90,9 +85,9 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       visible: true,
       locked: false,
       opacity: 100,
-      blendMode: 'normal',
-      imageData: null,
-      type: 'raster'
+      blendMode: 'source-over',
+      fillColor: '#ffffff',
+      objects: []
     };
     setLayers([newLayer]);
     setSelectedLayerId(newLayer.id);
@@ -129,12 +124,9 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
     canvas.height = canvasSize.height;
     
     const ctx = canvas.getContext('2d');
-    
-    // Clear canvas
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
-    // Draw grid if enabled
+    // Draw grid
     if (showGrid) {
       ctx.strokeStyle = '#e0e0e0';
       ctx.lineWidth = 1;
@@ -157,34 +149,115 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       if (!layer.visible) return;
       
       ctx.globalAlpha = layer.opacity / 100;
-      ctx.globalCompositeOperation = layer.blendMode || 'normal';
+      ctx.globalCompositeOperation = layer.blendMode || 'source-over';
 
-      if (layer.imageData) {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
-        };
-        img.src = layer.imageData;
-      } else if (layer.fillColor) {
+      // Draw background color
+      if (layer.fillColor) {
         ctx.fillStyle = layer.fillColor;
         ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+      }
+
+      // Draw objects
+      if (layer.objects) {
+        layer.objects.forEach(obj => {
+          if (obj.type === 'path') {
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = obj.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            obj.points.forEach((point, idx) => {
+              if (idx === 0) ctx.moveTo(point.x, point.y);
+              else ctx.lineTo(point.x, point.y);
+            });
+            ctx.stroke();
+          } else if (obj.type === 'circle') {
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = obj.lineWidth;
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+            if (obj.fill) {
+              ctx.fillStyle = obj.color;
+              ctx.fill();
+            }
+            ctx.stroke();
+          } else if (obj.type === 'rectangle') {
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = obj.lineWidth;
+            ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+            if (obj.fill) {
+              ctx.fillStyle = obj.color;
+              ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+            }
+          } else if (obj.type === 'triangle') {
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = obj.lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(obj.x1, obj.y1);
+            ctx.lineTo(obj.x2, obj.y2);
+            ctx.lineTo(obj.x3, obj.y3);
+            ctx.closePath();
+            if (obj.fill) {
+              ctx.fillStyle = obj.color;
+              ctx.fill();
+            }
+            ctx.stroke();
+          } else if (obj.type === 'line') {
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = obj.lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(obj.x1, obj.y1);
+            ctx.lineTo(obj.x2, obj.y2);
+            ctx.stroke();
+          } else if (obj.type === 'text') {
+            ctx.fillStyle = obj.color;
+            ctx.font = `${obj.fontSize}px Arial`;
+            ctx.fillText(obj.text, obj.x, obj.y);
+          } else if (obj.type === 'image') {
+            const img = new Image();
+            img.onload = () => {
+              ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
+            };
+            img.src = obj.src;
+          } else if (obj.type === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            ctx.lineWidth = obj.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            obj.points.forEach((point, idx) => {
+              if (idx === 0) ctx.moveTo(point.x, point.y);
+              else ctx.lineTo(point.x, point.y);
+            });
+            ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over';
+          }
+
+          // Draw selection
+          if (selectedObject && selectedObject.layerId === layer.id && selectedObject.objectIndex === layer.objects.indexOf(obj)) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            if (obj.type === 'text') {
+              ctx.strokeRect(obj.x - 5, obj.y - obj.fontSize - 5, 200, obj.fontSize + 10);
+            } else if (obj.type === 'circle') {
+              ctx.strokeRect(obj.x - obj.radius - 5, obj.y - obj.radius - 5, obj.radius * 2 + 10, obj.radius * 2 + 10);
+            }
+            ctx.setLineDash([]);
+          }
+        });
       }
 
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     });
 
-    // Save changes
+    // Save
     if (onChange) {
-      onChange({
-        layers: layers.map(l => ({
-          ...l,
-          thumbnail: null
-        })),
-        canvas: canvasSize
-      });
+      onChange({ layers, canvas: canvasSize });
     }
-  }, [layers, canvasSize, showGrid]);
+  }, [layers, canvasSize, showGrid, selectedObject]);
 
   const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
@@ -203,13 +276,48 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
   const handleCanvasMouseDown = (e) => {
     const pos = getCanvasCoords(e);
     setIsDrawing(true);
-    setLastPos(pos);
+    setStartPos(pos);
 
     const selectedLayer = layers.find(l => l.id === selectedLayerId);
     if (!selectedLayer || selectedLayer.locked) return;
 
-    if (tool === 'pencil' || tool === 'brush') {
-      // Drawing will be handled on mouse move
+    if (tool === 'move') {
+      // Check if clicking on an object
+      const layerIndex = layers.findIndex(l => l.id === selectedLayerId);
+      if (layerIndex !== -1 && layers[layerIndex].objects) {
+        for (let i = layers[layerIndex].objects.length - 1; i >= 0; i--) {
+          const obj = layers[layerIndex].objects[i];
+          if (obj.type === 'text') {
+            if (pos.x >= obj.x && pos.x <= obj.x + 200 && pos.y >= obj.y - obj.fontSize && pos.y <= obj.y) {
+              setSelectedObject({ layerId: selectedLayerId, objectIndex: i, startX: pos.x - obj.x, startY: pos.y - obj.y });
+              return;
+            }
+          }
+        }
+      }
+    } else if (tool === 'pencil' || tool === 'brush') {
+      setCurrentPath([pos]);
+    } else if (tool === 'eraser') {
+      setCurrentPath([pos]);
+    } else if (tool === 'text') {
+      const text = prompt('Digite o texto:');
+      if (text) {
+        const newObj = {
+          type: 'text',
+          text,
+          x: pos.x,
+          y: pos.y,
+          color,
+          fontSize
+        };
+        const updatedLayers = layers.map(l => 
+          l.id === selectedLayerId 
+            ? { ...l, objects: [...(l.objects || []), newObj] }
+            : l
+        );
+        setLayers(updatedLayers);
+        saveState(updatedLayers);
+      }
     }
   };
 
@@ -220,67 +328,144 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
     const selectedLayer = layers.find(l => l.id === selectedLayerId);
     if (!selectedLayer || selectedLayer.locked) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-
-    if (tool === 'pencil' || tool === 'brush') {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = tool === 'brush' ? brushSize * 2 : brushSize;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      if (lastPos) {
-        ctx.beginPath();
-        ctx.moveTo(lastPos.x, lastPos.y);
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-      }
-
-      // Update layer imageData
-      const updatedLayers = layers.map(l => 
-        l.id === selectedLayerId 
-          ? { ...l, imageData: canvas.toDataURL() }
-          : l
-      );
+    if (tool === 'move' && selectedObject) {
+      const updatedLayers = layers.map(l => {
+        if (l.id === selectedObject.layerId) {
+          const newObjects = [...l.objects];
+          const obj = newObjects[selectedObject.objectIndex];
+          if (obj.type === 'text') {
+            newObjects[selectedObject.objectIndex] = {
+              ...obj,
+              x: pos.x - selectedObject.startX,
+              y: pos.y - selectedObject.startY
+            };
+          }
+          return { ...l, objects: newObjects };
+        }
+        return l;
+      });
       setLayers(updatedLayers);
+    } else if (tool === 'pencil' || tool === 'brush') {
+      setCurrentPath([...currentPath, pos]);
     } else if (tool === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
-
-      const updatedLayers = layers.map(l => 
-        l.id === selectedLayerId 
-          ? { ...l, imageData: canvas.toDataURL() }
-          : l
-      );
-      setLayers(updatedLayers);
+      setCurrentPath([...currentPath, pos]);
     }
-
-    setLastPos(pos);
   };
 
   const handleCanvasMouseUp = () => {
-    if (isDrawing) {
-      saveState(layers);
+    if (!isDrawing) return;
+
+    const selectedLayer = layers.find(l => l.id === selectedLayerId);
+    if (selectedLayer && !selectedLayer.locked) {
+      if (tool === 'pencil' || tool === 'brush') {
+        if (currentPath.length > 1) {
+          const newObj = {
+            type: 'path',
+            points: currentPath,
+            color,
+            lineWidth: tool === 'brush' ? brushSize * 2 : brushSize
+          };
+          const updatedLayers = layers.map(l => 
+            l.id === selectedLayerId 
+              ? { ...l, objects: [...(l.objects || []), newObj] }
+              : l
+          );
+          setLayers(updatedLayers);
+          saveState(updatedLayers);
+        }
+      } else if (tool === 'eraser') {
+        if (currentPath.length > 1) {
+          const newObj = {
+            type: 'eraser',
+            points: currentPath,
+            lineWidth: brushSize * 2
+          };
+          const updatedLayers = layers.map(l => 
+            l.id === selectedLayerId 
+              ? { ...l, objects: [...(l.objects || []), newObj] }
+              : l
+          );
+          setLayers(updatedLayers);
+          saveState(updatedLayers);
+        }
+      } else if (tool === 'circle' && startPos) {
+        const radius = Math.sqrt(Math.pow(startPos.x - currentPath[currentPath.length - 1]?.x || startPos.x, 2) + 
+                                  Math.pow(startPos.y - currentPath[currentPath.length - 1]?.y || startPos.y, 2));
+        const newObj = {
+          type: 'circle',
+          x: startPos.x,
+          y: startPos.y,
+          radius,
+          color,
+          lineWidth: brushSize,
+          fill: false
+        };
+        const updatedLayers = layers.map(l => 
+          l.id === selectedLayerId 
+            ? { ...l, objects: [...(l.objects || []), newObj] }
+            : l
+        );
+        setLayers(updatedLayers);
+        saveState(updatedLayers);
+      } else if (tool === 'rectangle' && startPos) {
+        const endPos = currentPath[currentPath.length - 1] || startPos;
+        const newObj = {
+          type: 'rectangle',
+          x: Math.min(startPos.x, endPos.x),
+          y: Math.min(startPos.y, endPos.y),
+          width: Math.abs(endPos.x - startPos.x),
+          height: Math.abs(endPos.y - startPos.y),
+          color,
+          lineWidth: brushSize,
+          fill: false
+        };
+        const updatedLayers = layers.map(l => 
+          l.id === selectedLayerId 
+            ? { ...l, objects: [...(l.objects || []), newObj] }
+            : l
+        );
+        setLayers(updatedLayers);
+        saveState(updatedLayers);
+      } else if (tool === 'line' && startPos) {
+        const endPos = currentPath[currentPath.length - 1] || startPos;
+        const newObj = {
+          type: 'line',
+          x1: startPos.x,
+          y1: startPos.y,
+          x2: endPos.x,
+          y2: endPos.y,
+          color,
+          lineWidth: brushSize
+        };
+        const updatedLayers = layers.map(l => 
+          l.id === selectedLayerId 
+            ? { ...l, objects: [...(l.objects || []), newObj] }
+            : l
+        );
+        setLayers(updatedLayers);
+        saveState(updatedLayers);
+      } else if (tool === 'move' && selectedObject) {
+        saveState(layers);
+      }
     }
+
     setIsDrawing(false);
-    setLastPos(null);
+    setStartPos(null);
+    setCurrentPath([]);
+    if (tool === 'move') {
+      setSelectedObject(null);
+    }
   };
 
-  const addNewLayer = (type = 'raster') => {
+  const addNewLayer = () => {
     const newLayer = {
       id: Date.now(),
       name: `Layer ${layers.length + 1}`,
       visible: true,
       locked: false,
       opacity: 100,
-      blendMode: 'normal',
-      imageData: null,
-      type
+      blendMode: 'source-over',
+      objects: []
     };
     const updatedLayers = [newLayer, ...layers];
     setLayers(updatedLayers);
@@ -301,7 +486,7 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
     if (!layer) return;
 
     const newLayer = {
-      ...layer,
+      ...JSON.parse(JSON.stringify(layer)),
       id: Date.now(),
       name: `${layer.name} copy`
     };
@@ -369,33 +554,25 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       });
 
       if (result?.url) {
-        // Add to history
         setAiHistory([...aiHistory, { prompt: aiPrompt, url: result.url, date: new Date().toISOString() }]);
         
-        const newLayer = {
-          id: Date.now(),
-          name: type === 'background' ? 'AI Background' : 'AI Generated',
-          visible: true,
-          locked: false,
-          opacity: 100,
-          blendMode: 'normal',
-          imageData: result.url,
-          type: 'raster'
+        const newObj = {
+          type: 'image',
+          src: result.url,
+          x: 0,
+          y: 0,
+          width: canvasSize.width,
+          height: canvasSize.height
         };
-        
-        let updatedLayers;
-        if (type === 'background') {
-          updatedLayers = [...layers, newLayer];
-        } else if (type === 'replace' && selectedLayerId) {
-          updatedLayers = layers.map(l => 
-            l.id === selectedLayerId ? { ...l, imageData: result.url, name: 'AI Generated' } : l
-          );
-        } else {
-          updatedLayers = [newLayer, ...layers];
-        }
+
+        const selectedLayer = layers.find(l => l.id === selectedLayerId);
+        const updatedLayers = layers.map(l => 
+          l.id === selectedLayerId 
+            ? { ...l, objects: [...(l.objects || []), newObj] }
+            : l
+        );
         
         setLayers(updatedLayers);
-        setSelectedLayerId(newLayer.id);
         saveState(updatedLayers);
       }
     } catch (error) {
@@ -413,38 +590,14 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       visible: true,
       locked: false,
       opacity: 100,
-      blendMode: 'normal',
+      blendMode: 'source-over',
       fillColor: bg,
-      type: 'raster'
+      objects: []
     };
     setLayers([newLayer]);
     setSelectedLayerId(newLayer.id);
     saveState([newLayer]);
     setShowNewDocDialog(false);
-  };
-
-  const rotateCanvas = (degrees) => {
-    // For now, just swap dimensions for 90° rotations
-    if (degrees === 90 || degrees === -90) {
-      setCanvasSize({ width: canvasSize.height, height: canvasSize.width });
-    }
-  };
-
-  const flipCanvas = (direction) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const imageData = ctx.getImageData(0, 0, canvasSize.width, canvasSize.height);
-    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
-    
-    if (direction === 'horizontal') {
-      ctx.scale(-1, 1);
-      ctx.drawImage(canvas, -canvasSize.width, 0);
-    } else {
-      ctx.scale(1, -1);
-      ctx.drawImage(canvas, 0, -canvasSize.height);
-    }
   };
 
   const exportImage = (format) => {
@@ -455,23 +608,6 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
     link.download = `${fileName || 'photosmart'}.${format}`;
     link.href = canvas.toDataURL(`image/${format}`);
     link.click();
-    setShowExportDialog(false);
-  };
-
-  const applyImageAdjustments = () => {
-    if (!selectedLayerId) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-    
-    const updatedLayers = layers.map(l => 
-      l.id === selectedLayerId ? { ...l, imageData: canvas.toDataURL() } : l
-    );
-    setLayers(updatedLayers);
-    saveState(updatedLayers);
   };
 
   const importImage = async () => {
@@ -483,59 +619,30 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
       if (file) {
         const reader = new FileReader();
         reader.onload = (event) => {
-          const newLayer = {
-            id: Date.now(),
-            name: file.name,
-            visible: true,
-            locked: false,
-            opacity: 100,
-            blendMode: 'normal',
-            imageData: event.target.result,
-            type: 'raster'
+          const img = new Image();
+          img.onload = () => {
+            const newObj = {
+              type: 'image',
+              src: event.target.result,
+              x: 0,
+              y: 0,
+              width: img.width,
+              height: img.height
+            };
+            const updatedLayers = layers.map(l => 
+              l.id === selectedLayerId 
+                ? { ...l, objects: [...(l.objects || []), newObj] }
+                : l
+            );
+            setLayers(updatedLayers);
+            saveState(updatedLayers);
           };
-          const updatedLayers = [newLayer, ...layers];
-          setLayers(updatedLayers);
-          setSelectedLayerId(newLayer.id);
-          saveState(updatedLayers);
+          img.src = event.target.result;
         };
         reader.readAsDataURL(file);
       }
     };
     input.click();
-  };
-
-  const addTextLayer = () => {
-    const text = prompt('Digite o texto:');
-    if (!text) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvasSize.width;
-    tempCanvas.height = canvasSize.height;
-    const ctx = tempCanvas.getContext('2d');
-    
-    ctx.font = '48px Arial';
-    ctx.fillStyle = color;
-    ctx.fillText(text, 100, 100);
-
-    const newLayer = {
-      id: Date.now(),
-      name: `Text: ${text.substring(0, 20)}`,
-      visible: true,
-      locked: false,
-      opacity: 100,
-      blendMode: 'normal',
-      imageData: tempCanvas.toDataURL(),
-      type: 'text',
-      textContent: text
-    };
-
-    const updatedLayers = [newLayer, ...layers];
-    setLayers(updatedLayers);
-    setSelectedLayerId(newLayer.id);
-    saveState(updatedLayers);
   };
 
   const selectedLayer = layers.find(l => l.id === selectedLayerId);
@@ -603,101 +710,6 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Imagem Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="hover:text-white hover:bg-gray-700 px-3 py-1 rounded">Imagem</button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuItem onClick={() => setShowResizeDialog(true)}>
-              <Maximize className="w-4 h-4 mr-2" />
-              Tamanho do Documento
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <RotateCw className="w-4 h-4 mr-2" />
-                Rotacionar Canvas
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => rotateCanvas(90)}>90° Direita</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => rotateCanvas(-90)}>90° Esquerda</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => rotateCanvas(180)}>180°</DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuItem onClick={() => flipCanvas('horizontal')}>
-              Inverter Horizontal
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => flipCanvas('vertical')}>
-              Inverter Vertical
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Efeitos Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="hover:text-white hover:bg-gray-700 px-3 py-1 rounded">Efeitos</button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Sliders className="w-4 h-4 mr-2" />
-                Ajustes
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-64 p-3">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-400">Brilho: {brightness}%</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="200"
-                      value={brightness}
-                      onChange={(e) => setBrightness(parseInt(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Contraste: {contrast}%</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="200"
-                      value={contrast}
-                      onChange={(e) => setContrast(parseInt(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Saturação: {saturation}%</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="200"
-                      value={saturation}
-                      onChange={(e) => setSaturation(parseInt(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-                  <Button onClick={applyImageAdjustments} className="w-full" size="sm">
-                    Aplicar
-                  </Button>
-                </div>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuItem>
-              Desfoque
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              Nitidez
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              Sombra
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {/* IA Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -706,20 +718,12 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           <DropdownMenuContent className="w-56">
             <DropdownMenuItem onClick={() => generateWithAI('layer')}>
               <Sparkles className="w-4 h-4 mr-2" />
-              Gerar Nova Camada
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateWithAI('background')}>
-              <ImageIcon className="w-4 h-4 mr-2" />
-              Gerar Fundo
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateWithAI('replace')} disabled={!selectedLayerId}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Substituir Camada
+              Gerar Imagem
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowAIHistoryDialog(true)}>
               <FolderOpen className="w-4 h-4 mr-2" />
-              Histórico de Gerações
+              Histórico
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -748,7 +752,7 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)}>
               {fullscreen ? <Minimize className="w-4 h-4 mr-2" /> : <Maximize className="w-4 h-4 mr-2" />}
-              {fullscreen ? 'Sair de' : ''} Tela Cheia
+              Tela Cheia
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -761,41 +765,41 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           <DropdownMenuContent className="w-56">
             <DropdownMenuItem onClick={() => setShowHelpDialog(true)}>
               <Keyboard className="w-4 h-4 mr-2" />
-              Atalhos do Teclado
+              Atalhos
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowHelpDialog(true)}>
-              <HelpCircle className="w-4 h-4 mr-2" />
-              Como Usar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowHelpDialog(true)}>
               <Info className="w-4 h-4 mr-2" />
-              Sobre o PhotoSmart
+              Sobre
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="ml-auto flex gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-gray-400 h-8 w-8"
-            onClick={undo}
-            disabled={historyIndex <= 0}
-            title="Desfazer (Ctrl+Z)"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-gray-400 h-8 w-8"
-            onClick={redo}
-            disabled={historyIndex >= history.length - 1}
-            title="Refazer (Ctrl+Y)"
-          >
-            <RotateCw className="w-4 h-4" />
-          </Button>
+        <div className="ml-auto flex gap-2 items-center">
+          <span className="text-xs text-gray-400">Cor:</span>
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="w-8 h-8 rounded cursor-pointer"
+          />
+          <span className="text-xs text-gray-400">Tamanho: {brushSize}px</span>
+          <input
+            type="range"
+            min="1"
+            max="50"
+            value={brushSize}
+            onChange={(e) => setBrushSize(parseInt(e.target.value))}
+            className="w-20"
+          />
+          <span className="text-xs text-gray-400">Fonte: {fontSize}px</span>
+          <input
+            type="range"
+            min="12"
+            max="120"
+            value={fontSize}
+            onChange={(e) => setFontSize(parseInt(e.target.value))}
+            className="w-20"
+          />
         </div>
       </div>
 
@@ -814,55 +818,27 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           disabled={aiGenerating}
           className="bg-indigo-600 hover:bg-indigo-700"
         >
-          {aiGenerating ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            'Gerar'
-          )}
+          {aiGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gerar'}
         </Button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Toolbar */}
         <div className="w-14 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-3 gap-1">
-          <ToolButton icon={Move} active={tool === 'move'} onClick={() => setTool('move')} title="Mover" />
-          <ToolButton icon={Square} active={tool === 'rectangle'} onClick={() => setTool('rectangle')} title="Retângulo" />
-          <ToolButton icon={Wand2} active={tool === 'wand'} onClick={() => setTool('wand')} title="Varinha Mágica" />
-          <ToolButton icon={Paintbrush} active={tool === 'brush'} onClick={() => setTool('brush')} title="Pincel" />
-          <ToolButton icon={Pencil} active={tool === 'pencil'} onClick={() => setTool('pencil')} title="Lápis" />
-          <ToolButton icon={CircleIcon} active={tool === 'circle'} onClick={() => setTool('circle')} title="Círculo" />
-          <ToolButton icon={LineIcon} active={tool === 'line'} onClick={() => setTool('line')} title="Linha" />
-          <ToolButton icon={Type} active={tool === 'text'} onClick={() => { setTool('text'); addTextLayer(); }} title="Texto" />
-          <ToolButton icon={Eraser} active={tool === 'eraser'} onClick={() => setTool('eraser')} title="Borracha" />
-          <ToolButton icon={Crop} active={tool === 'crop'} onClick={() => setTool('crop')} title="Cortar" />
-          <div className="relative">
-            <ToolButton icon={Palette} active={false} title="Cor" />
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
-          </div>
-          <ToolButton icon={Search} active={tool === 'zoom'} onClick={() => setTool('zoom')} title="Zoom" />
-          
-          <div className="flex-1" />
-          
-          <div className="text-xs text-gray-400 px-1">
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={brushSize}
-              onChange={(e) => setBrushSize(parseInt(e.target.value))}
-              className="w-10 h-2"
-              style={{ writingMode: 'bt-lr', transform: 'rotate(-90deg)' }}
-            />
-          </div>
+          <ToolButton icon={Move} active={tool === 'move'} onClick={() => setTool('move')} title="Mover (V)" />
+          <ToolButton icon={Square} active={tool === 'rectangle'} onClick={() => setTool('rectangle')} title="Retângulo (R)" />
+          <ToolButton icon={Triangle} active={tool === 'triangle'} onClick={() => setTool('triangle')} title="Triângulo" />
+          <ToolButton icon={Paintbrush} active={tool === 'brush'} onClick={() => setTool('brush')} title="Pincel (B)" />
+          <ToolButton icon={Pencil} active={tool === 'pencil'} onClick={() => setTool('pencil')} title="Lápis (P)" />
+          <ToolButton icon={CircleIcon} active={tool === 'circle'} onClick={() => setTool('circle')} title="Círculo (C)" />
+          <ToolButton icon={LineIcon} active={tool === 'line'} onClick={() => setTool('line')} title="Linha (L)" />
+          <ToolButton icon={Type} active={tool === 'text'} onClick={() => setTool('text')} title="Texto (T)" />
+          <ToolButton icon={Eraser} active={tool === 'eraser'} onClick={() => setTool('eraser')} title="Borracha (E)" />
+          <ToolButton icon={Search} active={tool === 'zoom'} onClick={() => setTool('zoom')} title="Lupa (Z)" />
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden" ref={containerRef}>
+        <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
           <div className="flex-1 overflow-auto flex items-center justify-center p-4">
             <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center' }}>
               <canvas
@@ -872,7 +848,9 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                 onMouseUp={handleCanvasMouseUp}
                 onMouseLeave={handleCanvasMouseUp}
                 className="border border-gray-600 cursor-crosshair bg-white shadow-2xl"
-                style={{ maxWidth: '100%', maxHeight: '100%' }}
+                style={{ 
+                  cursor: tool === 'move' ? 'move' : tool === 'zoom' ? 'zoom-in' : 'crosshair'
+                }}
               />
             </div>
           </div>
@@ -893,18 +871,9 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   <SelectItem value="200">200%</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setShowGrid(!showGrid)}
-                title="Grade"
-              >
-                <Grid className={`w-4 h-4 ${showGrid ? 'text-indigo-400' : 'text-gray-400'}`} />
-              </Button>
             </div>
             <div className="text-gray-400">
-              {canvasSize.width} x {canvasSize.height} px
+              {canvasSize.width} x {canvasSize.height} px | Camada: {selectedLayer?.name || 'Nenhuma'}
             </div>
           </div>
         </div>
@@ -913,22 +882,19 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
         <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
           <div className="p-3 border-b border-gray-700 flex items-center justify-between">
             <h3 className="text-white font-semibold">Camadas</h3>
-            <div className="flex gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-gray-400 h-6 w-6"
-                onClick={() => addNewLayer('raster')}
-                title="Nova Camada"
-              >
-                <Layers className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-gray-400 h-6 w-6"
+              onClick={addNewLayer}
+            >
+              <Layers className="w-4 h-4" />
+            </Button>
           </div>
 
           {/* Layers List */}
           <div className="flex-1 overflow-y-auto">
-            {layers.map((layer, index) => (
+            {layers.map((layer) => (
               <div
                 key={layer.id}
                 onClick={() => setSelectedLayerId(layer.id)}
@@ -936,12 +902,8 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                   selectedLayerId === layer.id ? 'bg-indigo-900' : 'hover:bg-gray-700'
                 }`}
               >
-                <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-600">
-                  {layer.imageData ? (
-                    <img src={layer.imageData} alt={layer.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-gray-600" />
-                  )}
+                <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center flex-shrink-0 border border-gray-600">
+                  <Layers className="w-6 h-6 text-gray-600" />
                 </div>
                 <span className="text-white flex-1 text-sm truncate">{layer.name}</span>
                 <div className="flex gap-1">
@@ -975,26 +937,6 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           {/* Layer Controls */}
           <div className="p-3 border-t border-gray-700 space-y-3">
             <div>
-              <label className="text-gray-400 text-xs mb-1 block">Modo:</label>
-              <Select 
-                value={selectedLayer?.blendMode || 'normal'} 
-                onValueChange={updateLayerBlendMode}
-              >
-                <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="multiply">Multiplicar</SelectItem>
-                  <SelectItem value="screen">Tela</SelectItem>
-                  <SelectItem value="overlay">Sobrepor</SelectItem>
-                  <SelectItem value="darken">Escurecer</SelectItem>
-                  <SelectItem value="lighten">Clarear</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <label className="text-gray-400 text-xs mb-1 block">Opacidade:</label>
               <div className="flex items-center gap-2">
                 <input
@@ -1014,7 +956,7 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                 variant="ghost" 
                 size="icon" 
                 className="text-gray-400 flex-1" 
-                onClick={() => addNewLayer('raster')}
+                onClick={addNewLayer}
                 title="Nova Camada"
               >
                 <ImageIcon className="w-4 h-4" />
@@ -1026,7 +968,7 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                 onClick={() => moveLayer('up')}
                 title="Mover para Cima"
               >
-                <Layers className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 rotate-[-90deg]" />
               </Button>
               <Button 
                 variant="ghost" 
@@ -1035,7 +977,7 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
                 onClick={() => moveLayer('down')}
                 title="Mover para Baixo"
               >
-                <Layers className="w-4 h-4 rotate-180" />
+                <ChevronRight className="w-4 h-4 rotate-90" />
               </Button>
               <Button 
                 variant="ghost" 
@@ -1069,84 +1011,20 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           <div className="space-y-4 py-4">
             <div>
               <label className="text-sm font-medium">Largura (px)</label>
-              <Input 
-                type="number" 
-                defaultValue={2500} 
-                id="doc-width"
-              />
+              <Input type="number" defaultValue={2500} id="doc-width" />
             </div>
             <div>
               <label className="text-sm font-medium">Altura (px)</label>
-              <Input 
-                type="number" 
-                defaultValue={1500} 
-                id="doc-height"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Fundo</label>
-              <Select defaultValue="#ffffff">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="#ffffff">Branco</SelectItem>
-                  <SelectItem value="#000000">Preto</SelectItem>
-                  <SelectItem value="transparent">Transparente</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input type="number" defaultValue={1500} id="doc-height" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewDocDialog(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setShowNewDocDialog(false)}>Cancelar</Button>
             <Button onClick={() => {
               const width = parseInt(document.getElementById('doc-width').value) || 2500;
               const height = parseInt(document.getElementById('doc-height').value) || 1500;
               createNewDocument(width, height);
-            }}>
-              Criar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showResizeDialog} onOpenChange={setShowResizeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Redimensionar Documento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium">Largura (px)</label>
-              <Input 
-                type="number" 
-                defaultValue={canvasSize.width} 
-                id="resize-width"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Altura (px)</label>
-              <Input 
-                type="number" 
-                defaultValue={canvasSize.height} 
-                id="resize-height"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResizeDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => {
-              const width = parseInt(document.getElementById('resize-width').value);
-              const height = parseInt(document.getElementById('resize-height').value);
-              setCanvasSize({ width, height });
-              setShowResizeDialog(false);
-            }}>
-              Aplicar
-            </Button>
+            }}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1183,20 +1061,14 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
             <div>
-              <h3 className="font-semibold mb-2">Atalhos do Teclado</h3>
+              <h3 className="font-semibold mb-2">Atalhos</h3>
               <div className="space-y-1 text-sm">
-                <p><kbd className="px-2 py-1 bg-gray-800 rounded">Ctrl + Z</kbd> - Desfazer</p>
-                <p><kbd className="px-2 py-1 bg-gray-800 rounded">Ctrl + Y</kbd> - Refazer</p>
-                <p><kbd className="px-2 py-1 bg-gray-800 rounded">Ctrl + D</kbd> - Duplicar Camada</p>
-                <p><kbd className="px-2 py-1 bg-gray-800 rounded">Delete</kbd> - Excluir Camada</p>
+                <p><kbd className="px-2 py-1 bg-gray-800 rounded">V</kbd> - Mover</p>
+                <p><kbd className="px-2 py-1 bg-gray-800 rounded">B</kbd> - Pincel</p>
+                <p><kbd className="px-2 py-1 bg-gray-800 rounded">P</kbd> - Lápis</p>
+                <p><kbd className="px-2 py-1 bg-gray-800 rounded">E</kbd> - Borracha</p>
+                <p><kbd className="px-2 py-1 bg-gray-800 rounded">T</kbd> - Texto</p>
               </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">Sobre</h3>
-              <p className="text-sm text-gray-400">
-                PhotoSmart Editor - Editor de imagens profissional com IA integrada.
-                Versão 1.0.0
-              </p>
             </div>
           </div>
         </DialogContent>
