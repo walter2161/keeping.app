@@ -35,14 +35,14 @@ export default function CreateDialog({
 
   const config = {
     folder: { icon: Folder, title: 'Nova Pasta', placeholder: 'Nome da pasta', color: 'text-gray-600' },
-    kbn: { icon: LayoutGrid, title: 'Novo Kanban', placeholder: 'Nome do arquivo Kanban', color: 'text-purple-600' },
-    gnt: { icon: GanttChart, title: 'Novo Gantt', placeholder: 'Nome do arquivo Gantt', color: 'text-orange-600' },
-    crn: { icon: Calendar, title: 'Novo Cronograma', placeholder: 'Nome do arquivo Cronograma', color: 'text-pink-600' },
+    kbn: { icon: LayoutGrid, title: 'Novo Kanban', placeholder: 'Nome do Kanban', color: 'text-purple-600' },
+    gnt: { icon: GanttChart, title: 'Novo Gantt', placeholder: 'Nome do Gantt', color: 'text-orange-600' },
+    crn: { icon: Calendar, title: 'Novo Cronograma', placeholder: 'Nome do Cronograma', color: 'text-pink-600' },
     flux: { icon: ArrowRight, title: 'Novo FluxMap', placeholder: 'Nome do FluxMap', color: 'text-teal-600' },
     docx: { icon: FileText, title: 'Novo Documento', placeholder: 'Nome do documento', color: 'text-blue-600' },
     xlsx: { icon: FileSpreadsheet, title: 'Nova Planilha', placeholder: 'Nome da planilha', color: 'text-green-600' },
     pptx: { icon: Presentation, title: 'Nova Apresentação', placeholder: 'Nome da apresentação', color: 'text-amber-600' },
-    psd: { icon: Sparkles, title: 'Novo PhotoSmart', placeholder: 'Nome do projeto', color: 'text-indigo-600' },
+    psd: { icon: Sparkles, title: 'Novo PhotoSmart', placeholder: 'Nome do PhotoSmart', color: 'text-indigo-600' },
   };
 
   const currentConfig = config[type] || config.folder;
