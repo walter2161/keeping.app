@@ -381,13 +381,13 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
             if (action === 'edit') {
               // Para document, spreadsheet e presentation - criar arquivo ou abrir existente
               if (['document', 'spreadsheet', 'presentation'].includes(currentNodeData.name)) {
-                // Se já existe fileId, salvar FluxMap e abrir arquivo existente
+                // Se já existe fileId, salvar FluxMap e abrir arquivo existente em nova aba
                 if (currentNodeData.data.fileId) {
                   if (onChange) {
                     onChange(editor.export());
                   }
                   setTimeout(() => {
-                    window.location.href = createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`);
+                    window.open(createPageUrl(`FileViewer?id=${currentNodeData.data.fileId}`), '_blank');
                   }, 300);
                   return;
                 }
@@ -424,14 +424,14 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                     fileId: file.id
                   });
                   
-                  // Salvar FluxMap com o fileId e aguardar antes de redirecionar
-                  if (onChange) {
-                    onChange(editor.export());
-                  }
-                  
-                  setTimeout(() => {
-                    window.location.href = createPageUrl(`FileViewer?id=${file.id}`);
-                  }, 300);
+                  // Salvar FluxMap com o fileId e aguardar antes de abrir em nova aba
+                    if (onChange) {
+                      onChange(editor.export());
+                    }
+
+                    setTimeout(() => {
+                      window.open(createPageUrl(`FileViewer?id=${file.id}`), '_blank');
+                    }, 300);
                 });
               } else {
                 setEditDialog({ 
