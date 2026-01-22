@@ -966,31 +966,43 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
           const results = [];
           const tempRefs = {}; // Armazena ID real de pastas criadas
 
+          console.log('📦 Iniciando processamento de', llmResult.actions.length, 'ações');
+          console.log('📋 Ações recebidas:', JSON.stringify(llmResult.actions, null, 2));
+
           for (const actionItem of llmResult.actions) {
             try {
+              console.log('\n🔄 Processando:', actionItem.action, actionItem.data.name);
+              console.log('   temp_ref:', actionItem.temp_ref);
+              console.log('   parent_id original:', actionItem.data.parent_id);
+              console.log('   folder_id original:', actionItem.data.folder_id);
+
               // Substituir referências temporárias por IDs reais
-              if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
-                actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
+              if (actionItem.data.parent_id) {
+                if (tempRefs[actionItem.data.parent_id]) {
+                  const resolvedId = tempRefs[actionItem.data.parent_id];
+                  console.log(`   ✓ Resolvendo parent_id: ${actionItem.data.parent_id} → ${resolvedId}`);
+                  actionItem.data.parent_id = resolvedId;
+                } else if (!actionItem.data.parent_id.match(/^[a-f0-9]{24}$/)) {
+                  console.warn(`   ⚠️ parent_id não resolvido: ${actionItem.data.parent_id}, usando pasta atual`);
+                  actionItem.data.parent_id = currentFolderId;
+                }
               }
 
-              if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
-                actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
-              }
-
-              // Validar se parent_id/folder_id são IDs reais existentes ou null
-              if (actionItem.data.parent_id && !actionItem.data.parent_id.match(/^[a-f0-9]{24}$/)) {
-                console.warn('⚠️ parent_id inválido ou não resolvido:', actionItem.data.parent_id);
-                actionItem.data.parent_id = currentFolderId;
-              }
-
-              if (actionItem.data.folder_id && !actionItem.data.folder_id.match(/^[a-f0-9]{24}$/)) {
-                console.warn('⚠️ folder_id inválido ou não resolvido:', actionItem.data.folder_id);
-                actionItem.data.folder_id = currentFolderId;
+              if (actionItem.data.folder_id) {
+                if (tempRefs[actionItem.data.folder_id]) {
+                  const resolvedId = tempRefs[actionItem.data.folder_id];
+                  console.log(`   ✓ Resolvendo folder_id: ${actionItem.data.folder_id} → ${resolvedId}`);
+                  actionItem.data.folder_id = resolvedId;
+                } else if (!actionItem.data.folder_id.match(/^[a-f0-9]{24}$/)) {
+                  console.warn(`   ⚠️ folder_id não resolvido: ${actionItem.data.folder_id}, usando pasta atual`);
+                  actionItem.data.folder_id = currentFolderId;
+                }
               }
 
               // Se não tem folder_id especificado e estamos em uma pasta, usar a pasta atual
-              if (actionItem.action === 'create_file' && !actionItem.data.folder_id && currentFolderId) {
+              if (actionItem.action === 'create_file' && !actionItem.data.folder_id) {
                 actionItem.data.folder_id = currentFolderId;
+                console.log(`   ℹ️ Arquivo sem folder_id, usando pasta atual: ${currentFolderId}`);
               }
 
               // Se estamos em uma pasta de equipe, herdar o team_id
@@ -1011,19 +1023,25 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
                 actionResult = { success: true, method: 'terminal' };
                 results.push({ action: actionItem, result: actionResult, success: true });
               } else {
-                console.log('⚙️ Executando ação:', actionItem);
+                console.log('   ⚙️ Executando com dados finais:', {
+                  name: actionItem.data.name,
+                  parent_id: actionItem.data.parent_id,
+                  folder_id: actionItem.data.folder_id,
+                  team_id: actionItem.data.team_id
+                });
                 actionResult = await executeAction(actionItem, folders, files);
-                console.log('✅ Resultado:', actionResult);
+                console.log('   ✅ Criado com ID:', actionResult?.id);
                 results.push({ action: actionItem, result: actionResult, success: true });
               }
 
-              // Armazenar ID real da pasta criada
+              // Armazenar ID real da pasta criada IMEDIATAMENTE
               if (actionItem.action === 'create_folder' && actionItem.temp_ref && actionResult?.id) {
                 tempRefs[actionItem.temp_ref] = actionResult.id;
-                console.log(`✓ Mapeado ${actionItem.temp_ref} → ${actionResult.id}`);
+                console.log(`   ✓✓✓ MAPEADO: ${actionItem.temp_ref} → ${actionResult.id}`);
+                console.log('   📍 tempRefs atuais:', tempRefs);
               }
             } catch (error) {
-              console.error('❌ Erro ao executar ação:', error);
+              console.error('   ❌ ERRO:', error.message);
               results.push({ action: actionItem, error: error.message, success: false });
             }
           }
