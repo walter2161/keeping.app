@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File, Terminal, Sparkles
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File, Terminal, Sparkles, CheckSquare
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import NotificationBell from './NotificationBell';
-
-import { CheckSquare } from 'lucide-react';
 
 export default function Toolbar({ 
   onNewFolder, 
