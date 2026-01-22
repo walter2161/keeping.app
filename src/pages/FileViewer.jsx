@@ -9,12 +9,18 @@ import {
         ArrowLeft, Save, Download, FileText, FileSpreadsheet,
         LayoutGrid, GanttChart as GanttChartIcon, Calendar, Loader2, Check, 
         Image as ImageIcon, Video, ArrowRight, Upload, Presentation, Printer,
-        FileImage, FileType, ZoomIn, ZoomOut, Sparkles
+        FileImage, FileType, ZoomIn, ZoomOut, Sparkles, FileStack
       } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import KanbanBoard from '../components/kanban/KanbanBoard';
 import GanttChartComponent from '../components/gantt/GanttChart';
@@ -40,6 +46,197 @@ const fileTypeConfig = {
   psd: { icon: Sparkles, color: 'text-indigo-600', label: 'PhotoSmart' },
   img: { icon: ImageIcon, color: 'text-cyan-600', label: 'Imagem' },
   video: { icon: Video, color: 'text-purple-600', label: 'Vídeo' },
+};
+
+const fileTemplates = {
+  docx: [
+    {
+      name: 'Contrato',
+      content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p><strong>Contrato nº:</strong> ___/2026</p><p><strong>Data:</strong> ___/___/2026</p><p><br></p><h2><strong>1. DAS PARTES</strong></h2><p><strong>CONTRATANTE:</strong> [Nome da Empresa], CNPJ ___.___.___/____-__</p><p>Endereço: [Endereço completo]</p><p><br></p><p><strong>CONTRATADA:</strong> [Nome da Empresa], CNPJ ___.___.___/____-__</p><p>Endereço: [Endereço completo]</p><p><br></p><h2><strong>2. DO OBJETO</strong></h2><p>O presente contrato tem por objeto: [Descrever objeto do contrato]</p><p><br></p><h2><strong>3. DO VALOR E FORMA DE PAGAMENTO</strong></h2><p>O valor total é de <strong>R$ ___________</strong>, a ser pago conforme:</p><p>• [Forma de pagamento]</p><p><br></p><h2><strong>4. DO PRAZO</strong></h2><p>O prazo de execução é de ___ dias/meses, com início em ___/___/___ e término em ___/___/___.</p><p><br></p><h2><strong>5. DAS OBRIGAÇÕES</strong></h2><p><strong>Da CONTRATADA:</strong></p><p>• [Listar obrigações]</p><p><br></p><p><strong>Da CONTRATANTE:</strong></p><p>• [Listar obrigações]</p>'
+    },
+    {
+      name: 'Recibo',
+      content: '<h1 style="text-align: center;"><strong>RECIBO DE PAGAMENTO</strong></h1><p><br></p><p style="text-align: right;"><strong>Valor: R$ __________</strong></p><p><br></p><p>Recebi de <strong>[Nome do Pagador]</strong>, CPF/CNPJ <strong>___.___.___-__</strong>, a quantia de <strong>R$ __________ ([valor por extenso])</strong>, referente a <strong>[descrição do serviço/produto]</strong>.</p><p><br></p><p><br></p><p><strong>Forma de Pagamento:</strong> [ ] Dinheiro [ ] PIX [ ] Transferência [ ] Cartão</p><p><br></p><p><strong>Data do Pagamento:</strong> ___/___/2026</p><p><br></p><p><br></p><p><br></p><p>_________________________________________</p><p><strong>Assinatura do Recebedor</strong></p><p>Nome: [Nome completo]</p><p>CPF: ___.___.___-__</p><p><br></p><p style="text-align: center;"><em>Para maior validade jurídica, é recomendável reconhecer firma em cartório.</em></p>'
+    },
+    {
+      name: 'Currículo',
+      content: '<h1 style="text-align: center;"><strong>[SEU NOME COMPLETO]</strong></h1><p style="text-align: center;">[Sua Profissão/Área]</p><p style="text-align: center;">Email: [seu.email@exemplo.com] | Telefone: (11) 9____-____ | LinkedIn: linkedin.com/in/____</p><p style="text-align: center;">Endereço: [Cidade, Estado]</p><p><br></p><h2><strong>OBJETIVO PROFISSIONAL</strong></h2><p>[Descreva seu objetivo profissional em 2-3 linhas]</p><p><br></p><h2><strong>FORMAÇÃO ACADÊMICA</strong></h2><p><strong>[Nome do Curso]</strong> - [Nome da Instituição]</p><p>[Ano de início] - [Ano de conclusão ou "Em andamento"]</p><p><br></p><h2><strong>EXPERIÊNCIA PROFISSIONAL</strong></h2><p><strong>[Nome da Empresa]</strong> - [Cargo]</p><p>[Mês/Ano] - [Mês/Ano ou "Atual"]</p><p>• [Responsabilidade/conquista 1]</p><p>• [Responsabilidade/conquista 2]</p><p>• [Responsabilidade/conquista 3]</p><p><br></p><h2><strong>COMPETÊNCIAS</strong></h2><p>• [Competência 1]</p><p>• [Competência 2]</p><p>• [Competência 3]</p><p><br></p><h2><strong>IDIOMAS</strong></h2><p>• Português: Nativo</p><p>• Inglês: [Nível]</p><p><br></p><h2><strong>CURSOS E CERTIFICAÇÕES</strong></h2><p>• [Nome do curso] - [Instituição] ([Ano])</p>'
+    }
+  ],
+  xlsx: [
+    {
+      name: 'Controle Financeiro',
+      content: 'Data,Descrição,Categoria,Tipo,Valor\n2026-01-22,Salário Recebido,Receita,Entrada,5000\n2026-01-22,Aluguel,Moradia,Saída,1500\n2026-01-23,Supermercado,Alimentação,Saída,350\n2026-01-24,Freelance,Receita,Entrada,800\n2026-01-25,Internet,Contas,Saída,100\n2026-01-26,Restaurante,Alimentação,Saída,85\n2026-01-27,Transporte,Transporte,Saída,150\n2026-01-28,Academia,Saúde,Saída,120\n2026-01-29,Consultoria,Receita,Entrada,1200\n2026-01-30,Luz,Contas,Saída,180'
+    },
+    {
+      name: 'Controle de Produtos',
+      content: 'Código,Produto,Categoria,Estoque Atual,Estoque Mínimo,Preço Compra,Preço Venda,Fornecedor,Status\nP001,Notebook Dell,Informática,15,5,2500,3500,Tech Distribuidora,Ativo\nP002,Mouse Logitech,Acessórios,45,10,35,65,Tech Distribuidora,Ativo\nP003,Teclado Mecânico,Acessórios,22,8,180,320,Periféricos SA,Ativo\nP004,Monitor LG 24",Informática,8,3,650,950,LG Brasil,Ativo\nP005,Webcam HD,Acessórios,30,15,120,210,Tech Distribuidora,Ativo\nP006,Headset Gamer,Acessórios,18,5,220,380,Gamer Store,Ativo\nP007,SSD 500GB,Hardware,25,10,280,420,Storage Plus,Ativo\nP008,Memória RAM 8GB,Hardware,40,20,180,290,Hardware Brasil,Ativo\nP009,Cadeira Ergonômica,Móveis,5,2,850,1350,Móveis Office,Ativo\nP010,Mesa para PC,Móveis,3,1,450,750,Móveis Office,Baixo Estoque'
+    },
+    {
+      name: 'Lista de Tarefas',
+      content: 'Tarefa,Responsável,Prioridade,Status,Data Início,Prazo,Progresso %,Observações\nReunião com cliente,João Silva,Alta,Em andamento,2026-01-22,2026-01-22,100,Concluída\nElaborar proposta,Maria Santos,Alta,Em andamento,2026-01-22,2026-01-25,60,Em revisão\nAtualizar website,Pedro Costa,Média,Pendente,2026-01-23,2026-01-30,0,Aguardando briefing\nRelatório mensal,Ana Oliveira,Alta,Em andamento,2026-01-20,2026-01-31,75,Faltam gráficos\nTreinamento equipe,Carlos Lima,Baixa,Pendente,2026-02-01,2026-02-15,0,Agendar data\nRevisão contratos,João Silva,Média,Concluído,2026-01-15,2026-01-20,100,Aprovado pela diretoria'
+    }
+  ],
+  kbn: [
+    {
+      name: 'Mapa Mental',
+      content: JSON.stringify({
+        columns: [
+          { id: 'central', title: 'Ideia Central', color: '#8b5cf6' },
+          { id: 'subtopics', title: 'Subtópicos', color: '#3b82f6' },
+          { id: 'details', title: 'Detalhes', color: '#10b981' },
+          { id: 'actions', title: 'Ações', color: '#f59e0b' }
+        ],
+        cards: [
+          { id: '1', columnId: 'central', title: 'Projeto Principal', description: 'Objetivo principal do projeto', priority: 'high', tags: ['principal'] },
+          { id: '2', columnId: 'subtopics', title: 'Planejamento', description: 'Definir escopo e prazos', priority: 'high', tags: ['planejamento'] },
+          { id: '3', columnId: 'subtopics', title: 'Execução', description: 'Implementar as atividades', priority: 'medium', tags: ['execução'] },
+          { id: '4', columnId: 'details', title: 'Recursos Necessários', description: 'Listar ferramentas e equipe', priority: 'medium', tags: ['recursos'] },
+          { id: '5', columnId: 'details', title: 'Riscos Identificados', description: 'Mapear possíveis problemas', priority: 'low', tags: ['riscos'] },
+          { id: '6', columnId: 'actions', title: 'Próximos Passos', description: 'Definir ações imediatas', priority: 'high', tags: ['ações'] }
+        ]
+      })
+    },
+    {
+      name: 'Planejamento de Marketing',
+      content: JSON.stringify({
+        columns: [
+          { id: 'research', title: 'Pesquisa', color: '#6366f1' },
+          { id: 'planning', title: 'Planejamento', color: '#8b5cf6' },
+          { id: 'creation', title: 'Criação', color: '#f59e0b' },
+          { id: 'execution', title: 'Execução', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'research', title: 'Análise de Mercado', description: 'Estudar concorrência e público-alvo', priority: 'high', tags: ['análise'] },
+          { id: '2', columnId: 'research', title: 'Definir Personas', description: 'Criar perfis de clientes ideais', priority: 'high', tags: ['personas'] },
+          { id: '3', columnId: 'planning', title: 'Estratégia de Conteúdo', description: 'Planejar temas e formatos', priority: 'high', tags: ['conteúdo'] },
+          { id: '4', columnId: 'planning', title: 'Orçamento', description: 'Definir investimento por canal', priority: 'medium', tags: ['financeiro'] },
+          { id: '5', columnId: 'creation', title: 'Design de Posts', description: 'Criar artes para redes sociais', priority: 'medium', tags: ['design'] },
+          { id: '6', columnId: 'execution', title: 'Lançar Campanhas', description: 'Ativar anúncios e posts', priority: 'low', tags: ['lançamento'] }
+        ]
+      })
+    },
+    {
+      name: 'Planejamento de Campanha',
+      content: JSON.stringify({
+        columns: [
+          { id: 'briefing', title: 'Briefing', color: '#ef4444' },
+          { id: 'concept', title: 'Conceito', color: '#f59e0b' },
+          { id: 'production', title: 'Produção', color: '#3b82f6' },
+          { id: 'launch', title: 'Lançamento', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'briefing', title: 'Objetivo da Campanha', description: 'Aumentar vendas em 30%', priority: 'high', tags: ['objetivo'] },
+          { id: '2', columnId: 'briefing', title: 'Público-Alvo', description: 'Jovens de 18-35 anos', priority: 'high', tags: ['público'] },
+          { id: '3', columnId: 'concept', title: 'Tema Central', description: 'Inovação e Tecnologia', priority: 'high', tags: ['tema'] },
+          { id: '4', columnId: 'concept', title: 'Mensagem Principal', description: 'Transforme seu futuro hoje', priority: 'medium', tags: ['mensagem'] },
+          { id: '5', columnId: 'production', title: 'Criar Vídeos', description: '3 vídeos para Instagram', priority: 'medium', tags: ['vídeo'] },
+          { id: '6', columnId: 'launch', title: 'Campanha Google Ads', description: 'Configurar e lançar anúncios', priority: 'high', tags: ['ads'] }
+        ]
+      })
+    }
+  ],
+  gnt: [
+    {
+      name: 'Tarefas da Equipe',
+      content: JSON.stringify({
+        tasks: [
+          { id: 't1', name: 'Planejamento Inicial', start: '2026-01-22', end: '2026-01-24', progress: 100, dependencies: [] },
+          { id: 't2', name: 'Design e Prototipagem', start: '2026-01-25', end: '2026-02-05', progress: 60, dependencies: ['t1'] },
+          { id: 't3', name: 'Desenvolvimento Backend', start: '2026-02-06', end: '2026-03-10', progress: 20, dependencies: ['t2'] },
+          { id: 't4', name: 'Desenvolvimento Frontend', start: '2026-02-10', end: '2026-03-15', progress: 10, dependencies: ['t2'] },
+          { id: 't5', name: 'Testes e Correções', start: '2026-03-16', end: '2026-03-25', progress: 0, dependencies: ['t3', 't4'] },
+          { id: 't6', name: 'Deploy e Lançamento', start: '2026-03-26', end: '2026-03-31', progress: 0, dependencies: ['t5'] }
+        ]
+      })
+    },
+    {
+      name: 'Projeto Desenvolvimento',
+      content: JSON.stringify({
+        tasks: [
+          { id: 't1', name: 'Kickoff e Alinhamento', start: '2026-01-22', end: '2026-01-23', progress: 100, dependencies: [] },
+          { id: 't2', name: 'Levantamento de Requisitos', start: '2026-01-24', end: '2026-01-31', progress: 80, dependencies: ['t1'] },
+          { id: 't3', name: 'Arquitetura do Sistema', start: '2026-02-01', end: '2026-02-10', progress: 50, dependencies: ['t2'] },
+          { id: 't4', name: 'Setup de Infraestrutura', start: '2026-02-11', end: '2026-02-20', progress: 30, dependencies: ['t3'] },
+          { id: 't5', name: 'Sprint 1 - MVP', start: '2026-02-21', end: '2026-03-10', progress: 0, dependencies: ['t4'] },
+          { id: 't6', name: 'Sprint 2 - Funcionalidades', start: '2026-03-11', end: '2026-03-31', progress: 0, dependencies: ['t5'] },
+          { id: 't7', name: 'Testes de Qualidade', start: '2026-04-01', end: '2026-04-15', progress: 0, dependencies: ['t6'] },
+          { id: 't8', name: 'Homologação Cliente', start: '2026-04-16', end: '2026-04-25', progress: 0, dependencies: ['t7'] },
+          { id: 't9', name: 'Go Live', start: '2026-04-26', end: '2026-04-30', progress: 0, dependencies: ['t8'] }
+        ]
+      })
+    }
+  ],
+  crn: [
+    {
+      name: 'Cronograma Semanal',
+      content: JSON.stringify({
+        groups: [
+          { id: 'g1', name: 'Segunda-feira', color: '#3b82f6' },
+          { id: 'g2', name: 'Terça-feira', color: '#8b5cf6' },
+          { id: 'g3', name: 'Quarta-feira', color: '#ec4899' },
+          { id: 'g4', name: 'Quinta-feira', color: '#f59e0b' },
+          { id: 'g5', name: 'Sexta-feira', color: '#10b981' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'g1', name: 'Reunião de Equipe', start: '2026-01-27', end: '2026-01-27', progress: 0 },
+          { id: 'i2', groupId: 'g2', name: 'Desenvolvimento Feature A', start: '2026-01-28', end: '2026-01-28', progress: 0 },
+          { id: 'i3', groupId: 'g3', name: 'Code Review', start: '2026-01-29', end: '2026-01-29', progress: 0 },
+          { id: 'i4', groupId: 'g4', name: 'Testes e Ajustes', start: '2026-01-30', end: '2026-01-30', progress: 0 },
+          { id: 'i5', groupId: 'g5', name: 'Deploy Semanal', start: '2026-01-31', end: '2026-01-31', progress: 0 }
+        ]
+      })
+    }
+  ],
+  flux: [
+    {
+      name: 'Fluxo de Processo',
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Início' }, class: 'start', html: 'Início', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Processo 1' }, class: 'process', html: 'Processo 1', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'decision', data: { text: 'Decisão?' }, class: 'decision', html: 'Decisão?', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] }, output_2: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'process', data: { text: 'Caminho Sim' }, class: 'process', html: 'Caminho Sim', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 130 },
+              '5': { id: 5, name: 'process', data: { text: 'Caminho Não' }, class: 'process', html: 'Caminho Não', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_2' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 270 },
+              '6': { id: 6, name: 'end', data: { text: 'Fim' }, class: 'end', html: 'Fim', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }, { node: '5', input: 'output_1' }] } }, outputs: {}, pos_x: 1100, pos_y: 200 }
+            }
+          }
+        }
+      })
+    }
+  ],
+  pptx: [
+    {
+      name: 'Apresentação Empresarial',
+      content: JSON.stringify({
+        slides: [
+          {
+            background: '#1e3a8a',
+            elements: [
+              { type: 'text', content: 'Título da Apresentação', x: 100, y: 200, fontSize: 48, color: '#ffffff', bold: true },
+              { type: 'text', content: 'Subtítulo ou Nome da Empresa', x: 100, y: 280, fontSize: 24, color: '#93c5fd' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Tópico 1', x: 50, y: 50, fontSize: 36, color: '#1e3a8a', bold: true },
+              { type: 'text', content: '• Ponto importante\n• Outro ponto relevante\n• Terceiro ponto', x: 50, y: 150, fontSize: 20, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Conclusão', x: 50, y: 50, fontSize: 36, color: '#1e3a8a', bold: true },
+              { type: 'text', content: 'Resumo dos pontos principais', x: 50, y: 150, fontSize: 20, color: '#1f2937' }
+            ]
+          }
+        ]
+      })
+    }
+  ]
 };
 
 export default function FileViewer() {
@@ -616,6 +813,37 @@ export default function FileViewer() {
             </Button>
           )}
           
+          {/* Template Dropdown */}
+          {fileTemplates[file.type] && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <FileStack className="w-4 h-4 mr-2" />
+                  Modelos
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {fileTemplates[file.type].map((template, index) => (
+                  <DropdownMenuItem
+                    key={index}
+                    onClick={() => {
+                      if (window.confirm(`Deseja carregar o modelo "${template.name}"? O conteúdo atual será substituído.`)) {
+                        if (file.type === 'docx' || file.type === 'xlsx') {
+                          setLocalContent(template.content);
+                        } else {
+                          setLocalContent(JSON.parse(template.content));
+                        }
+                        setHasChanges(true);
+                      }
+                    }}
+                  >
+                    {template.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           <input
             type="file"
             accept={file.type === 'docx' ? '.txt,.doc,.docx' : file.type === 'xlsx' ? '.csv,.xlsx,.xls' : file.type === 'pptx' ? '.pptx,.ppt' : '.json'}
