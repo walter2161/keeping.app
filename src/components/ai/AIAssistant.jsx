@@ -447,31 +447,55 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
             const tempRefs = {}; // Armazena ID real de pastas criadas
             
             for (const actionItem of llmResult.actions) {
-              // Substituir referências temporárias por IDs reais
-              if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
-                actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
-              }
-              
-              if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
-                actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
-              }
-              
-              const result = await executeAction(actionItem, folders, files);
-              results.push({ action: actionItem, result });
-              
-              // Armazenar ID real da pasta criada
-              if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
-                tempRefs[actionItem.temp_ref] = result.id;
+              try {
+                // Substituir referências temporárias por IDs reais
+                if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
+                  actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
+                }
+                
+                if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
+                  actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
+                }
+                
+                // Validar se parent_id/folder_id são IDs reais existentes ou null
+                if (actionItem.data.parent_id && !actionItem.data.parent_id.match(/^[a-f0-9]{24}$/)) {
+                  console.warn('⚠️ parent_id inválido ou não resolvido:', actionItem.data.parent_id);
+                  actionItem.data.parent_id = currentFolderId;
+                }
+                
+                if (actionItem.data.folder_id && !actionItem.data.folder_id.match(/^[a-f0-9]{24}$/)) {
+                  console.warn('⚠️ folder_id inválido ou não resolvido:', actionItem.data.folder_id);
+                  actionItem.data.folder_id = currentFolderId;
+                }
+                
+                const result = await executeAction(actionItem, folders, files);
+                results.push({ action: actionItem, result, success: true });
+                
+                // Armazenar ID real da pasta criada
+                if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
+                  tempRefs[actionItem.temp_ref] = result.id;
+                  console.log(`✓ Mapeado ${actionItem.temp_ref} → ${result.id}`);
+                }
+              } catch (error) {
+                console.error('❌ Erro ao executar ação:', error);
+                results.push({ action: actionItem, error: error.message, success: false });
               }
             }
 
             await queryClient.invalidateQueries({ queryKey: ['files'] });
             await queryClient.invalidateQueries({ queryKey: ['folders'] });
 
-            const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
+            const successCount = results.filter(r => r.success).length;
+            const errorCount = results.filter(r => !r.success).length;
+            
+            let statusMessage = `✓ ${successCount} item(ns) criado(s) com sucesso`;
+            if (errorCount > 0) {
+              statusMessage += `\n⚠️ ${errorCount} erro(s) encontrado(s)`;
+            }
+            
             const successMessage = { 
               role: 'assistant', 
-              content: `✓ Automação executada:\n${successMessages}`,
+              content: statusMessage,
               timestamp: Date.now()
             };
             setMessages(prev => [...prev, successMessage]);
@@ -943,45 +967,64 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
           const tempRefs = {}; // Armazena ID real de pastas criadas
 
           for (const actionItem of llmResult.actions) {
-            // Substituir referências temporárias por IDs reais
-            if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
-              actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
-            }
-
-            if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
-              actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
-            }
-
-            // Se não tem folder_id especificado e estamos em uma pasta, usar a pasta atual
-            if (actionItem.action === 'create_file' && !actionItem.data.folder_id && currentFolderId) {
-              actionItem.data.folder_id = currentFolderId;
-            }
-
-            // Se estamos em uma pasta de equipe, herdar o team_id
-            if (currentTeamId && !actionItem.data.team_id) {
-              actionItem.data.team_id = currentTeamId;
-            }
-
-            // Se a ação é edit_file e temos callback de terminal, executar via terminal
-            if (actionItem.action === 'edit_file' && onExecuteTerminalCommand && openFileId) {
-              const commands = generateTerminalCommands(actionItem, fileType);
-              for (const cmd of commands) {
-                if (onExecuteTerminalCommand) {
-                  await onExecuteTerminalCommand(cmd);
-                  await new Promise(resolve => setTimeout(resolve, 300));
-                }
+            try {
+              // Substituir referências temporárias por IDs reais
+              if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
+                actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
               }
-              results.push({ action: actionItem, result: { success: true, method: 'terminal' } });
-            } else {
-              console.log('⚙️ Executando ação:', actionItem);
-              const result = await executeAction(actionItem, folders, files);
-              console.log('✅ Resultado:', result);
-              results.push({ action: actionItem, result });
-            }
 
-            // Armazenar ID real da pasta criada
-            if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
-              tempRefs[actionItem.temp_ref] = result.id;
+              if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
+                actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
+              }
+
+              // Validar se parent_id/folder_id são IDs reais existentes ou null
+              if (actionItem.data.parent_id && !actionItem.data.parent_id.match(/^[a-f0-9]{24}$/)) {
+                console.warn('⚠️ parent_id inválido ou não resolvido:', actionItem.data.parent_id);
+                actionItem.data.parent_id = currentFolderId;
+              }
+
+              if (actionItem.data.folder_id && !actionItem.data.folder_id.match(/^[a-f0-9]{24}$/)) {
+                console.warn('⚠️ folder_id inválido ou não resolvido:', actionItem.data.folder_id);
+                actionItem.data.folder_id = currentFolderId;
+              }
+
+              // Se não tem folder_id especificado e estamos em uma pasta, usar a pasta atual
+              if (actionItem.action === 'create_file' && !actionItem.data.folder_id && currentFolderId) {
+                actionItem.data.folder_id = currentFolderId;
+              }
+
+              // Se estamos em uma pasta de equipe, herdar o team_id
+              if (currentTeamId && !actionItem.data.team_id) {
+                actionItem.data.team_id = currentTeamId;
+              }
+
+              let actionResult;
+              // Se a ação é edit_file e temos callback de terminal, executar via terminal
+              if (actionItem.action === 'edit_file' && onExecuteTerminalCommand && openFileId) {
+                const commands = generateTerminalCommands(actionItem, fileType);
+                for (const cmd of commands) {
+                  if (onExecuteTerminalCommand) {
+                    await onExecuteTerminalCommand(cmd);
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                  }
+                }
+                actionResult = { success: true, method: 'terminal' };
+                results.push({ action: actionItem, result: actionResult, success: true });
+              } else {
+                console.log('⚙️ Executando ação:', actionItem);
+                actionResult = await executeAction(actionItem, folders, files);
+                console.log('✅ Resultado:', actionResult);
+                results.push({ action: actionItem, result: actionResult, success: true });
+              }
+
+              // Armazenar ID real da pasta criada
+              if (actionItem.action === 'create_folder' && actionItem.temp_ref && actionResult?.id) {
+                tempRefs[actionItem.temp_ref] = actionResult.id;
+                console.log(`✓ Mapeado ${actionItem.temp_ref} → ${actionResult.id}`);
+              }
+            } catch (error) {
+              console.error('❌ Erro ao executar ação:', error);
+              results.push({ action: actionItem, error: error.message, success: false });
             }
           }
 
@@ -992,10 +1035,17 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
           await queryClient.invalidateQueries({ queryKey: ['files'] });
           await queryClient.invalidateQueries({ queryKey: ['folders'] });
 
-          const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
+          const successCount = results.filter(r => r.success).length;
+          const errorCount = results.filter(r => !r.success).length;
+          
+          let statusMessage = `✓ ${successCount} item(ns) criado(s) com sucesso`;
+          if (errorCount > 0) {
+            statusMessage += `\n⚠️ ${errorCount} erro(s) encontrado(s)`;
+          }
+          
           const successMessage = { 
             role: 'assistant', 
-            content: `✓ ${successMessages}`,
+            content: statusMessage,
             timestamp: Date.now()
           };
           setMessages(prev => [...prev, successMessage]);
