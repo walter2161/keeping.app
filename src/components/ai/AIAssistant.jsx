@@ -597,8 +597,10 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
       }
 
       // Detectar se é uma ação ou conversa
-      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover', 'mude', 'mudar', 'altere', 'alterar', 'troque', 'trocar', 'substitua', 'substituir', 'monte', 'montar', 'estrutura', 'estruture'];
+      const actionKeywords = ['crie', 'criar', 'faça', 'fazer', 'gere', 'gerar', 'adicione', 'adicionar', 'delete', 'deletar', 'exclua', 'excluir', 'edite', 'editar', 'atualize', 'atualizar', 'remova', 'remover', 'mova', 'mover', 'mude', 'mudar', 'altere', 'alterar', 'troque', 'trocar', 'substitua', 'substituir', 'monte', 'montar', 'estrutura', 'estruture', 'planilha', 'documento', 'pasta', 'arquivo', 'adiciona', 'monta'];
       const isAction = actionKeywords.some(keyword => input.toLowerCase().includes(keyword));
+      
+      console.log('🔍 Detectando tipo:', { input, isAction, actionKeywords: actionKeywords.filter(k => input.toLowerCase().includes(k)) });
 
       // Histórico das últimas mensagens para contexto
       const recentMessages = messages.slice(-9); // Últimas 9 + a atual = 10
@@ -696,28 +698,39 @@ IMPORTANTE:
 - Cronograma = type: "crn"
 
 FORMATAÇÃO DE PLANILHAS (type: xlsx):
-⚠️ CRÍTICO: Planilhas DEVEM ter dados em formato CSV (texto simples com quebras de linha).
+⚠️⚠️⚠️ EXTREMAMENTE CRÍTICO ⚠️⚠️⚠️
 
-Formato CORRETO para planilhas:
+VOCÊ DEVE OBRIGATORIAMENTE CRIAR PLANILHAS COM DADOS REAIS E RELEVANTES!
+NUNCA CRIAR PLANILHAS VAZIAS OU SEM DADOS!
+
+Formato OBRIGATÓRIO para planilhas:
 {
   "action": "create_file",
   "data": {
-    "name": "Controle de Vendas.xlsx",
+    "name": "Nome da Planilha.xlsx",
     "type": "xlsx",
-    "content": "Produto,Quantidade,Valor Unitário,Total\\nNotebook,5,3500,17500\\nMouse,20,50,1000\\nTeclado,15,150,2250\\nTOTAL,40,,20750"
+    "content": "Cabeçalho1,Cabeçalho2,Cabeçalho3\\nDado1,Dado2,Dado3\\nDado4,Dado5,Dado6"
   }
 }
 
-REGRAS OBRIGATÓRIAS para planilhas:
-- Content é TEXTO CSV (não JSON!)
-- Use vírgula (,) para separar colunas
-- Use \\n para quebrar linhas
-- Primeira linha são os cabeçalhos
-- SEMPRE preencha com dados de exemplo relevantes
-- NUNCA crie planilhas vazias
+EXEMPLO REAL - Controle Financeiro Pequena Empresa:
+{
+  "action": "create_file",
+  "data": {
+    "name": "Controle Financeiro Pequena Empresa.xlsx",
+    "type": "xlsx",
+    "content": "Categoria,Janeiro,Fevereiro,Março,Total\\nReceitas,15000,18000,16500,49500\\nCusto Produtos Vendidos,6000,7200,6600,19800\\nAluguel,2000,2000,2000,6000\\nFuncionários,4000,4000,4000,12000\\nMarketing,1500,2000,1800,5300\\nOutras Despesas,800,900,850,2550\\nLucro Líquido,700,1900,1250,3850"
+  }
+}
 
-Exemplo controle financeiro:
-"Categoria,Jan,Fev,Mar\\nReceitas,5000,5200,5500\\nDespesas,3000,3100,3200\\nSaldo,2000,2100,2300"
+REGRAS ABSOLUTAS:
+1. Content SEMPRE em formato CSV
+2. Use vírgula (,) para separar colunas
+3. Use \\n para nova linha
+4. Primeira linha = cabeçalhos
+5. OBRIGATÓRIO ter pelo menos 5 linhas de dados reais
+6. Dados devem ser relevantes ao que foi pedido
+7. PROIBIDO criar planilhas vazias ou só com cabeçalho
 
 FORMATAÇÃO DE DOCUMENTOS (type: docx):
 Use HTML completo e bem formatado no campo content:
@@ -915,10 +928,15 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
           required: ["actions"]
         };
 
+        // Ativar modo terminal ANTES de chamar LLM
+        setTerminalMode(true);
+        
         const llmResult = await base44.integrations.Core.InvokeLLM({
           prompt: actionPrompt,
           response_json_schema: actionSchema
         });
+        
+        console.log('📋 LLM retornou ações:', JSON.stringify(llmResult, null, 2));
 
         if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
           const results = [];
@@ -946,7 +964,6 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
 
             // Se a ação é edit_file e temos callback de terminal, executar via terminal
             if (actionItem.action === 'edit_file' && onExecuteTerminalCommand && openFileId) {
-              setTerminalMode(true);
               const commands = generateTerminalCommands(actionItem, fileType);
               for (const cmd of commands) {
                 if (onExecuteTerminalCommand) {
@@ -954,10 +971,11 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
                   await new Promise(resolve => setTimeout(resolve, 300));
                 }
               }
-              setTerminalMode(false);
               results.push({ action: actionItem, result: { success: true, method: 'terminal' } });
             } else {
+              console.log('⚙️ Executando ação:', actionItem);
               const result = await executeAction(actionItem, folders, files);
+              console.log('✅ Resultado:', result);
               results.push({ action: actionItem, result });
             }
 
@@ -967,6 +985,9 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
             }
           }
 
+          // Desligar modo terminal
+          setTerminalMode(false);
+          
           // Invalidar queries antes de navegar
           await queryClient.invalidateQueries({ queryKey: ['files'] });
           await queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -978,6 +999,8 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
             timestamp: Date.now()
           };
           setMessages(prev => [...prev, successMessage]);
+          
+          console.log('✅ Ações concluídas com sucesso!');
 
           // Só navegar se for uma única ação
           if (results.length === 1) {
