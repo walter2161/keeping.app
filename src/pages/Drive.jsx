@@ -1284,9 +1284,7 @@ export default function Drive() {
             <div className="sticky top-0 z-10 bg-blue-600 text-white px-6 py-3 flex items-center justify-between shadow-lg">
               <div className="flex items-center gap-4">
                 <span className="font-semibold">{selectedItems.length} item(ns) selecionado(s)</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={() => {
                     const allItems = [
                       ...currentFolders.map(f => ({ ...f, type: 'folder' })),
@@ -1294,41 +1292,35 @@ export default function Drive() {
                     ];
                     setSelectedItems(allItems);
                   }}
-                  className="text-white hover:bg-blue-700"
+                  className="text-white hover:bg-blue-700 px-3 py-1 rounded text-sm"
                 >
                   Selecionar Tudo
-                </Button>
+                </button>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={handleBulkMove}
                   disabled={selectedItems.length === 0}
-                  className="bg-white text-blue-600 hover:bg-blue-50"
+                  className="bg-white text-blue-600 hover:bg-blue-50 px-3 py-1 rounded text-sm disabled:opacity-50"
                 >
                   Mover
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
+                </button>
+                <button
                   onClick={handleBulkDelete}
                   disabled={selectedItems.length === 0}
-                  className="bg-white text-red-600 hover:bg-red-50"
+                  className="bg-white text-red-600 hover:bg-red-50 px-3 py-1 rounded text-sm disabled:opacity-50"
                 >
                   Excluir
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                </button>
+                <button
                   onClick={() => {
                     setSelectionMode(false);
                     setSelectedItems([]);
                   }}
-                  className="text-white hover:bg-blue-700"
+                  className="text-white hover:bg-blue-700 px-3 py-1 rounded text-sm"
                 >
                   Cancelar
-                </Button>
+                </button>
               </div>
             </div>
           )}
