@@ -49,27 +49,47 @@ export default function Base44Init({ children }) {
       try {
         const user = await base44.auth.me();
         
+        if (!user) {
+          setIsInitialized(true);
+          return;
+        }
+
         // Verificar se já tem a flag de estrutura criada
-        if (user && !user.default_structure_created) {
-          console.log('🆕 Novo usuário detectado, criando estrutura padrão...');
+        if (!user.default_structure_created) {
+          console.log('🆕 Novo usuário detectado, criando estrutura padrão EMPRESA completa...');
           
-          // Criar estrutura padrão
-          await createDefaultStructure(user.email);
-          
-          // Marcar como criado no perfil do usuário
-          await base44.auth.updateMe({ default_structure_created: true });
-          
-          console.log('✅ Estrutura padrão criada para o usuário!');
+          try {
+            // Criar estrutura padrão
+            await createDefaultStructure(user.email);
+            
+            // Marcar como criado no perfil do usuário
+            await base44.auth.updateMe({ default_structure_created: true });
+            
+            console.log('✅ Estrutura padrão EMPRESA criada com sucesso!');
+            
+            // Recarregar a página para mostrar as pastas criadas
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } catch (structureError) {
+            console.error('❌ Erro detalhado ao criar estrutura:', structureError);
+            // Não bloqueia o app mesmo se falhar
+          }
+        } else {
+          console.log('✓ Usuário já possui estrutura padrão');
         }
         
         setIsInitialized(true);
       } catch (error) {
-        console.error('❌ Erro ao verificar/criar estrutura padrão:', error);
-        setIsInitialized(true); // Mesmo com erro, continua
+        console.error('❌ Erro ao verificar usuário:', error);
+        setIsInitialized(true);
       }
     };
 
-    initializeDefaultStructure();
+    // Aguardar 500ms para garantir que o SDK está pronto
+    setTimeout(() => {
+      initializeDefaultStructure();
+    }, 500);
   }, []);
 
   return children;
