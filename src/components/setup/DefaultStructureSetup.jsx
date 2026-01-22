@@ -220,7 +220,7 @@ export async function createDefaultStructure(userEmail) {
       type: 'xlsx',
       folder_id: fin_planilhas.id,
       owner: userEmail,
-      content: 'Número,Data,Fornecedor,Valor,Tipo\n001,2026-01-15,Fornecedor A,5000,Entrada\n002,2026-01-18,Cliente B,15000,Saída\n003,2026-01-20,Fornecedor C,3500,Entrada'
+      content: 'Número,Data,Fornecedor/Cliente,Valor,Tipo,Status,Categoria\nNF-001,2026-01-05,Fornecedor A,5000,Entrada,Paga,Matéria-prima\nNF-002,2026-01-08,Cliente Alpha,15000,Saída,Recebida,Serviços\nNF-003,2026-01-12,Fornecedor B,3500,Entrada,Paga,Equipamentos\nNF-004,2026-01-15,Cliente Beta,22000,Saída,Recebida,Desenvolvimento\nNF-005,2026-01-18,Fornecedor C,8000,Entrada,Pendente,Consultoria\nNF-006,2026-01-20,Cliente Gamma,18500,Saída,Pendente,Consultoria\nNF-007,2026-01-22,Fornecedor D,2500,Entrada,Paga,Manutenção\nNF-008,2026-01-25,Cliente Delta,12000,Saída,A vencer,Treinamento'
     });
 
     const fin_processos = await base44.entities.Folder.create({
@@ -442,7 +442,45 @@ export async function createDefaultStructure(userEmail) {
       type: 'pptx',
       folder_id: com_apresentacoes.id,
       owner: userEmail,
-      content: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
+      content: JSON.stringify({
+        slides: [
+          {
+            background: '#1e3a8a',
+            elements: [
+              { type: 'text', content: 'Nossa Empresa', x: 100, y: 200, fontSize: 48, color: '#ffffff', bold: true },
+              { type: 'text', content: 'Transformando Negócios com Tecnologia', x: 100, y: 280, fontSize: 24, color: '#93c5fd' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Sobre Nós', x: 50, y: 50, fontSize: 36, color: '#1e3a8a', bold: true },
+              { type: 'text', content: '• 5 anos de mercado\n• 50+ clientes atendidos\n• 95% de satisfação\n• Equipe de 20 especialistas', x: 50, y: 150, fontSize: 20, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Nossas Soluções', x: 50, y: 50, fontSize: 36, color: '#1e3a8a', bold: true },
+              { type: 'text', content: '✓ Desenvolvimento de Software\n✓ Consultoria Empresarial\n✓ Transformação Digital\n✓ Suporte e Manutenção', x: 50, y: 150, fontSize: 22, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Cases de Sucesso', x: 50, y: 50, fontSize: 36, color: '#1e3a8a', bold: true },
+              { type: 'text', content: 'Cliente Alpha:\n40% aumento produtividade\n\nCliente Beta:\nR$ 500k economia/ano\n\nCliente Gamma:\n90% automação processos', x: 50, y: 150, fontSize: 18, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#1e3a8a',
+            elements: [
+              { type: 'text', content: 'Vamos Conversar?', x: 100, y: 200, fontSize: 42, color: '#ffffff', bold: true },
+              { type: 'text', content: 'contato@empresa.com | (11) 9999-9999', x: 100, y: 280, fontSize: 20, color: '#93c5fd' }
+            ]
+          }
+        ]
+      })
     });
 
     console.log('✓ COMERCIAL completo');
@@ -848,7 +886,7 @@ export async function createDefaultStructure(userEmail) {
       type: 'docx',
       folder_id: jur_contratos.id,
       owner: userEmail,
-      content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p>Entre as partes CONTRATANTE e CONTRATADA, fica acordado...</p>'
+      content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p><strong>Contrato nº:</strong> 001/2026</p><p><strong>Data:</strong> 05 de Janeiro de 2026</p><p><br></p><h2><strong>1. DAS PARTES</strong></h2><p><strong>CONTRATANTE:</strong> Empresa Alpha LTDA, CNPJ 12.345.678/0001-90</p><p>Endereço: Av. Paulista, 1000 - São Paulo/SP</p><p><br></p><p><strong>CONTRATADA:</strong> Nossa Empresa LTDA, CNPJ 98.765.432/0001-00</p><p>Endereço: Rua Comercial, 500 - São Paulo/SP</p><p><br></p><h2><strong>2. DO OBJETO</strong></h2><p>O presente contrato tem por objeto a prestação de serviços de <strong>Desenvolvimento de Sistema de Gestão Integrado</strong>, conforme especificações técnicas do Anexo I.</p><p><br></p><h2><strong>3. DO VALOR E FORMA DE PAGAMENTO</strong></h2><p>O valor total dos serviços é de <strong>R$ 100.000,00</strong> (cem mil reais), a ser pago da seguinte forma:</p><p>• 30% na assinatura do contrato: R$ 30.000,00</p><p>• 40% na entrega dos módulos principais: R$ 40.000,00</p><p>• 30% após homologação final: R$ 30.000,00</p><p><br></p><h2><strong>4. DO PRAZO</strong></h2><p>O prazo de execução dos serviços é de <strong>18 (dezoito) semanas</strong>, com início em 08/01/2026 e término previsto para 30/04/2026.</p><p><br></p><h2><strong>5. DAS OBRIGAÇÕES</strong></h2><p><strong>Da CONTRATADA:</strong></p><p>• Executar os serviços com qualidade técnica</p><p>• Fornecer relatórios semanais de andamento</p><p>• Realizar treinamento da equipe</p><p>• Garantir suporte técnico por 12 meses</p><p><br></p><p><strong>Da CONTRATANTE:</strong></p><p>• Fornecer informações necessárias</p><p>• Disponibilizar ambiente de testes</p><p>• Realizar pagamentos nos prazos acordados</p><p>• Designar responsável para acompanhamento</p>'
     });
 
     await base44.entities.File.create({
@@ -856,7 +894,7 @@ export async function createDefaultStructure(userEmail) {
       type: 'docx',
       folder_id: jur_contratos.id,
       owner: userEmail,
-      content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p>Entre as partes CONTRATANTE e CONTRATADA, fica acordado...</p>'
+      content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p><strong>Contrato nº:</strong> 002/2026</p><p><strong>Data:</strong> 10 de Janeiro de 2026</p><p><br></p><h2><strong>1. DAS PARTES</strong></h2><p><strong>CONTRATANTE:</strong> Beta Comércio SA, CNPJ 23.456.789/0001-01</p><p>Endereço: Rua Augusta, 2500 - São Paulo/SP</p><p><br></p><p><strong>CONTRATADA:</strong> Nossa Empresa LTDA, CNPJ 98.765.432/0001-00</p><p>Endereço: Rua Comercial, 500 - São Paulo/SP</p><p><br></p><h2><strong>2. DO OBJETO</strong></h2><p>O presente contrato tem por objeto a prestação de serviços de <strong>Consultoria em Processos Empresariais</strong>, incluindo mapeamento, análise e otimização.</p><p><br></p><h2><strong>3. DO VALOR E FORMA DE PAGAMENTO</strong></h2><p>O valor total dos serviços é de <strong>R$ 75.000,00</strong> (setenta e cinco mil reais), a ser pago em 3 parcelas mensais de R$ 25.000,00.</p><p><br></p><h2><strong>4. DO PRAZO</strong></h2><p>O prazo de execução dos serviços é de <strong>12 (doze) semanas</strong>, com início em 15/01/2026 e término previsto para 15/03/2026.</p><p><br></p><h2><strong>5. ESCOPO DOS SERVIÇOS</strong></h2><p>• Diagnóstico organizacional completo</p><p>• Mapeamento de 10 processos principais</p><p>• Análise de gargalos e oportunidades</p><p>• Proposta de melhoria e automação</p><p>• Acompanhamento de implementação (60 dias)</p><p>• Treinamento de 3 turmas</p>'
     });
 
     const jur_processos = await base44.entities.Folder.create({
@@ -898,7 +936,7 @@ export async function createDefaultStructure(userEmail) {
       type: 'xlsx',
       folder_id: jur_controle.id,
       owner: userEmail,
-      content: 'Contrato,Cliente,Valor,Início,Vencimento,Status\nContrato 001,Cliente A,100000,2026-01-01,2027-01-01,Vigente\nContrato 002,Cliente B,75000,2025-12-01,2026-12-01,Vigente'
+      content: 'Contrato,Cliente,CNPJ,Valor,Início,Vencimento,Status,Renovação,Responsável\nCTR-001/2026,Empresa Alpha,12.345.678/0001-90,100000,2026-01-05,2027-01-05,Vigente,Automática,Dr. Silva\nCTR-002/2026,Beta Comércio,23.456.789/0001-01,75000,2026-01-10,2027-01-10,Vigente,Manual,Dr. Silva\nCTR-015/2025,Gamma Indústria,34.567.890/0001-12,150000,2025-06-01,2026-06-01,Vigente,Manual,Dra. Santos\nCTR-022/2025,Delta Serviços,45.678.901/0001-23,50000,2025-09-15,2026-09-15,Vigente,Automática,Dr. Silva\nCTR-008/2024,Épsilon Tech,56.789.012/0001-34,200000,2024-03-01,2026-03-01,A Vencer,Manual,Dra. Santos\nCTR-031/2025,Zeta Logistics,67.890.123/0001-45,90000,2025-11-01,2026-11-01,Vigente,Automática,Dr. Silva'
     });
 
     console.log('✓ JURIDICO completo');
@@ -993,7 +1031,7 @@ export async function createDefaultStructure(userEmail) {
       type: 'xlsx',
       folder_id: ti_controle.id,
       owner: userEmail,
-      content: 'Usuário,Sistema,Perfil,Data Acesso,Status\njoao.silva,ERP,Admin,2026-01-15,Ativo\nmaria.santos,CRM,Usuário,2026-01-10,Ativo'
+      content: 'Usuário,Nome,Cargo,Sistema,Perfil,Data Acesso,Último Login,Status\njoao.silva,João Silva,Gerente Comercial,ERP,Admin,2024-01-15,2026-01-22 08:30,Ativo\njoao.silva,João Silva,Gerente Comercial,CRM,Admin,2024-01-15,2026-01-22 09:15,Ativo\nmaria.santos,Maria Santos,Analista Financeiro,ERP,Usuário,2024-03-20,2026-01-22 08:45,Ativo\nmaria.santos,Maria Santos,Analista Financeiro,Sistema Financeiro,Admin,2024-03-20,2026-01-21 17:20,Ativo\npedro.costa,Pedro Costa,Desenvolvedor Senior,GitLab,Admin,2023-08-10,2026-01-22 10:05,Ativo\npedro.costa,Pedro Costa,Desenvolvedor Senior,AWS Console,Admin,2023-08-10,2026-01-20 15:30,Ativo\nana.oliveira,Ana Oliveira,Coord. Marketing,CRM,Usuário,2024-06-01,2026-01-22 08:00,Ativo\nana.oliveira,Ana Oliveira,Coord. Marketing,RD Station,Admin,2024-06-01,2026-01-21 18:45,Ativo\ncarlos.lima,Carlos Lima,Analista Operacional,ERP,Usuário,2025-01-10,2026-01-22 07:50,Ativo\ncarlos.lima,Carlos Lima,Analista Operacional,Sistema Projetos,Usuário,2025-01-10,2026-01-22 09:30,Ativo'
     });
 
     console.log('✓ TI completo');
@@ -1079,7 +1117,45 @@ export async function createDefaultStructure(userEmail) {
       type: 'pptx',
       folder_id: dir_apresentacoes.id,
       owner: userEmail,
-      content: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
+      content: JSON.stringify({
+        slides: [
+          {
+            background: '#7c3aed',
+            elements: [
+              { type: 'text', content: 'Reunião de Diretoria', x: 100, y: 180, fontSize: 48, color: '#ffffff', bold: true },
+              { type: 'text', content: 'Janeiro 2026 - Resultados e Planejamento', x: 100, y: 260, fontSize: 22, color: '#e9d5ff' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Resultados Q4 2025', x: 50, y: 50, fontSize: 36, color: '#7c3aed', bold: true },
+              { type: 'text', content: 'Faturamento: R$ 2.4M (+18%)\nNovos Clientes: 12\nRetenção: 94%\nLucro Líquido: R$ 480k (+22%)', x: 50, y: 150, fontSize: 24, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Metas 2026', x: 50, y: 50, fontSize: 36, color: '#7c3aed', bold: true },
+              { type: 'text', content: '🎯 Faturamento: R$ 3.5M\n🎯 Expansão: 3 novos estados\n🎯 Equipe: +15 colaboradores\n🎯 Novos Produtos: 2 lançamentos', x: 50, y: 150, fontSize: 22, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#ffffff',
+            elements: [
+              { type: 'text', content: 'Investimentos 2026', x: 50, y: 50, fontSize: 36, color: '#7c3aed', bold: true },
+              { type: 'text', content: 'Marketing: R$ 430k\nP&D: R$ 500k\nInfraestrutura: R$ 200k\nCapacitação: R$ 120k\n\nTotal: R$ 1.25M', x: 50, y: 150, fontSize: 22, color: '#1f2937' }
+            ]
+          },
+          {
+            background: '#7c3aed',
+            elements: [
+              { type: 'text', content: 'Próxima Reunião', x: 100, y: 200, fontSize: 40, color: '#ffffff', bold: true },
+              { type: 'text', content: 'Fevereiro 2026 - Review Mensal', x: 100, y: 280, fontSize: 24, color: '#e9d5ff' }
+            ]
+          }
+        ]
+      })
     });
 
     console.log('✓ DIRETORIA completo');
