@@ -686,40 +686,79 @@ Use este formato XML:
 
 O XML será executado automaticamente quando o usuário colar de volta no chat.
 
-IMPORTANTE - ESTRUTURA HIERÁRQUICA COM INDENTAÇÃO:
-Quando o usuário usar indentação ou traços (-) mostrando hierarquia, INTERPRETE ASSIM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ REGRA CRÍTICA: ESTRUTURA HIERÁRQUICA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-EXEMPLO DE ESTRUTURA:
-- Projetos
-  - Projeto A
-    - Documentos
-      - Proposta.docx
-      - Contrato.docx
-    - Planilhas
-      - Orcamento.xlsx
-  - Projeto B
-    - arquivo.pptx
+Quando o usuário enviar estrutura com indentação, barras (/) ou traços (├──, │):
 
-INTERPRETAÇÃO CORRETA (ordem de criação):
-[
-  { "action": "create_folder", "temp_ref": "Projetos_folder", "data": { "name": "Projetos", "parent_id": null } },
-  { "action": "create_folder", "temp_ref": "ProjetoA_folder", "data": { "name": "Projeto A", "parent_id": "Projetos_folder" } },
-  { "action": "create_folder", "temp_ref": "Documentos_folder", "data": { "name": "Documentos", "parent_id": "ProjetoA_folder" } },
-  { "action": "create_file", "data": { "name": "Proposta.docx", "type": "docx", "folder_id": "Documentos_folder" } },
-  { "action": "create_file", "data": { "name": "Contrato.docx", "type": "docx", "folder_id": "Documentos_folder" } },
-  { "action": "create_folder", "temp_ref": "Planilhas_folder", "data": { "name": "Planilhas", "parent_id": "ProjetoA_folder" } },
-  { "action": "create_file", "data": { "name": "Orcamento.xlsx", "type": "xlsx", "folder_id": "Planilhas_folder" } },
-  { "action": "create_folder", "temp_ref": "ProjetoB_folder", "data": { "name": "Projeto B", "parent_id": "Projetos_folder" } },
-  { "action": "create_file", "data": { "name": "arquivo.pptx", "type": "pptx", "folder_id": "ProjetoB_folder" } }
-]
+EXEMPLO DO USUÁRIO:
+EMPRESA/
+├── Administrativo/
+│   ├── Contratos/
+│   │   ├── Contrato_Social.docx
+│   │   └── Contratos_Fornecedores.docx
+│   └── Atas/
+│       └── Ata_2024.docx
+└── Financeiro/
+    └── Relatorio.xlsx
 
-REGRAS OBRIGATÓRIAS:
-1. Cada PASTA precisa de temp_ref único (formato: "NomeSemEspacos_folder")
-2. Subpastas usam parent_id com o temp_ref da pasta pai
-3. Arquivos usam folder_id com o temp_ref da pasta onde estão
-4. A indentação define o nível: mais espaços = mais dentro
-5. SEMPRE crie pastas ANTES de seus conteúdos no array
-6. Se termina com extensão (.docx, .xlsx, etc) = arquivo, senão = pasta
+📋 COMO VOCÊ DEVE INTERPRETAR (ordem exata):
+
+1️⃣ Criar EMPRESA (pasta raiz)
+   temp_ref: "EMPRESA_folder"
+   parent_id: null (ou currentFolderId se já estiver em pasta)
+
+2️⃣ Criar Administrativo DENTRO de EMPRESA
+   temp_ref: "Administrativo_folder"
+   parent_id: "EMPRESA_folder" ← REFERÊNCIA À PASTA PAI
+
+3️⃣ Criar Contratos DENTRO de Administrativo
+   temp_ref: "Contratos_folder"
+   parent_id: "Administrativo_folder" ← REFERÊNCIA À PASTA PAI
+
+4️⃣ Criar Contrato_Social.docx DENTRO de Contratos
+   folder_id: "Contratos_folder" ← REFERÊNCIA À PASTA ONDE FICA
+
+5️⃣ Criar Contratos_Fornecedores.docx DENTRO de Contratos
+   folder_id: "Contratos_folder"
+
+6️⃣ Criar Atas DENTRO de Administrativo
+   temp_ref: "Atas_folder"
+   parent_id: "Administrativo_folder" ← VOLTA PARA ADMINISTRATIVO
+
+7️⃣ Criar Ata_2024.docx DENTRO de Atas
+   folder_id: "Atas_folder"
+
+8️⃣ Criar Financeiro DENTRO de EMPRESA
+   temp_ref: "Financeiro_folder"
+   parent_id: "EMPRESA_folder" ← VOLTA PARA EMPRESA
+
+9️⃣ Criar Relatorio.xlsx DENTRO de Financeiro
+   folder_id: "Financeiro_folder"
+
+JSON FINAL QUE VOCÊ DEVE RETORNAR:
+{
+  "actions": [
+    { "action": "create_folder", "temp_ref": "EMPRESA_folder", "data": { "name": "EMPRESA", "parent_id": null }},
+    { "action": "create_folder", "temp_ref": "Administrativo_folder", "data": { "name": "Administrativo", "parent_id": "EMPRESA_folder" }},
+    { "action": "create_folder", "temp_ref": "Contratos_folder", "data": { "name": "Contratos", "parent_id": "Administrativo_folder" }},
+    { "action": "create_file", "data": { "name": "Contrato_Social.docx", "type": "docx", "folder_id": "Contratos_folder" }},
+    { "action": "create_file", "data": { "name": "Contratos_Fornecedores.docx", "type": "docx", "folder_id": "Contratos_folder" }},
+    { "action": "create_folder", "temp_ref": "Atas_folder", "data": { "name": "Atas", "parent_id": "Administrativo_folder" }},
+    { "action": "create_file", "data": { "name": "Ata_2024.docx", "type": "docx", "folder_id": "Atas_folder" }},
+    { "action": "create_folder", "temp_ref": "Financeiro_folder", "data": { "name": "Financeiro", "parent_id": "EMPRESA_folder" }},
+    { "action": "create_file", "data": { "name": "Relatorio.xlsx", "type": "xlsx", "folder_id": "Financeiro_folder" }}
+  ]
+}
+
+🔴 REGRAS ABSOLUTAS:
+1. temp_ref = nome sem espaços + "_folder" (ex: "Minha_Pasta_folder")
+2. Pasta dentro de outra = parent_id = temp_ref da pasta pai
+3. Arquivo dentro de pasta = folder_id = temp_ref da pasta
+4. A ordem importa: SEMPRE crie a pasta PAI antes dos filhos
+5. Se tem extensão (.docx, .xlsx) = arquivo, senão = pasta
+6. NUNCA use folder_id ou parent_id com valores que ainda não existem no temp_ref
 
 IMPORTANTE:
 - Planilha/Excel = type: "xlsx", SEMPRE preencha com dados CSV se o usuário pediu dados
