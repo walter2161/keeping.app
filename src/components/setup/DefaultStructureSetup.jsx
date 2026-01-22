@@ -107,7 +107,20 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: tempRefs.ADMIN_PROCESSOS,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Início: Documento Criado' }, class: 'start', html: 'Início: Documento Criado', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 150 },
+              '2': { id: 2, name: 'process', data: { text: 'Revisão pelo Gestor' }, class: 'process', html: 'Revisão pelo Gestor', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 150 },
+              '3': { id: 3, name: 'decision', data: { text: 'Aprovado?' }, class: 'decision', html: 'Aprovado?', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] }, output_2: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 600, pos_y: 150 },
+              '4': { id: 4, name: 'process', data: { text: 'Arquivar Documento' }, class: 'process', html: 'Arquivar Documento', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 80 },
+              '5': { id: 5, name: 'process', data: { text: 'Retornar para Ajustes' }, class: 'process', html: 'Retornar para Ajustes', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_2' }] } }, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 850, pos_y: 220 },
+              '6': { id: 6, name: 'end', data: { text: 'Fim: Processo Concluído' }, class: 'end', html: 'Fim: Processo Concluído', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }] } }, outputs: {}, pos_x: 1100, pos_y: 80 }
+            }
+          }
+        }
+      })
     });
 
     const admin_tarefas = await base44.entities.Folder.create({
@@ -121,7 +134,18 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: admin_tarefas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'todo', title: 'A Fazer', color: '#ef4444' },
+          { id: 'doing', title: 'Em Andamento', color: '#f59e0b' },
+          { id: 'done', title: 'Concluído', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'todo', title: 'Atualizar políticas internas', description: 'Revisar e atualizar documentação de RH', priority: 'high', tags: ['urgente', 'rh'] },
+          { id: '2', columnId: 'doing', title: 'Organizar arquivos do mês', description: 'Digitalizar e organizar documentos', priority: 'medium', tags: ['organização'] },
+          { id: '3', columnId: 'done', title: 'Reunião semanal realizada', description: 'Pauta e ata documentadas', priority: 'low', tags: ['reunião'] }
+        ]
+      })
     });
 
     const admin_cronogramas = await base44.entities.Folder.create({
@@ -135,7 +159,19 @@ export async function createDefaultStructure(userEmail) {
       type: 'crn',
       folder_id: admin_cronogramas.id,
       owner: userEmail,
-      content: JSON.stringify({ groups: [], items: [] })
+      content: JSON.stringify({
+        groups: [
+          { id: 'g1', name: 'Rotinas Diárias', color: '#3b82f6' },
+          { id: 'g2', name: 'Rotinas Semanais', color: '#8b5cf6' },
+          { id: 'g3', name: 'Rotinas Mensais', color: '#ec4899' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'g1', name: 'Conferir emails', start: '2026-01-22', end: '2026-01-22', progress: 100 },
+          { id: 'i2', groupId: 'g1', name: 'Atualizar planilhas', start: '2026-01-22', end: '2026-01-22', progress: 50 },
+          { id: 'i3', groupId: 'g2', name: 'Reunião de equipe', start: '2026-01-20', end: '2026-01-24', progress: 75 },
+          { id: 'i4', groupId: 'g3', name: 'Fechamento mensal', start: '2026-01-28', end: '2026-01-31', progress: 0 }
+        ]
+      })
     });
 
     console.log('✓ ADMINISTRATIVO completo');
@@ -198,7 +234,19 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: fin_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Início: Último Dia do Mês' }, class: 'start', html: 'Início: Último Dia do Mês', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Conferir Lançamentos' }, class: 'process', html: 'Conferir Lançamentos', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'process', data: { text: 'Conciliação Bancária' }, class: 'process', html: 'Conciliação Bancária', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'process', data: { text: 'Gerar Relatórios' }, class: 'process', html: 'Gerar Relatórios', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 850, pos_y: 200 },
+              '5': { id: 5, name: 'end', data: { text: 'Fim: Fechamento Concluído' }, class: 'end', html: 'Fim: Fechamento Concluído', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }] } }, outputs: {}, pos_x: 1100, pos_y: 200 }
+            }
+          }
+        }
+      })
     });
 
     const fin_tarefas = await base44.entities.Folder.create({
@@ -212,7 +260,19 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: fin_tarefas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'pending', title: 'Pendente', color: '#ef4444' },
+          { id: 'review', title: 'Em Revisão', color: '#f59e0b' },
+          { id: 'approved', title: 'Aprovado', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'pending', title: 'Pagamentos fornecedores', description: 'Vencimento em 25/01', priority: 'high', tags: ['urgente', 'pagamento'] },
+          { id: '2', columnId: 'review', title: 'Conciliação bancária', description: 'Revisar lançamentos de janeiro', priority: 'medium', tags: ['análise'] },
+          { id: '3', columnId: 'approved', title: 'Fechamento mensal anterior', description: 'Dezembro/2025 concluído', priority: 'low', tags: ['fechamento'] },
+          { id: '4', columnId: 'pending', title: 'Relatório fluxo de caixa', description: 'Gerar relatório Q1', priority: 'medium', tags: ['relatório'] }
+        ]
+      })
     });
 
     const fin_cronogramas = await base44.entities.Folder.create({
@@ -226,7 +286,19 @@ export async function createDefaultStructure(userEmail) {
       type: 'crn',
       folder_id: fin_cronogramas.id,
       owner: userEmail,
-      content: JSON.stringify({ groups: [], items: [] })
+      content: JSON.stringify({
+        groups: [
+          { id: 'g1', name: 'Janeiro 2026', color: '#3b82f6' },
+          { id: 'g2', name: 'Fevereiro 2026', color: '#8b5cf6' },
+          { id: 'g3', name: 'Março 2026', color: '#ec4899' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'g1', name: 'Contas a Pagar', start: '2026-01-20', end: '2026-01-25', progress: 80 },
+          { id: 'i2', groupId: 'g1', name: 'Contas a Receber', start: '2026-01-23', end: '2026-01-28', progress: 60 },
+          { id: 'i3', groupId: 'g1', name: 'Fechamento Mensal', start: '2026-01-28', end: '2026-01-31', progress: 20 },
+          { id: 'i4', groupId: 'g2', name: 'Preparação Fevereiro', start: '2026-02-01', end: '2026-02-05', progress: 0 }
+        ]
+      })
     });
 
     console.log('✓ FINANCEIRO completo');
@@ -287,7 +359,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: com_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Lead Qualificado' }, class: 'start', html: 'Lead Qualificado', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Diagnóstico de Necessidades' }, class: 'process', html: 'Diagnóstico de Necessidades', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'process', data: { text: 'Elaborar Proposta' }, class: 'process', html: 'Elaborar Proposta', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'process', data: { text: 'Apresentação' }, class: 'process', html: 'Apresentação', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 850, pos_y: 200 },
+              '5': { id: 5, name: 'decision', data: { text: 'Aceito?' }, class: 'decision', html: 'Aceito?', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] }, output_2: { connections: [{ node: '7', output: 'input_1' }] } }, pos_x: 1100, pos_y: 200 },
+              '6': { id: 6, name: 'end', data: { text: 'Venda Fechada!' }, class: 'end', html: 'Venda Fechada!', typenode: false, inputs: { input_1: { connections: [{ node: '5', input: 'output_1' }] } }, outputs: {}, pos_x: 1350, pos_y: 130 },
+              '7': { id: 7, name: 'process', data: { text: 'Follow-up' }, class: 'process', html: 'Follow-up', typenode: false, inputs: { input_1: { connections: [{ node: '5', input: 'output_2' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 1350, pos_y: 270 }
+            }
+          }
+        }
+      })
     });
 
     const com_tarefas = await base44.entities.Folder.create({
@@ -301,7 +387,22 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: com_tarefas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'lead', title: 'Lead', color: '#6366f1' },
+          { id: 'contact', title: 'Primeiro Contato', color: '#8b5cf6' },
+          { id: 'proposal', title: 'Proposta Enviada', color: '#f59e0b' },
+          { id: 'negotiation', title: 'Negociação', color: '#10b981' },
+          { id: 'closed', title: 'Fechado', color: '#3b82f6' }
+        ],
+        cards: [
+          { id: '1', columnId: 'lead', title: 'Empresa Zeta', description: 'Indicação via LinkedIn - Software gestão', priority: 'high', tags: ['b2b', 'software'] },
+          { id: '2', columnId: 'contact', title: 'Empresa Omega', description: 'Reunião agendada para 25/01', priority: 'high', tags: ['consultoria'] },
+          { id: '3', columnId: 'proposal', title: 'Empresa Alpha', description: 'Proposta de R$ 100k enviada', priority: 'high', tags: ['desenvolvimento'] },
+          { id: '4', columnId: 'negotiation', title: 'Empresa Beta', description: 'Negociando descontos', priority: 'medium', tags: ['treinamento'] },
+          { id: '5', columnId: 'closed', title: 'Empresa Gamma', description: 'Contrato assinado - R$ 85k', priority: 'low', tags: ['consultoria'] }
+        ]
+      })
     });
 
     const com_cronogramas = await base44.entities.Folder.create({
@@ -315,7 +416,19 @@ export async function createDefaultStructure(userEmail) {
       type: 'crn',
       folder_id: com_cronogramas.id,
       owner: userEmail,
-      content: JSON.stringify({ groups: [], items: [] })
+      content: JSON.stringify({
+        groups: [
+          { id: 'g1', name: 'Semana 22-26/Jan', color: '#3b82f6' },
+          { id: 'g2', name: 'Semana 29-02/Fev', color: '#8b5cf6' },
+          { id: 'g3', name: 'Semana 05-09/Fev', color: '#ec4899' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'g1', name: 'Follow-up Empresa Alpha', start: '2026-01-22', end: '2026-01-23', progress: 100 },
+          { id: 'i2', groupId: 'g1', name: 'Reunião Empresa Omega', start: '2026-01-25', end: '2026-01-25', progress: 0 },
+          { id: 'i3', groupId: 'g2', name: 'Enviar proposta Empresa Zeta', start: '2026-01-29', end: '2026-01-31', progress: 0 },
+          { id: 'i4', groupId: 'g3', name: 'Negociação Empresa Beta', start: '2026-02-05', end: '2026-02-07', progress: 0 }
+        ]
+      })
     });
 
     const com_apresentacoes = await base44.entities.Folder.create({
@@ -368,15 +481,39 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: mkt_campanhas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'backlog', title: 'Backlog', color: '#6b7280' },
+          { id: 'planning', title: 'Planejamento', color: '#6366f1' },
+          { id: 'creation', title: 'Criação', color: '#f59e0b' },
+          { id: 'review', title: 'Revisão', color: '#8b5cf6' },
+          { id: 'published', title: 'Publicado', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'backlog', title: 'Vídeo institucional', description: 'Roteiro e storyboard', priority: 'medium', tags: ['vídeo', 'instagram'] },
+          { id: '2', columnId: 'planning', title: 'Campanha Google Ads', description: 'Definir palavras-chave e orçamento', priority: 'high', tags: ['ads', 'pago'] },
+          { id: '3', columnId: 'creation', title: 'Posts redes sociais', description: '12 posts programados', priority: 'high', tags: ['social', 'orgânico'] },
+          { id: '4', columnId: 'review', title: 'E-book lead magnet', description: 'Aguardando aprovação final', priority: 'medium', tags: ['conteúdo'] },
+          { id: '5', columnId: 'published', title: 'Landing page Q1', description: 'No ar desde 15/01', priority: 'low', tags: ['website'] }
+        ]
+      })
     });
 
     await base44.entities.File.create({
-      name: 'Campanha_Lancamento_Q1',
+      name: 'Cronograma_Campanha_Q1',
       type: 'gnt',
       folder_id: mkt_campanhas.id,
       owner: userEmail,
-      content: JSON.stringify({ tasks: [] })
+      content: JSON.stringify({
+        tasks: [
+          { id: 't1', name: 'Planejamento Campanha', start: '2026-01-15', end: '2026-01-22', progress: 100, dependencies: [] },
+          { id: 't2', name: 'Criação de Conteúdo', start: '2026-01-23', end: '2026-02-05', progress: 60, dependencies: ['t1'] },
+          { id: 't3', name: 'Design Materiais', start: '2026-01-25', end: '2026-02-08', progress: 40, dependencies: ['t1'] },
+          { id: 't4', name: 'Configuração Google Ads', start: '2026-02-06', end: '2026-02-10', progress: 0, dependencies: ['t2'] },
+          { id: 't5', name: 'Lançamento Campanha', start: '2026-02-11', end: '2026-02-15', progress: 0, dependencies: ['t3', 't4'] },
+          { id: 't6', name: 'Monitoramento e Ajustes', start: '2026-02-16', end: '2026-03-31', progress: 0, dependencies: ['t5'] }
+        ]
+      })
     });
 
     await base44.entities.File.create({
@@ -384,7 +521,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'crn',
       folder_id: mkt_campanhas.id,
       owner: userEmail,
-      content: JSON.stringify({ groups: [], items: [] })
+      content: JSON.stringify({
+        groups: [
+          { id: 'instagram', name: 'Instagram', color: '#e11d48' },
+          { id: 'linkedin', name: 'LinkedIn', color: '#0284c7' },
+          { id: 'facebook', name: 'Facebook', color: '#1d4ed8' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'instagram', name: 'Post: Lançamento produto', start: '2026-01-23', end: '2026-01-23', progress: 100 },
+          { id: 'i2', groupId: 'instagram', name: 'Stories: Bastidores', start: '2026-01-25', end: '2026-01-25', progress: 100 },
+          { id: 'i3', groupId: 'linkedin', name: 'Artigo: Cases de sucesso', start: '2026-01-24', end: '2026-01-24', progress: 100 },
+          { id: 'i4', groupId: 'instagram', name: 'Reels: Tutorial produto', start: '2026-01-27', end: '2026-01-27', progress: 50 },
+          { id: 'i5', groupId: 'facebook', name: 'Post: Dicas do setor', start: '2026-01-28', end: '2026-01-28', progress: 0 },
+          { id: 'i6', groupId: 'linkedin', name: 'Post: Novidades empresa', start: '2026-01-30', end: '2026-01-30', progress: 0 }
+        ]
+      })
     });
 
     const mkt_processos = await base44.entities.Folder.create({
@@ -398,7 +549,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: mkt_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Ideia de Conteúdo' }, class: 'start', html: 'Ideia de Conteúdo', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Pesquisa e Planejamento' }, class: 'process', html: 'Pesquisa e Planejamento', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'process', data: { text: 'Criação Texto/Design' }, class: 'process', html: 'Criação Texto/Design', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'decision', data: { text: 'Aprovado?' }, class: 'decision', html: 'Aprovado?', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] }, output_2: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 200 },
+              '5': { id: 5, name: 'process', data: { text: 'Publicar Conteúdo' }, class: 'process', html: 'Publicar Conteúdo', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '7', output: 'input_1' }] } }, pos_x: 1100, pos_y: 130 },
+              '6': { id: 6, name: 'process', data: { text: 'Ajustar Conteúdo' }, class: 'process', html: 'Ajustar Conteúdo', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_2' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 1100, pos_y: 270 },
+              '7': { id: 7, name: 'end', data: { text: 'Monitorar Métricas' }, class: 'end', html: 'Monitorar Métricas', typenode: false, inputs: { input_1: { connections: [{ node: '5', input: 'output_1' }] } }, outputs: {}, pos_x: 1350, pos_y: 130 }
+            }
+          }
+        }
+      })
     });
 
     const mkt_midias = await base44.entities.Folder.create({
@@ -449,15 +614,40 @@ export async function createDefaultStructure(userEmail) {
       type: 'gnt',
       folder_id: op_projetos.id,
       owner: userEmail,
-      content: JSON.stringify({ tasks: [] })
+      content: JSON.stringify({
+        tasks: [
+          { id: 't1', name: 'Levantamento de Requisitos', start: '2026-01-05', end: '2026-01-12', progress: 100, dependencies: [] },
+          { id: 't2', name: 'Análise e Design', start: '2026-01-13', end: '2026-01-26', progress: 100, dependencies: ['t1'] },
+          { id: 't3', name: 'Desenvolvimento Backend', start: '2026-01-27', end: '2026-03-15', progress: 40, dependencies: ['t2'] },
+          { id: 't4', name: 'Desenvolvimento Frontend', start: '2026-02-03', end: '2026-03-22', progress: 25, dependencies: ['t2'] },
+          { id: 't5', name: 'Integração e Testes', start: '2026-03-23', end: '2026-04-12', progress: 0, dependencies: ['t3', 't4'] },
+          { id: 't6', name: 'Homologação Cliente', start: '2026-04-13', end: '2026-04-20', progress: 0, dependencies: ['t5'] },
+          { id: 't7', name: 'Deploy Produção', start: '2026-04-21', end: '2026-04-23', progress: 0, dependencies: ['t6'] },
+          { id: 't8', name: 'Treinamento Usuários', start: '2026-04-24', end: '2026-04-30', progress: 0, dependencies: ['t7'] }
+        ]
+      })
     });
 
     await base44.entities.File.create({
-      name: 'Projeto_Cliente_X',
+      name: 'Cronograma_Sprint_Projeto_X',
       type: 'crn',
       folder_id: op_projetos.id,
       owner: userEmail,
-      content: JSON.stringify({ groups: [], items: [] })
+      content: JSON.stringify({
+        groups: [
+          { id: 'backend', name: 'Backend', color: '#3b82f6' },
+          { id: 'frontend', name: 'Frontend', color: '#8b5cf6' },
+          { id: 'qa', name: 'QA/Testes', color: '#10b981' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'backend', name: 'API Autenticação', start: '2026-01-27', end: '2026-02-05', progress: 100 },
+          { id: 'i2', groupId: 'backend', name: 'API CRUD Produtos', start: '2026-02-06', end: '2026-02-20', progress: 80 },
+          { id: 'i3', groupId: 'frontend', name: 'Telas Login/Dashboard', start: '2026-02-03', end: '2026-02-15', progress: 90 },
+          { id: 'i4', groupId: 'frontend', name: 'Interface Gestão Produtos', start: '2026-02-16', end: '2026-03-05', progress: 50 },
+          { id: 'i5', groupId: 'backend', name: 'Relatórios e Analytics', start: '2026-02-21', end: '2026-03-15', progress: 20 },
+          { id: 'i6', groupId: 'qa', name: 'Testes Integração', start: '2026-03-06', end: '2026-03-20', progress: 0 }
+        ]
+      })
     });
 
     const op_tarefas = await base44.entities.Folder.create({
@@ -471,7 +661,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: op_tarefas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'todo', title: 'A Fazer Hoje', color: '#ef4444' },
+          { id: 'doing', title: 'Em Execução', color: '#f59e0b' },
+          { id: 'review', title: 'Em Revisão', color: '#8b5cf6' },
+          { id: 'done', title: 'Concluído', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'todo', title: 'Reunião daily', description: 'Stand-up 9h com equipe', priority: 'high', tags: ['reunião'] },
+          { id: '2', columnId: 'doing', title: 'Desenvolvimento feature X', description: 'Sprint atual - story points 8', priority: 'high', tags: ['dev', 'sprint'] },
+          { id: '3', columnId: 'doing', title: 'Code review PR #124', description: 'Revisar implementação API', priority: 'medium', tags: ['review'] },
+          { id: '4', columnId: 'review', title: 'Testes módulo pagamentos', description: 'Aguardando validação QA', priority: 'high', tags: ['qa'] },
+          { id: '5', columnId: 'done', title: 'Deploy staging', description: 'Build #234 em homologação', priority: 'medium', tags: ['deploy'] }
+        ]
+      })
     });
 
     const op_processos = await base44.entities.Folder.create({
@@ -485,7 +689,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: op_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Projeto Iniciado' }, class: 'start', html: 'Projeto Iniciado', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Desenvolvimento' }, class: 'process', html: 'Desenvolvimento', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'process', data: { text: 'Testes Internos' }, class: 'process', html: 'Testes Internos', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'decision', data: { text: 'Passou?' }, class: 'decision', html: 'Passou?', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] }, output_2: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 850, pos_y: 200 },
+              '5': { id: 5, name: 'process', data: { text: 'Homologação Cliente' }, class: 'process', html: 'Homologação Cliente', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 1100, pos_y: 130 },
+              '6': { id: 6, name: 'decision', data: { text: 'Aprovado?' }, class: 'decision', html: 'Aprovado?', typenode: false, inputs: { input_1: { connections: [{ node: '5', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '7', output: 'input_1' }] }, output_2: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 1350, pos_y: 130 },
+              '7': { id: 7, name: 'end', data: { text: 'Deploy Produção' }, class: 'end', html: 'Deploy Produção', typenode: false, inputs: { input_1: { connections: [{ node: '6', input: 'output_1' }] } }, outputs: {}, pos_x: 1600, pos_y: 130 }
+            }
+          }
+        }
+      })
     });
 
     const op_controle = await base44.entities.Folder.create({
@@ -538,7 +756,20 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: rh_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Nova Contratação' }, class: 'start', html: 'Nova Contratação', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Coletar Documentos' }, class: 'process', html: 'Coletar Documentos', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'process', data: { text: 'Exame Admissional' }, class: 'process', html: 'Exame Admissional', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'process', data: { text: 'Assinar Contrato' }, class: 'process', html: 'Assinar Contrato', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 850, pos_y: 200 },
+              '5': { id: 5, name: 'process', data: { text: 'Integração e Treinamento' }, class: 'process', html: 'Integração e Treinamento', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 1100, pos_y: 200 },
+              '6': { id: 6, name: 'end', data: { text: 'Colaborador Ativo' }, class: 'end', html: 'Colaborador Ativo', typenode: false, inputs: { input_1: { connections: [{ node: '5', input: 'output_1' }] } }, outputs: {}, pos_x: 1350, pos_y: 200 }
+            }
+          }
+        }
+      })
     });
 
     const rh_tarefas = await base44.entities.Folder.create({
@@ -552,7 +783,20 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: rh_tarefas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'pending', title: 'Pendente', color: '#ef4444' },
+          { id: 'processing', title: 'Em Processo', color: '#f59e0b' },
+          { id: 'completed', title: 'Concluído', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'pending', title: 'Processo admissão - João', description: 'Documentos pendentes', priority: 'high', tags: ['admissão'] },
+          { id: '2', columnId: 'processing', title: 'Férias Maria - Fevereiro', description: 'Aprovação gerente ok', priority: 'medium', tags: ['férias'] },
+          { id: '3', columnId: 'processing', title: 'Avaliação desempenho Q4', description: '8 colaboradores restantes', priority: 'high', tags: ['avaliação'] },
+          { id: '4', columnId: 'completed', title: 'Folha pagamento janeiro', description: 'Processada e paga', priority: 'low', tags: ['folha'] },
+          { id: '5', columnId: 'pending', title: 'Treinamento compliance', description: 'Agendar para fevereiro', priority: 'medium', tags: ['treinamento'] }
+        ]
+      })
     });
 
     const rh_cronogramas = await base44.entities.Folder.create({
@@ -566,7 +810,20 @@ export async function createDefaultStructure(userEmail) {
       type: 'crn',
       folder_id: rh_cronogramas.id,
       owner: userEmail,
-      content: JSON.stringify({ groups: [], items: [] })
+      content: JSON.stringify({
+        groups: [
+          { id: 'comercial', name: 'Comercial', color: '#f97316' },
+          { id: 'ti', name: 'TI', color: '#3b82f6' },
+          { id: 'adm', name: 'Administrativo', color: '#8b5cf6' }
+        ],
+        items: [
+          { id: 'i1', groupId: 'comercial', name: 'João Silva - Férias', start: '2026-02-10', end: '2026-02-24', progress: 0 },
+          { id: 'i2', groupId: 'ti', name: 'Pedro Costa - Férias', start: '2026-03-15', end: '2026-03-29', progress: 0 },
+          { id: 'i3', groupId: 'adm', name: 'Maria Santos - Férias', start: '2026-04-01', end: '2026-04-15', progress: 0 },
+          { id: 'i4', groupId: 'comercial', name: 'Ana Oliveira - Férias', start: '2026-07-01', end: '2026-07-15', progress: 0 },
+          { id: 'i5', groupId: 'ti', name: 'Carlos Lima - Férias', start: '2026-12-20', end: '2027-01-03', progress: 0 }
+        ]
+      })
     });
 
     console.log('✓ RH completo');
@@ -613,7 +870,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: jur_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Contrato Recebido' }, class: 'start', html: 'Contrato Recebido', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'process', data: { text: 'Análise Preliminar' }, class: 'process', html: 'Análise Preliminar', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'decision', data: { text: 'Complexo?' }, class: 'decision', html: 'Complexo?', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '4', output: 'input_1' }] }, output_2: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 600, pos_y: 200 },
+              '4': { id: 4, name: 'process', data: { text: 'Consultoria Externa' }, class: 'process', html: 'Consultoria Externa', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 130 },
+              '5': { id: 5, name: 'process', data: { text: 'Análise Interna' }, class: 'process', html: 'Análise Interna', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_2' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 270 },
+              '6': { id: 6, name: 'process', data: { text: 'Emitir Parecer' }, class: 'process', html: 'Emitir Parecer', typenode: false, inputs: { input_1: { connections: [{ node: '4', input: 'output_1' }, { node: '5', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '7', output: 'input_1' }] } }, pos_x: 1100, pos_y: 200 },
+              '7': { id: 7, name: 'end', data: { text: 'Contrato Analisado' }, class: 'end', html: 'Contrato Analisado', typenode: false, inputs: { input_1: { connections: [{ node: '6', input: 'output_1' }] } }, outputs: {}, pos_x: 1350, pos_y: 200 }
+            }
+          }
+        }
+      })
     });
 
     const jur_controle = await base44.entities.Folder.create({
@@ -666,7 +937,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'flux',
       folder_id: ti_processos.id,
       owner: userEmail,
-      content: JSON.stringify({ drawflow: { Home: { data: {} } } })
+      content: JSON.stringify({
+        drawflow: {
+          Home: {
+            data: {
+              '1': { id: 1, name: 'start', data: { text: 'Chamado Aberto' }, class: 'start', html: 'Chamado Aberto', typenode: false, inputs: {}, outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } }, pos_x: 100, pos_y: 200 },
+              '2': { id: 2, name: 'decision', data: { text: 'Prioridade?' }, class: 'decision', html: 'Prioridade?', typenode: false, inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '3', output: 'input_1' }] }, output_2: { connections: [{ node: '4', output: 'input_1' }] } }, pos_x: 350, pos_y: 200 },
+              '3': { id: 3, name: 'process', data: { text: 'Atendimento Imediato' }, class: 'process', html: 'Atendimento Imediato', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 600, pos_y: 130 },
+              '4': { id: 4, name: 'process', data: { text: 'Adicionar à Fila' }, class: 'process', html: 'Adicionar à Fila', typenode: false, inputs: { input_1: { connections: [{ node: '2', input: 'output_2' }] } }, outputs: { output_1: { connections: [{ node: '5', output: 'input_1' }] } }, pos_x: 600, pos_y: 270 },
+              '5': { id: 5, name: 'process', data: { text: 'Diagnóstico e Solução' }, class: 'process', html: 'Diagnóstico e Solução', typenode: false, inputs: { input_1: { connections: [{ node: '3', input: 'output_1' }, { node: '4', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '6', output: 'input_1' }] } }, pos_x: 850, pos_y: 200 },
+              '6': { id: 6, name: 'process', data: { text: 'Confirmar com Usuário' }, class: 'process', html: 'Confirmar com Usuário', typenode: false, inputs: { input_1: { connections: [{ node: '5', input: 'output_1' }] } }, outputs: { output_1: { connections: [{ node: '7', output: 'input_1' }] } }, pos_x: 1100, pos_y: 200 },
+              '7': { id: 7, name: 'end', data: { text: 'Chamado Fechado' }, class: 'end', html: 'Chamado Fechado', typenode: false, inputs: { input_1: { connections: [{ node: '6', input: 'output_1' }] } }, outputs: {}, pos_x: 1350, pos_y: 200 }
+            }
+          }
+        }
+      })
     });
 
     const ti_tarefas = await base44.entities.Folder.create({
@@ -680,7 +965,21 @@ export async function createDefaultStructure(userEmail) {
       type: 'kbn',
       folder_id: ti_tarefas.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'open', title: 'Abertos', color: '#ef4444' },
+          { id: 'progress', title: 'Em Atendimento', color: '#f59e0b' },
+          { id: 'waiting', title: 'Aguardando', color: '#8b5cf6' },
+          { id: 'resolved', title: 'Resolvido', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'open', title: 'Notebook lento - João', description: 'Precisa otimização', priority: 'medium', tags: ['hardware'] },
+          { id: '2', columnId: 'progress', title: 'Erro no sistema - Maria', description: 'Investigando bug', priority: 'high', tags: ['software', 'urgente'] },
+          { id: '3', columnId: 'progress', title: 'Novo acesso - Pedro', description: 'Criar usuário CRM', priority: 'low', tags: ['acesso'] },
+          { id: '4', columnId: 'waiting', title: 'Impressora offline', description: 'Aguardando peça', priority: 'medium', tags: ['hardware'] },
+          { id: '5', columnId: 'resolved', title: 'Reset senha - Ana', description: 'Senha resetada com sucesso', priority: 'low', tags: ['acesso'] }
+        ]
+      })
     });
 
     const ti_controle = await base44.entities.Folder.create({
@@ -733,15 +1032,40 @@ export async function createDefaultStructure(userEmail) {
       type: 'gnt',
       folder_id: dir_projetos.id,
       owner: userEmail,
-      content: JSON.stringify({ tasks: [] })
+      content: JSON.stringify({
+        tasks: [
+          { id: 't1', name: 'Estudo de Viabilidade', start: '2026-01-15', end: '2026-02-28', progress: 50, dependencies: [] },
+          { id: 't2', name: 'Análise Mercado Regional', start: '2026-01-20', end: '2026-02-15', progress: 60, dependencies: [] },
+          { id: 't3', name: 'Planejamento Financeiro', start: '2026-03-01', end: '2026-03-31', progress: 0, dependencies: ['t1'] },
+          { id: 't4', name: 'Busca de Instalações', start: '2026-03-15', end: '2026-05-15', progress: 0, dependencies: ['t2'] },
+          { id: 't5', name: 'Contratação Equipe Local', start: '2026-04-01', end: '2026-06-30', progress: 0, dependencies: ['t3'] },
+          { id: 't6', name: 'Setup Infraestrutura', start: '2026-05-16', end: '2026-07-31', progress: 0, dependencies: ['t4'] },
+          { id: 't7', name: 'Marketing Pré-Lançamento', start: '2026-06-01', end: '2026-08-15', progress: 0, dependencies: ['t5'] },
+          { id: 't8', name: 'Inauguração Filial', start: '2026-08-16', end: '2026-08-31', progress: 0, dependencies: ['t6', 't7'] }
+        ]
+      })
     });
 
     await base44.entities.File.create({
-      name: 'Expansao_Empresa',
+      name: 'Tarefas_Expansao',
       type: 'kbn',
       folder_id: dir_projetos.id,
       owner: userEmail,
-      content: JSON.stringify({ columns: [], cards: [] })
+      content: JSON.stringify({
+        columns: [
+          { id: 'backlog', title: 'Backlog', color: '#6b7280' },
+          { id: 'planning', title: 'Planejamento', color: '#6366f1' },
+          { id: 'execution', title: 'Execução', color: '#f59e0b' },
+          { id: 'completed', title: 'Concluído', color: '#10b981' }
+        ],
+        cards: [
+          { id: '1', columnId: 'backlog', title: 'Definir localização filial', description: '3 cidades em análise', priority: 'high', tags: ['estratégia'] },
+          { id: '2', columnId: 'planning', title: 'Orçamento expansão', description: 'Projeção de R$ 2M', priority: 'high', tags: ['financeiro'] },
+          { id: '3', columnId: 'planning', title: 'Pesquisa imóveis comerciais', description: 'Mínimo 300m²', priority: 'medium', tags: ['infraestrutura'] },
+          { id: '4', columnId: 'execution', title: 'Análise concorrência regional', description: '70% concluído', priority: 'high', tags: ['marketing'] },
+          { id: '5', columnId: 'completed', title: 'Aprovação diretoria', description: 'Projeto aprovado em 10/01', priority: 'low', tags: ['governança'] }
+        ]
+      })
     });
 
     const dir_apresentacoes = await base44.entities.Folder.create({
