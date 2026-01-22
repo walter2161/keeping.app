@@ -4,18 +4,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft, Key, Settings, Zap } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Bot, Image, Briefcase, BookOpen, Save, Loader2, Sparkles, ArrowLeft, Key, Settings, Zap, FolderTree } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import AutomationManager from '../components/assistant/AutomationManager';
+import { createDefaultStructure } from '../components/setup/DefaultStructureSetup';
 
 export default function AssistantSettings() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
+  const [creatingStructure, setCreatingStructure] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -91,6 +93,25 @@ export default function AssistantSettings() {
       alert('Erro ao gerar imagem: ' + error.message);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleCreateDefaultStructure = async () => {
+    if (!window.confirm('Deseja criar a estrutura padrão EMPRESA com todas as pastas e arquivos de exemplo?\n\nIsso irá criar 10 departamentos com documentos, planilhas e processos de exemplo.')) {
+      return;
+    }
+
+    setCreatingStructure(true);
+    try {
+      await createDefaultStructure(user.email);
+      await base44.auth.updateMe({ default_structure_created: true });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      alert('✅ Estrutura padrão criada com sucesso! Acesse o Drive para visualizar.');
+    } catch (error) {
+      console.error('Erro ao criar estrutura:', error);
+      alert('❌ Erro ao criar estrutura: ' + error.message);
+    } finally {
+      setCreatingStructure(false);
     }
   };
 
@@ -313,6 +334,48 @@ export default function AssistantSettings() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderTree className="w-5 h-5 text-blue-600" />
+              Estrutura Padrão do Drive
+            </CardTitle>
+            <CardDescription>
+              Crie uma estrutura completa de pastas e arquivos com exemplos prontos para começar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={handleCreateDefaultStructure}
+              disabled={creatingStructure || user?.default_structure_created}
+              variant="outline"
+              className="w-full"
+            >
+              {creatingStructure ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Criando estrutura...
+                </>
+              ) : user?.default_structure_created ? (
+                <>
+                  <FolderTree className="w-4 h-4 mr-2" />
+                  Estrutura já criada
+                </>
+              ) : (
+                <>
+                  <FolderTree className="w-4 h-4 mr-2" />
+                  Criar Estrutura Padrão EMPRESA
+                </>
+              )}
+            </Button>
+            {user?.default_structure_created && (
+              <p className="text-xs text-gray-500 mt-2">
+                A estrutura padrão já foi criada no seu Drive. Acesse o Drive para visualizar.
+              </p>
+            )}
           </CardContent>
         </Card>
 
