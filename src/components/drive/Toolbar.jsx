@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/tooltip";
 import NotificationBell from './NotificationBell';
 
+import { CheckSquare } from 'lucide-react';
+
 export default function Toolbar({ 
   onNewFolder, 
   onNewFile,

@@ -45,6 +45,8 @@ export default function Drive() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [moveConfirmDialog, setMoveConfirmDialog] = useState({ open: false, data: null });
   const [moveDialog, setMoveDialog] = useState({ open: false, item: null, type: null });
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -566,8 +568,102 @@ export default function Drive() {
     setMoveDialog({ open: true, item: file, type: 'file' });
   };
 
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Deseja realmente excluir ${selectedItems.length} item(ns)?`)) return;
+    
+    const toast = (await import('react-hot-toast')).default;
+    const deleteToastId = toast.loading(`Excluindo ${selectedItems.length} item(ns)...`, { position: 'bottom-left' });
+    
+    try {
+      for (const item of selectedItems) {
+        if (item.type === 'folder') {
+          await updateFolderMutation.mutateAsync({
+            id: item.id,
+            data: {
+              deleted: true,
+              deleted_at: new Date().toISOString(),
+              original_parent_id: item.parent_id,
+            }
+          });
+        } else {
+          await updateFileMutation.mutateAsync({
+            id: item.id,
+            data: {
+              deleted: true,
+              deleted_at: new Date().toISOString(),
+              original_folder_id: item.folder_id,
+            }
+          });
+        }
+      }
+      
+      toast.success('Itens excluídos com sucesso!', { id: deleteToastId, duration: 3000, position: 'bottom-left' });
+      setSelectedItems([]);
+      setSelectionMode(false);
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    } catch (error) {
+      toast.error('Erro ao excluir itens', { id: deleteToastId, position: 'bottom-left' });
+    }
+  };
+  
+  const handleBulkMove = () => {
+    setMoveDialog({ open: true, item: null, type: 'bulk' });
+  };
+  
+  const handleToggleSelection = (item, itemType) => {
+    const itemWithType = { ...item, type: itemType };
+    setSelectedItems(prev => {
+      const exists = prev.find(i => i.id === item.id && i.type === itemType);
+      if (exists) {
+        return prev.filter(i => !(i.id === item.id && i.type === itemType));
+      } else {
+        return [...prev, itemWithType];
+      }
+    });
+  };
+
   const handleMoveDialogSubmit = async (targetFolderId) => {
     const { item, type } = moveDialog;
+    
+    // Mover múltiplos itens
+    if (type === 'bulk') {
+      const toast = (await import('react-hot-toast')).default;
+      const moveToastId = toast.loading(`Movendo ${selectedItems.length} item(ns)...`, { position: 'bottom-left' });
+      
+      try {
+        for (const selectedItem of selectedItems) {
+          if (selectedItem.type === 'folder') {
+            const teamId = getFolderTeam(targetFolderId);
+            await updateFolderMutation.mutateAsync({
+              id: selectedItem.id,
+              data: { 
+                parent_id: targetFolderId,
+                team_id: teamId
+              }
+            });
+          } else {
+            const teamId = getFolderTeam(targetFolderId);
+            await updateFileMutation.mutateAsync({
+              id: selectedItem.id,
+              data: { 
+                folder_id: targetFolderId,
+                team_id: teamId
+              }
+            });
+          }
+        }
+        
+        toast.success('Itens movidos com sucesso!', { id: moveToastId, duration: 3000, position: 'bottom-left' });
+        setSelectedItems([]);
+        setSelectionMode(false);
+        queryClient.invalidateQueries({ queryKey: ['folders'] });
+        queryClient.invalidateQueries({ queryKey: ['files'] });
+      } catch (error) {
+        toast.error('Erro ao mover itens', { id: moveToastId, position: 'bottom-left' });
+      }
+      return;
+    }
 
     try {
       if (type === 'folder') {
@@ -1153,6 +1249,11 @@ export default function Drive() {
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onRefresh={handleRefreshClick}
+          selectionMode={selectionMode}
+          onToggleSelectionMode={() => {
+            setSelectionMode(!selectionMode);
+            setSelectedItems([]);
+          }}
           />
       
       <div className="flex flex-1 overflow-hidden">
@@ -1177,6 +1278,60 @@ export default function Drive() {
             path={breadcrumbPath} 
             onNavigate={setCurrentFolderId} 
           />
+          
+          {/* Barra de ações multiseleção */}
+          {selectionMode && (
+            <div className="sticky top-0 z-10 bg-blue-600 text-white px-6 py-3 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-4">
+                <span className="font-semibold">{selectedItems.length} item(ns) selecionado(s)</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const allItems = [
+                      ...currentFolders.map(f => ({ ...f, type: 'folder' })),
+                      ...currentFiles.map(f => ({ ...f, type: 'file' }))
+                    ];
+                    setSelectedItems(allItems);
+                  }}
+                  className="text-white hover:bg-blue-700"
+                >
+                  Selecionar Tudo
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkMove}
+                  disabled={selectedItems.length === 0}
+                  className="bg-white text-blue-600 hover:bg-blue-50"
+                >
+                  Mover
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  disabled={selectedItems.length === 0}
+                  className="bg-white text-red-600 hover:bg-red-50"
+                >
+                  Excluir
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectionMode(false);
+                    setSelectedItems([]);
+                  }}
+                  className="text-white hover:bg-blue-700"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 p-6 overflow-y-auto">
           {isLoading ? (
@@ -1239,11 +1394,11 @@ export default function Drive() {
                       className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
                     >
                       {currentFolders.map((folder, index) => (
-                        <Draggable key={folder.id} draggableId={folder.id} index={index}>
+                        <Draggable key={folder.id} draggableId={folder.id} index={index} isDragDisabled={selectionMode}>
                           {(provided, snapshot) => (
                             <FolderCard
                               folder={folder}
-                              onClick={() => setCurrentFolderId(folder.id)}
+                              onClick={() => selectionMode ? handleToggleSelection(folder, 'folder') : setCurrentFolderId(folder.id)}
                               onDelete={() => handleDeleteFolder(folder)}
                               onRename={() => handleRenameFolder(folder)}
                               onExport={() => handleExportFolder(folder)}
@@ -1254,6 +1409,9 @@ export default function Drive() {
                               provided={provided}
                               isDragging={snapshot.isDragging}
                               onExternalDrop={handleExternalDrop}
+                              selectionMode={selectionMode}
+                              isSelected={selectedItems.some(i => i.id === folder.id && i.type === 'folder')}
+                              onToggleSelection={() => handleToggleSelection(folder, 'folder')}
                             />
                           )}
                         </Draggable>
@@ -1279,11 +1437,11 @@ export default function Drive() {
                       className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
                     >
                       {currentFiles.map((file, index) => (
-                        <Draggable key={file.id} draggableId={file.id} index={index}>
+                        <Draggable key={file.id} draggableId={file.id} index={index} isDragDisabled={selectionMode}>
                           {(provided, snapshot) => (
                             <FileCard
                               file={file}
-                              onClick={() => handleFileClick(file)}
+                              onClick={() => selectionMode ? handleToggleSelection(file, 'file') : handleFileClick(file)}
                               onDelete={() => {
                                 if (file.owner !== user?.email) {
                                   alert('Apenas o proprietário pode excluir este arquivo.');
@@ -1305,6 +1463,9 @@ export default function Drive() {
                               isOwner={file.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
+                              selectionMode={selectionMode}
+                              isSelected={selectedItems.some(i => i.id === file.id && i.type === 'file')}
+                              onToggleSelection={() => handleToggleSelection(file, 'file')}
                             />
                           )}
                         </Draggable>
