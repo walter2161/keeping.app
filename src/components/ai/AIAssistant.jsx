@@ -982,8 +982,12 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
                   const resolvedId = tempRefs[actionItem.data.parent_id];
                   console.log(`   ✓ Resolvendo parent_id: ${actionItem.data.parent_id} → ${resolvedId}`);
                   actionItem.data.parent_id = resolvedId;
-                } else if (!actionItem.data.parent_id.match(/^[a-f0-9]{24}$/)) {
-                  console.warn(`   ⚠️ parent_id não resolvido: ${actionItem.data.parent_id}, usando pasta atual`);
+                } else if (actionItem.data.parent_id.match(/^[a-f0-9]{24}$/)) {
+                  // Já é um ID real válido, manter
+                  console.log(`   ℹ️ parent_id já é ID real: ${actionItem.data.parent_id}`);
+                } else {
+                  // Não é ID válido e não está nos tempRefs - usar pasta atual
+                  console.warn(`   ⚠️ parent_id "${actionItem.data.parent_id}" não foi resolvido! Usando currentFolderId: ${currentFolderId}`);
                   actionItem.data.parent_id = currentFolderId;
                 }
               }
@@ -993,8 +997,14 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
                   const resolvedId = tempRefs[actionItem.data.folder_id];
                   console.log(`   ✓ Resolvendo folder_id: ${actionItem.data.folder_id} → ${resolvedId}`);
                   actionItem.data.folder_id = resolvedId;
-                } else if (!actionItem.data.folder_id.match(/^[a-f0-9]{24}$/)) {
-                  console.warn(`   ⚠️ folder_id não resolvido: ${actionItem.data.folder_id}, usando pasta atual`);
+                } else if (actionItem.data.folder_id.match(/^[a-f0-9]{24}$/)) {
+                  // Já é um ID real válido, manter
+                  console.log(`   ℹ️ folder_id já é ID real: ${actionItem.data.folder_id}`);
+                } else {
+                  // CRÍTICO: Não é ID válido e não está nos tempRefs
+                  console.error(`   ❌ ERRO CRÍTICO: folder_id "${actionItem.data.folder_id}" NÃO RESOLVIDO!`);
+                  console.error(`   📍 tempRefs disponíveis:`, Object.keys(tempRefs));
+                  console.error(`   🔄 Usando currentFolderId como fallback: ${currentFolderId}`);
                   actionItem.data.folder_id = currentFolderId;
                 }
               }
