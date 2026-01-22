@@ -44,7 +44,7 @@ export default function Base44Init({ children }) {
       console.error('❌ Erro ao inicializar Base44:', error);
     }
 
-    // Verificar e criar estrutura padrão para novos usuários
+    // Verificar e criar estrutura padrão para TODOS os usuários
     const initializeDefaultStructure = async () => {
       try {
         const user = await base44.auth.me();
@@ -54,9 +54,15 @@ export default function Base44Init({ children }) {
           return;
         }
 
-        // Verificar se já tem a flag de estrutura criada
-        if (!user.default_structure_created) {
-          console.log('🆕 Novo usuário detectado, criando estrutura padrão EMPRESA completa...');
+        // Buscar todas as pastas do usuário
+        const folders = await base44.entities.Folder.list();
+        const userFolders = folders.filter(f => f.owner === user.email && !f.parent_id && !f.deleted);
+        
+        // Verificar se já existe a pasta EMPRESA com estrutura completa
+        const empresaFolder = userFolders.find(f => f.name === 'EMPRESA');
+        
+        if (!empresaFolder) {
+          console.log('🆕 Criando estrutura padrão EMPRESA completa para ' + user.email);
           
           try {
             // Criar estrutura padrão
@@ -73,15 +79,14 @@ export default function Base44Init({ children }) {
             }, 1000);
           } catch (structureError) {
             console.error('❌ Erro detalhado ao criar estrutura:', structureError);
-            // Não bloqueia o app mesmo se falhar
           }
         } else {
-          console.log('✓ Usuário já possui estrutura padrão');
+          console.log('✓ Pasta EMPRESA já existe');
         }
         
         setIsInitialized(true);
       } catch (error) {
-        console.error('❌ Erro ao verificar usuário:', error);
+        console.error('❌ Erro ao verificar estrutura:', error);
         setIsInitialized(true);
       }
     };
