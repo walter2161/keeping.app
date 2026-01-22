@@ -639,6 +639,14 @@ Permissões:
 
 Comando do usuário: "${input}"
 
+⚠️⚠️⚠️ ALERTA CRÍTICO SOBRE PLANILHAS ⚠️⚠️⚠️
+Se o usuário pediu para criar uma planilha (xlsx, excel, spreadsheet):
+- VOCÊ ESTÁ PROIBIDO de criar planilhas vazias
+- VOCÊ DEVE SEMPRE preencher com dados relevantes
+- Mínimo 5 linhas de dados + cabeçalho
+- Formato CSV com vírgulas e \\n
+- Exemplo: "Categoria,Valor\\nItem 1,100\\nItem 2,200"
+
 IMPORTANTE - FORMATO XML PARA ESTRUTURAS COMPLEXAS:
 Se o usuário pedir para "montar", "estruturar" ou "gerar código/xml", você deve PRIMEIRO criar um XML estruturado e retornar na conversa para o usuário visualizar, SEM executar ainda.
 
@@ -697,40 +705,32 @@ IMPORTANTE:
 - Gantt = type: "gnt"
 - Cronograma = type: "crn"
 
-FORMATAÇÃO DE PLANILHAS (type: xlsx):
-⚠️⚠️⚠️ EXTREMAMENTE CRÍTICO ⚠️⚠️⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ REGRA INQUEBRÁVEL: PLANILHAS (type: xlsx)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-VOCÊ DEVE OBRIGATORIAMENTE CRIAR PLANILHAS COM DADOS REAIS E RELEVANTES!
-NUNCA CRIAR PLANILHAS VAZIAS OU SEM DADOS!
+SE O TIPO FOR "xlsx" (PLANILHA/EXCEL):
+→ É PROIBIDO deixar content vazio ou apenas com cabeçalho
+→ SEMPRE criar com dados completos e relevantes
+→ Mínimo: 1 linha de cabeçalho + 5 linhas de dados
 
-Formato OBRIGATÓRIO para planilhas:
+FORMATO OBRIGATÓRIO:
+"content": "Coluna1,Coluna2,Coluna3\\nValor1,Valor2,Valor3\\nValor4,Valor5,Valor6"
+
+EXEMPLO EXATO que você DEVE seguir:
 {
   "action": "create_file",
   "data": {
-    "name": "Nome da Planilha.xlsx",
+    "name": "Controle Financeiro.xlsx",
     "type": "xlsx",
-    "content": "Cabeçalho1,Cabeçalho2,Cabeçalho3\\nDado1,Dado2,Dado3\\nDado4,Dado5,Dado6"
+    "content": "Categoria,Janeiro,Fevereiro,Março\\nReceitas,15000,18000,16500\\nDespesas,8000,9000,8500\\nAluguel,2000,2000,2000\\nSalários,4000,4000,4000\\nLucro,1000,3000,2000"
   }
 }
 
-EXEMPLO REAL - Controle Financeiro Pequena Empresa:
-{
-  "action": "create_file",
-  "data": {
-    "name": "Controle Financeiro Pequena Empresa.xlsx",
-    "type": "xlsx",
-    "content": "Categoria,Janeiro,Fevereiro,Março,Total\\nReceitas,15000,18000,16500,49500\\nCusto Produtos Vendidos,6000,7200,6600,19800\\nAluguel,2000,2000,2000,6000\\nFuncionários,4000,4000,4000,12000\\nMarketing,1500,2000,1800,5300\\nOutras Despesas,800,900,850,2550\\nLucro Líquido,700,1900,1250,3850"
-  }
-}
+Se usuário pedir "controle financeiro pequena empresa":
+"content": "Categoria,Mês 1,Mês 2,Mês 3\\nReceitas,5000,6000,5500\\nCustos,-1500,-1600,-1550\\nDespesas Fixas,-2000,-2000,-2000\\nMarketing,-500,-600,-550\\nLucro,1000,1800,1400"
 
-REGRAS ABSOLUTAS:
-1. Content SEMPRE em formato CSV
-2. Use vírgula (,) para separar colunas
-3. Use \\n para nova linha
-4. Primeira linha = cabeçalhos
-5. OBRIGATÓRIO ter pelo menos 5 linhas de dados reais
-6. Dados devem ser relevantes ao que foi pedido
-7. PROIBIDO criar planilhas vazias ou só com cabeçalho
+SE NÃO HOUVER CONTENT COM DADOS = ERRO GRAVE!
 
 FORMATAÇÃO DE DOCUMENTOS (type: docx):
 Use HTML completo e bem formatado no campo content:
@@ -1157,25 +1157,38 @@ Usuário: ${input}`;
       console.log('Pasta de destino:', data.folder_id);
       console.log('Team ID:', data.team_id);
       
+      // Conteúdo padrão rico para cada tipo
       const defaultContent = {
         kbn: JSON.stringify({ columns: [], cards: [] }),
         gnt: JSON.stringify({ tasks: [] }),
         crn: JSON.stringify({ groups: [], items: [] }),
         flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
         pptx: data.content || JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] }),
-        docx: data.content || '',
-        xlsx: data.content || 'Cabeçalho 1,Cabeçalho 2,Cabeçalho 3\nValor 1,Valor 2,Valor 3',
+        docx: data.content || '<h1><strong>Documento de Exemplo</strong></h1><p>Este é um documento criado automaticamente. Edite conforme necessário.</p>',
+        xlsx: data.content || 'Item,Descrição,Valor\nItem 1,Descrição do item 1,100\nItem 2,Descrição do item 2,200\nItem 3,Descrição do item 3,300\nTotal,Total dos itens,600',
       };
+      
+      // Validação especial para planilhas
+      let finalContent = data.content || defaultContent[data.type] || '';
+      if (data.type === 'xlsx') {
+        // Verificar se tem dados suficientes
+        const lines = finalContent.split('\n').filter(l => l.trim());
+        if (lines.length < 2) {
+          console.warn('⚠️ Planilha sem dados suficientes, usando default rico');
+          finalContent = 'Categoria,Janeiro,Fevereiro,Março,Total\nReceitas,5000,6000,5500,16500\nDespesas,3000,3200,3100,9300\nAluguel,1000,1000,1000,3000\nSalários,1500,1500,1500,4500\nLucro,500,1300,900,2700';
+        }
+        console.log('📊 Planilha criada com', lines.length, 'linhas');
+      }
+      
       const result = await base44.entities.File.create({
         name: data.name,
         type: data.type,
         folder_id: data.folder_id || null,
         team_id: data.team_id || null,
-        content: data.content || defaultContent[data.type] || '',
+        content: finalContent,
         owner: data.owner || user.email,
       });
-      console.log('Arquivo criado com sucesso:', result.id);
-      console.log('Arquivo criado:', result);
+      console.log('✅ Arquivo criado com sucesso:', result.id);
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
       const result = await base44.entities.File.update(data.file_id, {
