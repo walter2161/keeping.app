@@ -680,21 +680,28 @@ IMPORTANTE:
 - Cronograma = type: "crn"
 
 FORMATAÇÃO DE PLANILHAS (type: xlsx):
-SEMPRE preencha com dados em formato de array de arrays (JSON).
-Cada linha é um array, primeira linha são os cabeçalhos.
+⚠️ CRÍTICO: Planilhas DEVEM ter dados em formato CSV (texto simples com quebras de linha).
 
-Exemplo CORRETO de planilha COM DADOS:
+Formato CORRETO para planilhas:
 {
   "action": "create_file",
   "data": {
-    "name": "Controle de Vendas",
+    "name": "Controle de Vendas.xlsx",
     "type": "xlsx",
-    "content": "[[\\"Produto\\",\\"Quantidade\\",\\"Valor Unitário\\",\\"Total\\"],[\\"Notebook\\",\\"5\\",\\"3500\\",\\"17500\\"],[\\"Mouse\\",\\"20\\",\\"50\\",\\"1000\\"],[\\"Teclado\\",\\"15\\",\\"150\\",\\"2250\\"],[\\"TOTAL\\",\\"40\\",\\"\\",\\"20750\\"]]"
+    "content": "Produto,Quantidade,Valor Unitário,Total\\nNotebook,5,3500,17500\\nMouse,20,50,1000\\nTeclado,15,150,2250\\nTOTAL,40,,20750"
   }
 }
 
-IMPORTANTE: content deve ser uma STRING JSON de array de arrays.
-NUNCA crie planilhas vazias quando o usuário pedir dados específicos!
+REGRAS OBRIGATÓRIAS para planilhas:
+- Content é TEXTO CSV (não JSON!)
+- Use vírgula (,) para separar colunas
+- Use \\n para quebrar linhas
+- Primeira linha são os cabeçalhos
+- SEMPRE preencha com dados de exemplo relevantes
+- NUNCA crie planilhas vazias
+
+Exemplo controle financeiro:
+"Categoria,Jan,Fev,Mar\\nReceitas,5000,5200,5500\\nDespesas,3000,3100,3200\\nSaldo,2000,2100,2300"
 
 FORMATAÇÃO DE DOCUMENTOS (type: docx):
 Use HTML completo e bem formatado no campo content:
@@ -911,6 +918,16 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
               actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
             }
             
+            // Se não tem folder_id especificado e estamos em uma pasta, usar a pasta atual
+            if (actionItem.action === 'create_file' && !actionItem.data.folder_id && currentFolderId) {
+              actionItem.data.folder_id = currentFolderId;
+            }
+            
+            // Se estamos em uma pasta de equipe, herdar o team_id
+            if (currentTeamId && !actionItem.data.team_id) {
+              actionItem.data.team_id = currentTeamId;
+            }
+            
             const result = await executeAction(actionItem, folders, files);
             results.push({ action: actionItem, result });
             
@@ -1081,6 +1098,9 @@ Usuário: ${input}`;
       return result;
     } else if (action === 'create_file' && user?.assistant_can_create_files !== false) {
       console.log('Criando arquivo:', data);
+      console.log('Pasta de destino:', data.folder_id);
+      console.log('Team ID:', data.team_id);
+      
       const defaultContent = {
         kbn: JSON.stringify({ columns: [], cards: [] }),
         gnt: JSON.stringify({ tasks: [] }),
@@ -1088,7 +1108,7 @@ Usuário: ${input}`;
         flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
         pptx: data.content || JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] }),
         docx: data.content || '',
-        xlsx: data.content || '',
+        xlsx: data.content || 'Cabeçalho 1,Cabeçalho 2,Cabeçalho 3\nValor 1,Valor 2,Valor 3',
       };
       const result = await base44.entities.File.create({
         name: data.name,
@@ -1098,6 +1118,7 @@ Usuário: ${input}`;
         content: data.content || defaultContent[data.type] || '',
         owner: data.owner || user.email,
       });
+      console.log('Arquivo criado com sucesso:', result.id);
       console.log('Arquivo criado:', result);
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
