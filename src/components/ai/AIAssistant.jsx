@@ -17,6 +17,7 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
   });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [terminalMode, setTerminalMode] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
   
@@ -31,7 +32,15 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
     const saved = localStorage.getItem('aiAssistant_messages');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Filtrar mensagens com mais de 24h
+        const now = Date.now();
+        const filtered = parsed.filter(msg => {
+          if (!msg.timestamp) return true; // Manter mensagens sem timestamp
+          return (now - msg.timestamp) < 24 * 60 * 60 * 1000; // 24 horas
+        });
+        // Manter apenas as últimas 10 interações (20 mensagens = 10 pares user+assistant)
+        return filtered.slice(-20);
       } catch (e) {
         console.error('Erro ao carregar histórico:', e);
       }
@@ -41,7 +50,8 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
         role: 'assistant',
         content: fileContext 
           ? `Olá! Sou ${user?.assistant_name || 'sua secretária virtual'} especializada em ${getFileTypeLabel(fileType)}. Como posso ajudar?`
-          : `Olá! Sou ${user?.assistant_name || 'a assistente virtual'} do Keeping. Como posso ajudar você hoje?`
+          : `Olá! Sou ${user?.assistant_name || 'a assistente virtual'} do Keeping. Como posso ajudar você hoje?`,
+        timestamp: Date.now()
       }
     ];
   });
@@ -63,10 +73,15 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
     localStorage.setItem('aiAssistant_isMinimized', isMinimized);
   }, [isMinimized]);
 
-  // Salvar últimas 10 mensagens
+  // Salvar últimas 20 mensagens (10 interações), limpar antigas
   useEffect(() => {
-    const last10 = messages.slice(-10);
-    localStorage.setItem('aiAssistant_messages', JSON.stringify(last10));
+    const now = Date.now();
+    const filtered = messages.filter(msg => {
+      if (!msg.timestamp) return true;
+      return (now - msg.timestamp) < 24 * 60 * 60 * 1000;
+    });
+    const last20 = filtered.slice(-20);
+    localStorage.setItem('aiAssistant_messages', JSON.stringify(last20));
   }, [messages]);
 
   function getFileTypeLabel(type) {
@@ -218,7 +233,7 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
-    const userMessage = { role: 'user', content: input };
+    const userMessage = { role: 'user', content: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
@@ -456,7 +471,8 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
             const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
             const successMessage = { 
               role: 'assistant', 
-              content: `✓ Automação executada:\n${successMessages}` 
+              content: `✓ Automação executada:\n${successMessages}`,
+              timestamp: Date.now()
             };
             setMessages(prev => [...prev, successMessage]);
 
@@ -930,6 +946,7 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
 
             // Se a ação é edit_file e temos callback de terminal, executar via terminal
             if (actionItem.action === 'edit_file' && onExecuteTerminalCommand && openFileId) {
+              setTerminalMode(true);
               const commands = generateTerminalCommands(actionItem, fileType);
               for (const cmd of commands) {
                 if (onExecuteTerminalCommand) {
@@ -937,6 +954,7 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
                   await new Promise(resolve => setTimeout(resolve, 300));
                 }
               }
+              setTerminalMode(false);
               results.push({ action: actionItem, result: { success: true, method: 'terminal' } });
             } else {
               const result = await executeAction(actionItem, folders, files);
@@ -956,7 +974,8 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
           const successMessages = results.map(r => getActionSuccessMessage(r.action)).join('\n');
           const successMessage = { 
             role: 'assistant', 
-            content: `✓ ${successMessages}` 
+            content: `✓ ${successMessages}`,
+            timestamp: Date.now()
           };
           setMessages(prev => [...prev, successMessage]);
 
@@ -1062,7 +1081,8 @@ Usuário: ${input}`;
           role: 'assistant', 
           content: chatResult || 'Desculpe, não consegui processar sua mensagem.',
           folders: foldersInfo,
-          files: filesInfo
+          files: filesInfo,
+          timestamp: Date.now()
         };
         setMessages(prev => [...prev, assistantMessage]);
       }
@@ -1070,7 +1090,8 @@ Usuário: ${input}`;
       console.error('Erro:', error);
       const errorMessage = { 
         role: 'assistant', 
-        content: 'Desculpe, ocorreu um erro ao processar sua solicitação.' 
+        content: 'Desculpe, ocorreu um erro ao processar sua solicitação.',
+        timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -1297,12 +1318,16 @@ Usuário: ${input}`;
 
   return (
     <div 
-      className={`fixed bottom-6 right-6 bg-white rounded-2xl shadow-2xl border z-50 flex flex-col transition-all ${
-        isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'
-      }`}
+      className={`fixed bottom-6 right-6 rounded-2xl shadow-2xl border z-50 flex flex-col transition-all ${
+        terminalMode ? 'bg-gray-900 border-green-500' : 'bg-white border-gray-200'
+      } ${isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl">
+      <div className={`flex items-center justify-between p-4 border-b rounded-t-2xl ${
+        terminalMode 
+          ? 'bg-gray-800 border-gray-700 text-green-400' 
+          : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+      }`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30">
             <img 
@@ -1312,15 +1337,17 @@ Usuário: ${input}`;
             />
           </div>
           <div>
-            <h3 className="font-semibold">{user?.assistant_name || 'Assistente Virtual'}</h3>
-            <p className="text-xs text-white/80">{user?.assistant_role || 'Online'}</p>
+            <h3 className="font-semibold font-mono">{terminalMode ? 'TERMINAL MODE' : (user?.assistant_name || 'Assistente Virtual')}</h3>
+            <p className={`text-xs ${terminalMode ? 'text-green-300' : 'text-white/80'}`}>
+              {terminalMode ? 'Executando comandos...' : (user?.assistant_role || 'Online')}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white hover:bg-white/20"
+            className={`h-8 w-8 ${terminalMode ? 'text-green-400 hover:bg-gray-700' : 'text-white hover:bg-white/20'}`}
             onClick={() => setIsMinimized(!isMinimized)}
           >
             {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
@@ -1328,7 +1355,7 @@ Usuário: ${input}`;
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white hover:bg-white/20"
+            className={`h-8 w-8 ${terminalMode ? 'text-green-400 hover:bg-gray-700' : 'text-white hover:bg-white/20'}`}
             onClick={() => setIsOpen(false)}
           >
             <X className="w-4 h-4" />
@@ -1339,7 +1366,7 @@ Usuário: ${input}`;
       {!isMinimized && (
         <>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${terminalMode ? 'bg-black' : ''}`}>
             {messages.map((msg, idx) => (
               <div
                 key={idx}
@@ -1347,9 +1374,9 @@ Usuário: ${input}`;
               >
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                    msg.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
+                    terminalMode 
+                      ? (msg.role === 'user' ? 'bg-gray-800 text-green-400 border border-green-500' : 'bg-gray-900 text-green-300 border border-green-700')
+                      : (msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800')
                   }`}
                 >
                   {renderMessageContent(msg)}
@@ -1358,8 +1385,8 @@ Usuário: ${input}`;
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                <div className={`rounded-2xl px-4 py-2 ${terminalMode ? 'bg-gray-900 border border-green-700' : 'bg-gray-100'}`}>
+                  <Loader2 className={`w-4 h-4 animate-spin ${terminalMode ? 'text-green-400' : 'text-gray-600'}`} />
                 </div>
               </div>
             )}
@@ -1367,7 +1394,7 @@ Usuário: ${input}`;
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t">
+          <div className={`p-4 border-t ${terminalMode ? 'bg-gray-900 border-gray-700' : 'bg-white'}`}>
             <div className="flex gap-2">
               <Textarea
                 placeholder="Digite sua mensagem..."
