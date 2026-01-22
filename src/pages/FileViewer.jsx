@@ -27,6 +27,7 @@ import PhotoSmartEditor from '../components/editors/PhotoSmartEditor';
 import AIAssistant from '../components/ai/AIAssistant';
 import CollaborationBar from '../components/collaboration/CollaborationBar';
 import { useSyncData } from '../components/sync/useSyncData';
+import MiniTerminal from '../components/terminal/MiniTerminal';
 
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
@@ -56,6 +57,8 @@ export default function FileViewer() {
   const [docOrientation, setDocOrientation] = useState('portrait');
   const [slideOrientation, setSlideOrientation] = useState('landscape');
   const [docZoom, setDocZoom] = useState(100);
+  const [terminalVisible, setTerminalVisible] = useState(false);
+  const terminalRef = useRef(null);
   
   const queryClient = useQueryClient();
   
@@ -766,6 +769,17 @@ export default function FileViewer() {
         <CollaborationBar fileId={fileId} currentUser={currentUser} />
       )}
 
+      {/* Mini Terminal */}
+      <MiniTerminal
+        ref={terminalRef}
+        fileType={file.type}
+        fileId={fileId}
+        fileName={fileName}
+        content={localContent}
+        onContentChange={handleContentChange}
+        visible={terminalVisible}
+      />
+
       {/* AI Assistant with file context */}
       <AIAssistant 
         fileContext={localContent} 
@@ -774,6 +788,14 @@ export default function FileViewer() {
         currentPage="FileViewer"
         openFileId={fileId}
         openFileName={fileName}
+        onExecuteTerminalCommand={(cmd) => {
+          setTerminalVisible(true);
+          setTimeout(() => {
+            if (terminalRef.current?.executeCommand) {
+              terminalRef.current.executeCommand(cmd);
+            }
+          }, 100);
+        }}
       />
     </div>
   );

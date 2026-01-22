@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 
-export default function AIAssistant({ fileContext = null, fileType = null, currentFolderId = null, currentPage = 'Drive', openFileId = null, openFileName = null }) {
+export default function AIAssistant({ fileContext = null, fileType = null, currentFolderId = null, currentPage = 'Drive', openFileId = null, openFileName = null, onExecuteTerminalCommand = null }) {
   const [isOpen, setIsOpen] = useState(() => {
     const saved = localStorage.getItem('aiAssistant_isOpen');
     return saved === 'true';
@@ -907,30 +907,42 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
         if (llmResult && llmResult.actions && llmResult.actions.length > 0) {
           const results = [];
           const tempRefs = {}; // Armazena ID real de pastas criadas
-          
+
           for (const actionItem of llmResult.actions) {
             // Substituir referências temporárias por IDs reais
             if (actionItem.data.parent_id && tempRefs[actionItem.data.parent_id]) {
               actionItem.data.parent_id = tempRefs[actionItem.data.parent_id];
             }
-            
+
             if (actionItem.data.folder_id && tempRefs[actionItem.data.folder_id]) {
               actionItem.data.folder_id = tempRefs[actionItem.data.folder_id];
             }
-            
+
             // Se não tem folder_id especificado e estamos em uma pasta, usar a pasta atual
             if (actionItem.action === 'create_file' && !actionItem.data.folder_id && currentFolderId) {
               actionItem.data.folder_id = currentFolderId;
             }
-            
+
             // Se estamos em uma pasta de equipe, herdar o team_id
             if (currentTeamId && !actionItem.data.team_id) {
               actionItem.data.team_id = currentTeamId;
             }
-            
-            const result = await executeAction(actionItem, folders, files);
-            results.push({ action: actionItem, result });
-            
+
+            // Se a ação é edit_file e temos callback de terminal, executar via terminal
+            if (actionItem.action === 'edit_file' && onExecuteTerminalCommand && openFileId) {
+              const commands = generateTerminalCommands(actionItem, fileType);
+              for (const cmd of commands) {
+                if (onExecuteTerminalCommand) {
+                  await onExecuteTerminalCommand(cmd);
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                }
+              }
+              results.push({ action: actionItem, result: { success: true, method: 'terminal' } });
+            } else {
+              const result = await executeAction(actionItem, folders, files);
+              results.push({ action: actionItem, result });
+            }
+
             // Armazenar ID real da pasta criada
             if (actionItem.action === 'create_folder' && actionItem.temp_ref && result?.id) {
               tempRefs[actionItem.temp_ref] = result.id;
@@ -1136,6 +1148,54 @@ Usuário: ${input}`;
     } else {
       throw new Error('Permissão negada para esta ação');
     }
+  };
+
+  const generateTerminalCommands = (actionItem, fileType) => {
+    const commands = [];
+    const { action, data } = actionItem;
+    
+    if (action !== 'edit_file') return commands;
+    
+    // Para cada tipo de arquivo, gerar comandos específicos baseado nas mudanças
+    // Esta é uma simplificação - na prática seria mais sofisticado
+    switch (fileType) {
+      case 'docx':
+        if (data.content) {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = data.content;
+          const paragraphs = tempDiv.querySelectorAll('p, h1, h2, h3');
+          paragraphs.forEach(p => {
+            if (p.tagName.startsWith('H')) {
+              const level = p.tagName[1];
+              commands.push(`add-heading ${level} ${p.textContent}`);
+            } else {
+              commands.push(`add-text ${p.textContent}`);
+            }
+          });
+        }
+        break;
+      
+      case 'xlsx':
+        if (data.content) {
+          const lines = data.content.split('\n');
+          lines.forEach(line => {
+            if (line.trim()) {
+              commands.push(`add-row ${line}`);
+            }
+          });
+        }
+        break;
+      
+      case 'kbn':
+        // Kanban commands
+        break;
+      
+      case 'flux':
+        // FluxMap commands
+        break;
+    }
+    
+    return commands;
   };
 
   const renderMessageContent = (message) => {
