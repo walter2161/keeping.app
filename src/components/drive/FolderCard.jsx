@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, MoreVertical, Trash2, Edit2, Download, Palette, Users, ArrowRight, Archive } from 'lucide-react';
+import { Folder, MoreVertical, Trash2, Edit2, Download, Palette, Users, ArrowRight, Archive, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +25,7 @@ const folderColors = {
   red: 'text-red-500',
 };
 
-export default function FolderCard({ folder, onClick, onDelete, onRename, onExport, onCompress, onColorChange, onMove, isOwner, provided, isDragging, onExternalDrop }) {
+export default function FolderCard({ folder, onClick, onDelete, onRename, onExport, onCompress, onColorChange, onMove, isOwner, provided, isDragging, onExternalDrop, selectionMode = false, isSelected = false, onToggleSelection }) {
   const [colorPickerOpen, setColorPickerOpen] = React.useState(false);
   const [clickCount, setClickCount] = React.useState(0);
   const clickTimer = React.useRef(null);
@@ -95,12 +95,21 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
           className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
             isDragging ? 'opacity-50 shadow-2xl' : ''
           } ${droppableSnapshot.isDraggingOver || isDragOver ? 'bg-blue-100 border-blue-400 border-2' : ''}`}
-          onClick={handleCardClick}
+          onClick={selectionMode ? onToggleSelection : handleCardClick}
           onContextMenu={handleContextMenu}
           onDragOver={handleExternalDragOver}
           onDragLeave={handleExternalDragLeave}
           onDrop={handleExternalDrop}
         >
+      {selectionMode && (
+        <div 
+          className={`absolute top-2 left-2 w-6 h-6 rounded border-2 flex items-center justify-center z-10 ${
+            isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+          }`}
+        >
+          {isSelected && <Check className="w-4 h-4 text-white" />}
+        </div>
+      )}
       <div className="relative">
         <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-blue-50 transition-colors ${folderColors[folder.color] || folderColors.default}`}>
           <Folder className="w-6 h-6" fill="currentColor" />
@@ -116,6 +125,7 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
         {folder.name}
       </span>
 
+      {!selectionMode && (
       <DropdownMenu>
         <DropdownMenuTrigger asChild onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" data-dropdown-trigger>
@@ -158,6 +168,7 @@ export default function FolderCard({ folder, onClick, onDelete, onRename, onExpo
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
 
       <FolderColorPicker
         folder={folder}

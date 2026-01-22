@@ -43,7 +43,9 @@ export default function Toolbar({
   onPaste,
   sidebarOpen,
   onToggleSidebar,
-  onRefresh
+  onRefresh,
+  selectionMode = false,
+  onToggleSelectionMode,
 }) {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef(null);
@@ -342,6 +344,22 @@ export default function Toolbar({
           </TooltipTrigger>
           <TooltipContent>
             <p>Atualizar</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant={selectionMode ? "default" : "ghost"} 
+              size="icon" 
+              className={selectionMode ? "bg-blue-600 text-white h-8 w-8" : "text-gray-500 h-8 w-8"}
+              onClick={onToggleSelectionMode}
+            >
+              <CheckSquare className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Seleção Múltipla</p>
           </TooltipContent>
         </Tooltip>
 

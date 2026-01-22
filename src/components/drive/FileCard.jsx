@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive, Sparkles
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive, Sparkles, Check
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,7 +32,7 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, onExtract, isOwner, provided, isDragging }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, onExtract, isOwner, provided, isDragging, selectionMode = false, isSelected = false, onToggleSelection }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
   const [clickCount, setClickCount] = React.useState(0);
@@ -129,10 +129,19 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
             className={`group relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
               isDragging ? 'opacity-50 shadow-2xl' : ''
             }`}
-            onClick={handleCardClick}
+            onClick={selectionMode ? onToggleSelection : handleCardClick}
             onContextMenu={handleContextMenu}
             title=""
           >
+            {selectionMode && (
+              <div 
+                className={`absolute top-2 left-2 w-6 h-6 rounded border-2 flex items-center justify-center z-10 ${
+                  isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+                }`}
+              >
+                {isSelected && <Check className="w-4 h-4 text-white" />}
+              </div>
+            )}
             {renderThumbnail()}
             
             <div className="flex-1 min-w-0">
@@ -144,6 +153,7 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
               </span>
             </div>
 
+      {!selectionMode && (
       <DropdownMenu>
         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" data-dropdown-trigger>
@@ -182,6 +192,7 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
           </div>
         </TooltipTrigger>
         <TooltipContent>
