@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 
-export default function AIAssistant({ fileContext = null, fileType = null, currentFolderId = null, currentPage = 'Drive' }) {
+export default function AIAssistant({ fileContext = null, fileType = null, currentFolderId = null, currentPage = 'Drive', openFileId = null, openFileName = null }) {
   const [isOpen, setIsOpen] = useState(() => {
     const saved = localStorage.getItem('aiAssistant_isOpen');
     return saved === 'true';
@@ -591,9 +591,7 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
       if (isAction) {
         // Usar InvokeLLM com JSON schema para forçar estrutura
         // Buscar o arquivo atual se estiver na página FileViewer
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentFileId = urlParams.get('id');
-        const currentFile = currentFileId ? files.find(f => f.id === currentFileId) : null;
+        const currentFile = openFileId ? files.find(f => f.id === openFileId) : null;
 
         const actionPrompt = `Você é uma assistente que executa comandos.
 
@@ -601,10 +599,11 @@ Histórico da conversa:
 ${conversationHistory}
 
 Contexto:
+- Página atual: ${currentPage}
 - Pasta atual: ${currentFolder ? currentFolder.name : 'Raiz (Meu Drive)'}
 - ID da pasta: ${currentFolderId || null}
 - Localização: ${currentTeamId ? `Equipe (team_id: ${currentTeamId})` : 'Meu Drive (sem equipe)'}
-${currentFile ? `\n- ARQUIVO ABERTO: "${currentFile.name}" (ID: ${currentFile.id}, Tipo: ${currentFile.type})\n- CONTEÚDO ATUAL DO ARQUIVO:\n${currentFile.content || '(vazio)'}` : ''}
+${currentFile ? `\n📄 ARQUIVO ABERTO AGORA: "${currentFile.name}" (ID: ${currentFile.id}, Tipo: ${currentFile.type})\n📝 CONTEÚDO COMPLETO ATUAL:\n${currentFile.content || '(vazio)'}\n\n⚠️ IMPORTANTE: Quando o usuário pedir para editar/mudar/corrigir algo neste arquivo, você DEVE usar "edit_file" com file_id: "${currentFile.id}"` : ''}
 
 IMPORTANTE SOBRE EQUIPES:
 - Se estiver em "Meu Drive" (sem team_id): Criar arquivos/pastas SEM team_id
@@ -711,6 +710,28 @@ Exemplo de documento bem formatado:
 }
 
 EDITAR ARQUIVO ABERTO:
+${currentFile ? `
+⚠️ O USUÁRIO ESTÁ COM O ARQUIVO "${currentFile.name}" ABERTO AGORA!
+Quando ele pedir "corrija", "mude", "adicione", "tire", "edite" ou similares, ele está se referindo a ESTE arquivo!
+
+Exemplo de edição:
+{
+  "action": "edit_file",
+  "data": {
+    "file_id": "${currentFile.id}",
+    "content": "NOVO_CONTEUDO_COMPLETO_COM_AS_ALTERACOES"
+  }
+}
+
+IMPORTANTE para edições:
+- SEMPRE use o conteúdo atual completo como base
+- Faça APENAS as alterações solicitadas pelo usuário
+- Mantenha toda a formatação original
+- Para documentos docx: mantenha TODO o HTML e faça apenas a mudança pedida
+- Para planilhas xlsx: mantenha o formato array de arrays
+- Para Kanban/Gantt/Cronograma/FluxMap: mantenha a estrutura JSON completa
+- Retorne o conteúdo COMPLETO modificado no campo content
+` : `
 Se houver um arquivo aberto e o usuário pedir para mudar/editar algo nele:
 {
   "action": "edit_file",
@@ -718,15 +739,7 @@ Se houver um arquivo aberto e o usuário pedir para mudar/editar algo nele:
     "file_id": "ID_DO_ARQUIVO_ABERTO",
     "content": "NOVO_CONTEUDO_COMPLETO_COM_AS_ALTERACOES"
   }
-}
-
-IMPORTANTE para edições:
-- SEMPRE pegue o conteúdo atual completo do arquivo
-- Faça APENAS as alterações solicitadas
-- Mantenha toda a formatação HTML original
-- Retorne o conteúdo COMPLETO modificado no campo content
-- Para documentos docx: mantenha o HTML formatado
-- Para planilhas xlsx: mantenha o formato de texto/csv
+}`}
 
 Tags HTML permitidas:
 - Títulos: <h1>, <h2>, <h3> (sempre com text-align: center para centralizar)
@@ -743,6 +756,58 @@ SEMPRE estruture documentos com:
 3. Parágrafos separados
 4. Formatação adequada (negrito, itálico)
 5. Espaçamento entre seções (<p><br></p>)
+
+CRIAR CARDS NO FLUXMAP ABERTO:
+${currentFile && currentFile.type === 'flux' ? `
+⚠️ FLUXMAP ESTÁ ABERTO! Para criar cards conectados:
+{
+  "action": "edit_file",
+  "data": {
+    "file_id": "${currentFile.id}",
+    "content": {
+      "drawflow": {
+        "Home": {
+          "data": {
+            "1": {
+              "id": 1,
+              "name": "card",
+              "data": {
+                "title": "Card 1",
+                "description": "Descrição do card 1",
+                "priority": "medium",
+                "cover": { "type": "color", "value": "#3b82f6" }
+              },
+              "class": "card",
+              "html": "...",
+              "typenode": false,
+              "inputs": {},
+              "outputs": { "output_1": { "connections": [{ "node": "2", "output": "input_1" }] } },
+              "pos_x": 100,
+              "pos_y": 100
+            },
+            "2": {
+              "id": 2,
+              "name": "card",
+              "data": {
+                "title": "Card 2",
+                "description": "Descrição do card 2",
+                "priority": "high"
+              },
+              "class": "card",
+              "html": "...",
+              "typenode": false,
+              "inputs": { "input_1": { "connections": [{ "node": "1", "input": "output_1" }] } },
+              "outputs": {},
+              "pos_x": 400,
+              "pos_y": 100
+            }
+          }
+        }
+      }
+    }
+  }
+}
+` : ''}
 
 FORMATAÇÃO DE APRESENTAÇÕES (type: pptx):
 Use formato JSON com estrutura de slides:

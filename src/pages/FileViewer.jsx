@@ -772,6 +772,8 @@ export default function FileViewer() {
         fileType={file.type}
         currentFolderId={file.folder_id}
         currentPage="FileViewer"
+        openFileId={fileId}
+        openFileName={fileName}
       />
     </div>
   );
