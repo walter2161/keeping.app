@@ -56,6 +56,7 @@ import Profile from './pages/Profile';
 import Terminal from './pages/Terminal';
 import Trash from './pages/Trash';
 import Wiki from './pages/Wiki';
+import Chat from './pages/Chat';
 import __Layout from './Layout.jsx';
 
 
@@ -69,6 +70,7 @@ export const PAGES = {
     "Terminal": Terminal,
     "Trash": Trash,
     "Wiki": Wiki,
+    "Chat": Chat,
 }
 
 export const pagesConfig = {
