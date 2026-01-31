@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { 
   Trash2, ArrowLeft, RotateCcw, Loader2, AlertCircle, FolderOpen,
   Folder, FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  Image, Video, File
+  Image, Video, File, ChevronRight, ChevronDown
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +31,162 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50' },
 };
 
+// Componente recursivo para renderizar árvore de pastas
+function FolderTreeItem({ 
+  folder, 
+  level, 
+  expanded, 
+  onToggle, 
+  onRestore, 
+  onDelete,
+  getSubfolders,
+  getFolderFiles,
+  expandedFolders,
+  toggleFolder,
+  handleRestoreFolder,
+  handleDeleteFolderPermanently,
+  handleRestoreFile,
+  deleteFileMutation
+}) {
+  const subfolders = getSubfolders(folder.id);
+  const folderFiles = getFolderFiles(folder.id);
+  const hasChildren = subfolders.length > 0 || folderFiles.length > 0;
+  
+  return (
+    <div className="space-y-2">
+      <div
+        className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+        style={{ marginLeft: `${level * 24}px` }}
+      >
+        {hasChildren && (
+          <button
+            onClick={onToggle}
+            className="p-1 hover:bg-gray-200 rounded"
+          >
+            {expanded ? (
+              <ChevronDown className="w-4 h-4 text-gray-600" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-gray-600" />
+            )}
+          </button>
+        )}
+        
+        {!hasChildren && <div className="w-6" />}
+        
+        <div className="p-2 rounded-lg bg-gray-100 text-gray-500">
+          <Folder className="w-5 h-5" fill="currentColor" />
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <span className="font-medium text-gray-800 truncate text-sm block">
+            {folder.name}
+          </span>
+          <span className="text-xs text-gray-400">
+            Pasta • {new Date(folder.deleted_at).toLocaleDateString('pt-BR')}
+          </span>
+        </div>
+
+        <div className="flex gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-green-600 hover:bg-green-50"
+            onClick={onRestore}
+            title="Restaurar pasta e todo seu conteúdo"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-red-600 hover:bg-red-50"
+            onClick={onDelete}
+            title="Excluir permanentemente"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Conteúdo expandido */}
+      {expanded && (
+        <div className="space-y-2">
+          {/* Subpastas */}
+          {subfolders.map(subfolder => (
+            <FolderTreeItem
+              key={subfolder.id}
+              folder={subfolder}
+              level={level + 1}
+              expanded={expandedFolders[subfolder.id]}
+              onToggle={() => toggleFolder(subfolder.id)}
+              onRestore={() => handleRestoreFolder(subfolder)}
+              onDelete={() => handleDeleteFolderPermanently(subfolder)}
+              getSubfolders={getSubfolders}
+              getFolderFiles={getFolderFiles}
+              expandedFolders={expandedFolders}
+              toggleFolder={toggleFolder}
+              handleRestoreFolder={handleRestoreFolder}
+              handleDeleteFolderPermanently={handleDeleteFolderPermanently}
+              handleRestoreFile={handleRestoreFile}
+              deleteFileMutation={deleteFileMutation}
+            />
+          ))}
+
+          {/* Arquivos da pasta */}
+          {folderFiles.map(file => {
+            const config = fileTypeConfig[file.type] || fileTypeConfig.other;
+            const Icon = config.icon;
+            return (
+              <div
+                key={file.id}
+                className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                style={{ marginLeft: `${(level + 1) * 24}px` }}
+              >
+                <div className="w-6" />
+                
+                <div className={`p-2 rounded-lg ${config.bg} ${config.color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-gray-800 truncate text-sm block">
+                    {file.name}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(file.deleted_at).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-green-600 hover:bg-green-50"
+                    onClick={() => handleRestoreFile(file)}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                    onClick={() => deleteFileMutation.mutate(file.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Trash() {
-  const [emptyDialog, setEmptyDialog] = React.useState(false);
+  const [emptyDialog, setEmptyDialog] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState({});
   const queryClient = useQueryClient();
 
   const { data: folders = [], isLoading: foldersLoading } = useQuery({
@@ -65,15 +219,36 @@ export default function Trash() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
-  const deletedFolders = useMemo(() => {
-    return folders.filter(f => f.deleted);
+  // Apenas pastas raiz deletadas (que não têm parent deletado)
+  const deletedRootFolders = useMemo(() => {
+    return folders.filter(f => f.deleted && (!f.parent_id || !folders.find(p => p.id === f.parent_id && p.deleted)));
   }, [folders]);
 
-  const deletedFiles = useMemo(() => {
-    return files.filter(f => f.deleted);
-  }, [files]);
+  // Apenas arquivos raiz deletados (que não têm folder deletada)
+  const deletedRootFiles = useMemo(() => {
+    return files.filter(f => f.deleted && (!f.folder_id || !folders.find(p => p.id === f.folder_id && p.deleted)));
+  }, [files, folders]);
+
+  // Função para pegar subpastas de uma pasta
+  const getSubfolders = (folderId) => {
+    return folders.filter(f => f.parent_id === folderId);
+  };
+
+  // Função para pegar arquivos de uma pasta
+  const getFolderFiles = (folderId) => {
+    return files.filter(f => f.folder_id === folderId);
+  };
+
+  // Toggle expansão de pasta
+  const toggleFolder = (folderId) => {
+    setExpandedFolders(prev => ({
+      ...prev,
+      [folderId]: !prev[folderId]
+    }));
+  };
 
   const handleRestoreFolder = async (folder) => {
+    // Restaurar pasta e todos seus filhos recursivamente
     await updateFolderMutation.mutateAsync({
       id: folder.id,
       data: {
@@ -83,6 +258,26 @@ export default function Trash() {
         original_parent_id: null,
       }
     });
+
+    // Restaurar subpastas
+    const subfolders = getSubfolders(folder.id);
+    for (const subfolder of subfolders) {
+      await handleRestoreFolder(subfolder);
+    }
+
+    // Restaurar arquivos da pasta
+    const folderFiles = getFolderFiles(folder.id);
+    for (const file of folderFiles) {
+      await updateFileMutation.mutateAsync({
+        id: file.id,
+        data: {
+          deleted: false,
+          deleted_at: null,
+          folder_id: file.original_folder_id || null,
+          original_folder_id: null,
+        }
+      });
+    }
   };
 
   const handleRestoreFile = async (file) => {
@@ -113,10 +308,12 @@ export default function Trash() {
   };
 
   const handleEmptyTrash = async () => {
-    for (const folder of deletedFolders) {
+    // Deletar apenas pastas raiz (isso vai deletar recursivamente os filhos)
+    for (const folder of deletedRootFolders) {
       await handleDeleteFolderPermanently(folder);
     }
-    for (const file of deletedFiles) {
+    // Deletar apenas arquivos raiz
+    for (const file of deletedRootFiles) {
       await deleteFileMutation.mutateAsync(file.id);
     }
     setEmptyDialog(false);
@@ -144,7 +341,7 @@ export default function Trash() {
           </div>
         </div>
 
-        {(deletedFolders.length > 0 || deletedFiles.length > 0) && (
+        {(deletedRootFolders.length > 0 || deletedRootFiles.length > 0) && (
           <Button 
             variant="outline" 
             className="text-red-600 border-red-300 hover:bg-red-50"
@@ -161,78 +358,52 @@ export default function Trash() {
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
-        ) : deletedFolders.length === 0 && deletedFiles.length === 0 ? (
+        ) : deletedRootFolders.length === 0 && deletedRootFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
             <Trash2 className="w-16 h-16 mb-4" />
             <p className="text-lg font-medium">A lixeira está vazia</p>
             <p className="text-sm mt-1">Itens excluídos aparecerão aqui</p>
           </div>
         ) : (
-          <>
-            {deletedFolders.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                  Pastas
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {deletedFolders.map(folder => (
-                    <div
-                      key={folder.id}
-                      className="relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white"
-                    >
-                      <div className="p-2 rounded-lg bg-gray-100 text-gray-500">
-                        <Folder className="w-6 h-6" fill="currentColor" />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium text-gray-800 truncate text-sm block">
-                          {folder.name}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(folder.deleted_at).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
+          <div className="space-y-2">
+            {/* Renderizar pastas com hierarquia */}
+            {deletedRootFolders.map(folder => (
+              <FolderTreeItem
+                key={folder.id}
+                folder={folder}
+                level={0}
+                expanded={expandedFolders[folder.id]}
+                onToggle={() => toggleFolder(folder.id)}
+                onRestore={() => handleRestoreFolder(folder)}
+                onDelete={() => handleDeleteFolderPermanently(folder)}
+                getSubfolders={getSubfolders}
+                getFolderFiles={getFolderFiles}
+                expandedFolders={expandedFolders}
+                toggleFolder={toggleFolder}
+                handleRestoreFolder={handleRestoreFolder}
+                handleDeleteFolderPermanently={handleDeleteFolderPermanently}
+                handleRestoreFile={handleRestoreFile}
+                deleteFileMutation={deleteFileMutation}
+              />
+            ))}
 
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-green-600 hover:bg-green-50"
-                          onClick={() => handleRestoreFolder(folder)}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteFolderPermanently(folder)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {deletedFiles.length > 0 && (
-              <div>
+            {/* Arquivos raiz */}
+            {deletedRootFiles.length > 0 && (
+              <div className="mt-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
                   Arquivos
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {deletedFiles.map(file => {
+                <div className="space-y-2">
+                  {deletedRootFiles.map(file => {
                     const config = fileTypeConfig[file.type] || fileTypeConfig.other;
                     const Icon = config.icon;
                     return (
                       <div
                         key={file.id}
-                        className="relative flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
                       >
                         <div className={`p-2 rounded-lg ${config.bg} ${config.color}`}>
-                          <Icon className="w-6 h-6" />
+                          <Icon className="w-5 h-5" />
                         </div>
                         
                         <div className="flex-1 min-w-0">
@@ -268,7 +439,7 @@ export default function Trash() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
