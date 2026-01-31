@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity, Trash2 } from 'lucide-react';
+import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity, Trash2, Moon, Sun } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { Switch } from "@/components/ui/switch";
 import DesktopSyncDownload from '../components/profile/DesktopSyncDownload';
 
 export default function Profile() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(isDark);
+  }, []);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -123,6 +130,17 @@ export default function Profile() {
     }
   };
 
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode.toString());
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -230,10 +248,10 @@ export default function Profile() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Meu Perfil</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Meu Perfil</h1>
           <Link to={createPageUrl('Drive')}>
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -380,6 +398,36 @@ export default function Profile() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Dark Mode */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Aparência</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {darkMode ? (
+                  <Moon className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Sun className="w-5 h-5 text-amber-500" />
+                )}
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {darkMode ? 'Modo Escuro' : 'Modo Claro'}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Alterar tema do aplicativo
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={darkMode}
+                onCheckedChange={toggleDarkMode}
+              />
+            </div>
           </CardContent>
         </Card>
 
