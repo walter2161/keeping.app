@@ -187,6 +187,7 @@ function FolderTreeItem({
 export default function Trash() {
   const [emptyDialog, setEmptyDialog] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState({});
+  const [restoreDialog, setRestoreDialog] = useState({ open: false, file: null, parentFolder: null });
   const queryClient = useQueryClient();
 
   const { data: folders = [], isLoading: foldersLoading } = useQuery({
@@ -280,16 +281,38 @@ export default function Trash() {
     }
   };
 
-  const handleRestoreFile = async (file) => {
+  const handleRestoreFile = async (file, restoreOnlyFile = false) => {
+    // Verificar se a pasta pai está deletada
+    const parentFolder = folders.find(f => f.id === file.folder_id);
+    
+    if (parentFolder && parentFolder.deleted && !restoreOnlyFile) {
+      // Mostrar dialog de escolha
+      setRestoreDialog({ open: true, file, parentFolder });
+      return;
+    }
+
+    // Se for para restaurar só o arquivo, buscar a pasta "avô"
+    let targetFolderId = file.original_folder_id || null;
+    
+    if (restoreOnlyFile && parentFolder) {
+      // Buscar a pasta pai da pasta deletada (a pasta "avô")
+      targetFolderId = parentFolder.original_parent_id || null;
+    }
+
     await updateFileMutation.mutateAsync({
       id: file.id,
       data: {
         deleted: false,
         deleted_at: null,
-        folder_id: file.original_folder_id || null,
+        folder_id: targetFolderId,
         original_folder_id: null,
       }
     });
+  };
+
+  const handleRestoreFileWithFolder = async (file, parentFolder) => {
+    // Restaurar toda a pasta
+    await handleRestoreFolder(parentFolder);
   };
 
   const handleDeleteFolderPermanently = async (folder) => {
@@ -443,6 +466,7 @@ export default function Trash() {
         )}
       </div>
 
+      {/* Dialog Esvaziar Lixeira */}
       <AlertDialog open={emptyDialog} onOpenChange={setEmptyDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -459,6 +483,44 @@ export default function Trash() {
             >
               Esvaziar Lixeira
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog Restaurar Arquivo */}
+      <AlertDialog open={restoreDialog.open} onOpenChange={(open) => !open && setRestoreDialog({ open: false, file: null, parentFolder: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como deseja restaurar?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                O arquivo <strong>{restoreDialog.file?.name}</strong> está dentro da pasta deletada{' '}
+                <strong>{restoreDialog.parentFolder?.name}</strong>.
+              </p>
+              <p className="mt-3">Escolha como restaurar:</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              onClick={() => {
+                handleRestoreFile(restoreDialog.file, true);
+                setRestoreDialog({ open: false, file: null, parentFolder: null });
+              }}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              Somente o Arquivo
+            </Button>
+            <Button
+              onClick={() => {
+                handleRestoreFileWithFolder(restoreDialog.file, restoreDialog.parentFolder);
+                setRestoreDialog({ open: false, file: null, parentFolder: null });
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Pasta Completa
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
