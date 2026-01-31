@@ -100,7 +100,7 @@ export default function Drive() {
   // Get folder's team
   const getFolderTeam = (folderId) => {
     if (!folderId) return null;
-    const folder = allFolders.find(f => f.id === folderId);
+    const folder = allFolders.find(f => f.id === folderId && !f.deleted);
     if (!folder) return null;
     if (folder.team_id) return folder.team_id;
     return getFolderTeam(folder.parent_id);
@@ -108,6 +108,7 @@ export default function Drive() {
 
   // Check if user has access to folder
   const hasAccessToFolder = (folder) => {
+    if (!folder || folder.deleted) return false;
     if (folder.owner === user?.email) return true;
     if (folder.team_id) {
       const team = teams.find(t => t.id === folder.team_id);
@@ -118,6 +119,7 @@ export default function Drive() {
 
   // Check if user has access to file
   const hasAccessToFile = (file) => {
+    if (!file || file.deleted) return false;
     if (file.owner === user?.email) return true;
     if (file.team_id) {
       const team = teams.find(t => t.id === file.team_id);
@@ -179,11 +181,13 @@ export default function Drive() {
     const path = [];
     let current = currentFolderId;
     while (current) {
-      const folder = folders.find(f => f.id === current);
+      const folder = folders.find(f => f.id === current && !f.deleted);
       if (folder) {
         path.unshift(folder);
         current = folder.parent_id;
       } else {
+        // Se a pasta não existe mais, voltar para raiz
+        setCurrentFolderId(null);
         break;
       }
     }
