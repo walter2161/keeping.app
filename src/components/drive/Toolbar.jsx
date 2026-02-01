@@ -148,13 +148,10 @@ export default function Toolbar({
         
         <Link to={createPageUrl('Drive')} className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
           <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/ae7dc63b6_logo-keepai-BABgUd28.png"
-            alt="Keeping"
-            className="w-8 h-8 rounded-lg"
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/bef45b8e6_logo2-onhub.png"
+            alt="onHub"
+            className="h-10 w-auto"
           />
-          <div className="hidden md:block">
-            <h1 className="font-bold text-gray-900 text-base leading-tight">Keeping</h1>
-          </div>
         </Link>
 
         <div className="h-6 w-px bg-gray-200 hidden sm:block" />
