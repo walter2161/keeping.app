@@ -83,6 +83,11 @@ export default function Sistema() {
     >
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/20 dark:bg-black/40" />
+      
+      {/* System Title */}
+      <div className="relative z-10 mb-8">
+        <h1 className="text-4xl font-bold text-white drop-shadow-lg">Sistema</h1>
+      </div>
 
       {/* Desktop Icons */}
       <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 mb-16">
