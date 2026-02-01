@@ -74,7 +74,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Drive",
+    mainPage: "Sistema",
     Pages: PAGES,
     Layout: __Layout,
 };
