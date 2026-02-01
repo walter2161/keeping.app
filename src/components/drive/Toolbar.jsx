@@ -148,9 +148,9 @@ export default function Toolbar({
         
         <Link to={createPageUrl('Drive')} className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
           <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/bef45b8e6_logo2-onhub.png"
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
             alt="onHub"
-            className="h-10 w-auto"
+            className="h-8 w-auto"
           />
         </Link>
 
