@@ -48,7 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AssistantSettings from './pages/AssistantSettings';
-import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
 import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
 import FluxEditor from './pages/FluxEditor';
@@ -56,13 +56,13 @@ import Profile from './pages/Profile';
 import Terminal from './pages/Terminal';
 import Trash from './pages/Trash';
 import Wiki from './pages/Wiki';
-import Chat from './pages/Chat';
+import Sistema from './pages/Sistema';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AssistantSettings": AssistantSettings,
-    "Dashboard": Dashboard,
+    "Chat": Chat,
     "Drive": Drive,
     "FileViewer": FileViewer,
     "FluxEditor": FluxEditor,
@@ -70,7 +70,7 @@ export const PAGES = {
     "Terminal": Terminal,
     "Trash": Trash,
     "Wiki": Wiki,
-    "Chat": Chat,
+    "Sistema": Sistema,
 }
 
 export const pagesConfig = {

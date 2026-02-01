@@ -7,7 +7,7 @@ import {
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
   GanttChart, Calendar, FileText, FileSpreadsheet, Search,
   List, Grid3x3, Copy, ArrowRight,
-  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File, Terminal, Sparkles, CheckSquare
+  Bot, User, Settings, Trash2, PanelLeftOpen, BookOpen, Presentation, Users, RefreshCw, Folder, File, Terminal, Sparkles, CheckSquare, MessageCircle
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -367,6 +367,14 @@ export default function Toolbar({
         <Link to={createPageUrl('AssistantSettings')}>
           <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
             <Bot className="w-4 h-4" />
+          </Button>
+        </Link>
+
+        <div style={{ width: '10px' }} />
+
+        <Link to={createPageUrl('Chat')}>
+          <Button variant="ghost" size="icon" className="text-gray-500 h-8 w-8">
+            <MessageCircle className="w-4 h-4" />
           </Button>
         </Link>
 
