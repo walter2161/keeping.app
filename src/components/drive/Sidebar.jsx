@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { 
-  Folder, ChevronRight, ChevronDown, PanelLeftClose, LayoutDashboard, Users, Settings,
+  Folder, ChevronRight, ChevronDown, PanelLeftClose, MonitorPlay, Users, Settings,
   Briefcase, Code, Palette, Heart, Zap, Star, Target, TrendingUp, Shield, 
   Rocket, Coffee, Music, Camera, BookOpen, Globe, MessageCircle, Activity
 } from 'lucide-react';
@@ -195,10 +195,10 @@ export default function Sidebar({ folders, teams, currentFolderId, onFolderSelec
     <div className="w-64 bg-white border-r overflow-y-auto flex-shrink-0">
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <Link to={createPageUrl('Dashboard')} className="flex-1">
+          <Link to={createPageUrl('Sistema')} className="flex-1">
             <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700">
-              <LayoutDashboard className="w-5 h-5" />
-              <span className="font-medium text-base">Dashboard</span>
+              <MonitorPlay className="w-5 h-5" />
+              <span className="font-medium text-base">Sistema</span>
             </button>
           </Link>
           <Button 
