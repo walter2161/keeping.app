@@ -55,6 +55,12 @@ export default function Sistema() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [newWallpaperUrl, setNewWallpaperUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [createFileDialog, setCreateFileDialog] = useState(false);
+  const [newFileType, setNewFileType] = useState('');
+  const [newFileName, setNewFileName] = useState('');
+  const [targetFolderId, setTargetFolderId] = useState(null);
+  const [expandedFoldersInDialog, setExpandedFoldersInDialog] = useState(new Set());
+  const [expandedFoldersInMenu, setExpandedFoldersInMenu] = useState(new Set());
 
   const queryClient = useQueryClient();
 
@@ -211,6 +217,95 @@ export default function Sistema() {
     }
   };
 
+  const createFileMutation = useMutation({
+    mutationFn: (data) => base44.entities.File.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+  });
+
+  const handleCreateFile = async () => {
+    if (!newFileName.trim()) return;
+    
+    const defaultContent = {
+      kbn: JSON.stringify({ columns: [], cards: [] }),
+      gnt: JSON.stringify({ tasks: [] }),
+      crn: JSON.stringify({ groups: [], items: [] }),
+      flux: JSON.stringify({ drawflow: { Home: { data: {} } } }),
+      docx: '',
+      xlsx: '',
+      pptx: JSON.stringify({ slides: [{ title: '', content: '' }] }),
+      psd: JSON.stringify({ layers: [], canvas: { width: 1920, height: 1080, background: '#ffffff' } }),
+    };
+
+    await createFileMutation.mutateAsync({
+      name: newFileName.trim(),
+      type: newFileType,
+      folder_id: targetFolderId,
+      content: defaultContent[newFileType] || '',
+      owner: user.email,
+    });
+
+    setCreateFileDialog(false);
+    setNewFileName('');
+    setNewFileType('');
+    setTargetFolderId(null);
+  };
+
+  const buildFolderTree = (parentId = null, level = 0) => {
+    return myFolders
+      .filter(f => f.parent_id === parentId)
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(folder => ({
+        ...folder,
+        level,
+        children: buildFolderTree(folder.id, level + 1)
+      }));
+  };
+
+  const folderTree = buildFolderTree();
+
+  const renderFolderTree = (folders, expandedSet, setExpandedSet, onSelect, selectedId) => {
+    return folders.map(folder => (
+      <div key={folder.id}>
+        <button
+          onClick={() => {
+            onSelect(folder.id);
+            if (folder.children.length > 0) {
+              const newSet = new Set(expandedSet);
+              if (newSet.has(folder.id)) {
+                newSet.delete(folder.id);
+              } else {
+                newSet.add(folder.id);
+              }
+              setExpandedSet(newSet);
+            }
+          }}
+          className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+            selectedId === folder.id ? 'bg-blue-100 dark:bg-blue-900' : ''
+          }`}
+          style={{ paddingLeft: `${folder.level * 16 + 8}px` }}
+        >
+          {folder.children.length > 0 && (
+            <ChevronRight className={`w-4 h-4 transition-transform ${expandedSet.has(folder.id) ? 'rotate-90' : ''}`} />
+          )}
+          {folder.children.length === 0 && <div className="w-4" />}
+          <Folder className="w-4 h-4 text-yellow-500" />
+          <span className="text-sm truncate flex-1 text-left">{folder.name}</span>
+        </button>
+        {expandedSet.has(folder.id) && folder.children.length > 0 && (
+          <div>
+            {renderFolderTree(folder.children, expandedSet, setExpandedSet, onSelect, selectedId)}
+          </div>
+        )}
+      </div>
+    ));
+  };
+
+  const getFilesInFolder = (folderId) => {
+    return myFiles.filter(f => f.folder_id === folderId);
+  };
+
   const getIconComponent = (iconName) => {
     const icons = { HardDrive, Trash2, Folder, File, FileText, FileSpreadsheet, 
       Presentation, LayoutGrid, GanttChart, Calendar, ArrowRight, Sparkles, 
@@ -342,6 +437,42 @@ export default function Sistema() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
+            {/* Create New File */}
+            <div className="mb-6">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                Criar Novo
+              </h3>
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { type: 'docx', icon: FileText, name: 'Documento', color: 'from-blue-500 to-blue-600' },
+                  { type: 'xlsx', icon: FileSpreadsheet, name: 'Planilha', color: 'from-green-500 to-green-600' },
+                  { type: 'pptx', icon: Presentation, name: 'Apresentação', color: 'from-orange-500 to-orange-600' },
+                  { type: 'kbn', icon: LayoutGrid, name: 'Kanban', color: 'from-purple-500 to-purple-600' },
+                  { type: 'gnt', icon: GanttChart, name: 'Gantt', color: 'from-pink-500 to-pink-600' },
+                  { type: 'crn', icon: Calendar, name: 'Cronograma', color: 'from-indigo-500 to-indigo-600' },
+                  { type: 'flux', icon: ArrowRight, name: 'FluxMap', color: 'from-teal-500 to-teal-600' },
+                  { type: 'psd', icon: Sparkles, name: 'PhotoSmart', color: 'from-yellow-500 to-yellow-600' },
+                ].map((file) => (
+                  <button
+                    key={file.type}
+                    onClick={() => {
+                      setNewFileType(file.type);
+                      setCreateFileDialog(true);
+                      setStartMenuOpen(false);
+                    }}
+                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div className={`bg-gradient-to-br ${file.color} p-3 rounded-xl`}>
+                      <file.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-900 dark:text-white text-center line-clamp-2">
+                      {file.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Applications */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
@@ -366,30 +497,34 @@ export default function Sistema() {
               </div>
             </div>
 
-            {/* Folders */}
-            {filteredFolders.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                  Pastas Recentes
-                </h3>
-                <div className="space-y-1">
-                  {filteredFolders.slice(0, 5).map((folder) => (
-                    <Link
-                      key={folder.id}
-                      to={createPageUrl(`Drive?folder=${folder.id}`)}
-                      onClick={() => setStartMenuOpen(false)}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <Folder className="w-5 h-5 text-yellow-500" />
-                      <span className="text-sm text-gray-900 dark:text-white truncate flex-1">
-                        {folder.name}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
-                    </Link>
-                  ))}
-                </div>
+            {/* Folders with hierarchy */}
+            <div className="mb-6">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                Meu Drive
+              </h3>
+              <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                <Link
+                  to={createPageUrl('Drive')}
+                  onClick={() => setStartMenuOpen(false)}
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <HardDrive className="w-5 h-5 text-blue-500" />
+                  <span className="text-sm text-gray-900 dark:text-white truncate flex-1">
+                    Raiz
+                  </span>
+                </Link>
+                {renderFolderTree(
+                  folderTree,
+                  expandedFoldersInMenu,
+                  setExpandedFoldersInMenu,
+                  (folderId) => {
+                    window.location.href = createPageUrl(`Drive?folder=${folderId}`);
+                    setStartMenuOpen(false);
+                  },
+                  null
+                )}
               </div>
-            )}
+            </div>
 
             {/* Files */}
             {filteredFiles.length > 0 && (
@@ -445,60 +580,131 @@ export default function Sistema() {
 
       {/* Create Shortcut Dialog */}
       <Dialog open={createShortcutDialog} onOpenChange={setCreateShortcutDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Criar Atalho na Área de Trabalho</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <h4 className="text-sm font-medium mb-2">Selecione uma Pasta:</h4>
-              <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
-                {myFolders.map((folder) => (
-                  <button
-                    key={folder.id}
-                    onClick={() => {
-                      setSelectedFolder(folder);
-                      setSelectedFile(null);
-                    }}
-                    className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 ${
-                      selectedFolder?.id === folder.id ? 'bg-blue-100' : ''
-                    }`}
-                  >
-                    <Folder className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm truncate">{folder.name}</span>
-                  </button>
-                ))}
+              <div className="max-h-64 overflow-y-auto border rounded-lg p-2">
+                <button
+                  onClick={() => {
+                    setSelectedFolder({ id: null, name: 'Meu Drive' });
+                    setSelectedFile(null);
+                  }}
+                  className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                    selectedFolder?.id === null ? 'bg-blue-100 dark:bg-blue-900' : ''
+                  }`}
+                >
+                  <HardDrive className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm">Meu Drive (Raiz)</span>
+                </button>
+                {renderFolderTree(
+                  folderTree,
+                  expandedFoldersInDialog,
+                  setExpandedFoldersInDialog,
+                  (folderId) => {
+                    const folder = myFolders.find(f => f.id === folderId);
+                    setSelectedFolder(folder);
+                    setSelectedFile(null);
+                  },
+                  selectedFolder?.id
+                )}
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium mb-2">Ou selecione um Arquivo:</h4>
-              <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
-                {myFiles.slice(0, 20).map((file) => {
-                  const Icon = fileTypeIcons[file.type] || File;
-                  return (
-                    <button
-                      key={file.id}
-                      onClick={() => {
-                        setSelectedFile(file);
-                        setSelectedFolder(null);
-                      }}
-                      className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 ${
-                        selectedFile?.id === file.id ? 'bg-blue-100' : ''
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm truncate">{file.name}</span>
-                    </button>
-                  );
-                })}
+            {selectedFolder && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">
+                  Arquivos em "{selectedFolder.name}":
+                </h4>
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
+                  {getFilesInFolder(selectedFolder.id).length > 0 ? (
+                    getFilesInFolder(selectedFolder.id).map((file) => {
+                      const Icon = fileTypeIcons[file.type] || File;
+                      return (
+                        <button
+                          key={file.id}
+                          onClick={() => setSelectedFile(file)}
+                          className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                            selectedFile?.id === file.id ? 'bg-blue-100 dark:bg-blue-900' : ''
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm truncate">{file.name}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-4">
+                      Nenhum arquivo nesta pasta
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             <Button
               onClick={handleCreateShortcut}
               disabled={!selectedFolder && !selectedFile}
               className="w-full"
             >
               Criar Atalho
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create File Dialog */}
+      <Dialog open={createFileDialog} onOpenChange={setCreateFileDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Criar {newFileType === 'docx' ? 'Documento' : 
+                     newFileType === 'xlsx' ? 'Planilha' :
+                     newFileType === 'pptx' ? 'Apresentação' :
+                     newFileType === 'kbn' ? 'Kanban' :
+                     newFileType === 'gnt' ? 'Gantt' :
+                     newFileType === 'crn' ? 'Cronograma' :
+                     newFileType === 'flux' ? 'FluxMap' :
+                     newFileType === 'psd' ? 'PhotoSmart' : 'Arquivo'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Nome do arquivo:</label>
+              <Input
+                placeholder="Digite o nome do arquivo..."
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+              />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Selecione a pasta destino:</h4>
+              <div className="max-h-64 overflow-y-auto border rounded-lg p-2">
+                <button
+                  onClick={() => setTargetFolderId(null)}
+                  className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                    targetFolderId === null ? 'bg-blue-100 dark:bg-blue-900' : ''
+                  }`}
+                >
+                  <HardDrive className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm">Meu Drive (Raiz)</span>
+                </button>
+                {renderFolderTree(
+                  folderTree,
+                  expandedFoldersInDialog,
+                  setExpandedFoldersInDialog,
+                  setTargetFolderId,
+                  targetFolderId
+                )}
+              </div>
+            </div>
+            <Button
+              onClick={handleCreateFile}
+              disabled={!newFileName.trim()}
+              className="w-full"
+            >
+              Criar Arquivo
             </Button>
           </div>
         </DialogContent>
