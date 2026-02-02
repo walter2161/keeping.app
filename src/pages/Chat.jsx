@@ -6,9 +6,9 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  ArrowLeft, Send, Search, MessageCircle, Headphones, User, 
-  Circle, Loader2, Users, Mail, Image, Mic, Paperclip, Plus,
-  Check, CheckCheck, X, Download, File
+  ArrowLeft, Send, Search, MessageCircle, User, 
+  Circle, Loader2, Users, Image, Mic, Paperclip, Plus,
+  Check, CheckCheck, X, File
 } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,8 +28,8 @@ export default function Chat() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [shareFileDialog, setShareFileDialog] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('contacts'); // 'contacts' ou 'teams'
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const audioRecorderRef = useRef(null);
   const queryClient = useQueryClient();
@@ -110,14 +110,13 @@ export default function Chat() {
     if (!currentUser) return [];
 
     const convMap = new Map();
-    const supportEmail = 'walter2161@gmail.com';
 
     allMessages.forEach(msg => {
       if (msg.from_email === currentUser.email || msg.to_email === currentUser.email) {
         const otherEmail = msg.from_email === currentUser.email ? msg.to_email : msg.from_email;
         
-        // Verificar se é contato aceito ou suporte
-        if (!acceptedContacts.includes(otherEmail) && otherEmail !== supportEmail) return;
+        // Verificar se é contato aceito
+        if (!acceptedContacts.includes(otherEmail)) return;
 
         const convId = getConversationId(currentUser.email, otherEmail);
 
@@ -128,7 +127,6 @@ export default function Chat() {
             lastMessage: msg.message || (msg.message_type === 'image' ? '📷 Foto' : msg.message_type === 'audio' ? '🎤 Áudio' : '📎 Arquivo'),
             lastDate: msg.created_date,
             unread: msg.to_email === currentUser.email && !msg.read ? 1 : 0,
-            isSupport: otherEmail === supportEmail,
           });
         } else {
           const conv = convMap.get(convId);
@@ -151,6 +149,11 @@ export default function Chat() {
   const pendingRequests = chatRequests.filter(r => 
     r.to_email === currentUser?.email && r.status === 'pending'
   );
+
+  const myTeams = React.useMemo(() => {
+    if (!currentUser) return [];
+    return teams.filter(t => t.members && t.members.includes(currentUser.email));
+  }, [teams, currentUser]);
 
   const currentMessages = React.useMemo(() => {
     if (!selectedConversation || !currentUser) return [];
@@ -269,59 +272,92 @@ export default function Chat() {
     conv.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredTeams = myTeams.filter(t =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen bg-[#111b21] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#00a884] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-[#111b21] flex flex-col">
+      <div className="bg-[#202c33] border-b border-[#2a3942] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to={createPageUrl('Drive')}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="text-[#aebac1] hover:bg-[#2a3942]">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <MessageCircle className="w-6 h-6 text-blue-600" />
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Mensagens</h1>
+          <MessageCircle className="w-6 h-6 text-[#00a884]" />
+          <h1 className="text-xl font-semibold text-white">onHub Chat</h1>
         </div>
-        <Button onClick={() => setAddUserDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => setAddUserDialog(true)} className="bg-[#00a884] hover:bg-[#00a884]/90 text-black font-medium">
           <Plus className="w-4 h-4 mr-2" />
-          Adicionar Contato
+          Novo Contato
         </Button>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col">
-          <div className="p-4 border-b dark:border-gray-700">
+        {/* Sidebar */}
+        <div className="w-80 bg-[#111b21] border-r border-[#2a3942] flex flex-col">
+          {/* Tabs */}
+          <div className="flex border-b border-[#2a3942]">
+            <button
+              onClick={() => setSelectedTab('contacts')}
+              className={`flex-1 py-3 text-sm font-medium ${
+                selectedTab === 'contacts' 
+                  ? 'text-[#00a884] border-b-2 border-[#00a884]' 
+                  : 'text-[#aebac1] hover:bg-[#202c33]'
+              }`}
+            >
+              <User className="w-4 h-4 inline mr-2" />
+              Contatos
+            </button>
+            <button
+              onClick={() => setSelectedTab('teams')}
+              className={`flex-1 py-3 text-sm font-medium ${
+                selectedTab === 'teams' 
+                  ? 'text-[#00a884] border-b-2 border-[#00a884]' 
+                  : 'text-[#aebac1] hover:bg-[#202c33]'
+              }`}
+            >
+              <Users className="w-4 h-4 inline mr-2" />
+              Equipes
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="p-3 bg-[#111b21]">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#aebac1]" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar conversas..."
-                className="pl-10 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                placeholder="Buscar..."
+                className="pl-10 bg-[#202c33] border-[#2a3942] text-white placeholder:text-[#667781]"
               />
             </div>
           </div>
 
+          {/* Pending Requests */}
           {pendingRequests.length > 0 && (
-            <div className="border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
-              <div className="px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">
-                Solicitações Pendentes ({pendingRequests.length})
+            <div className="border-b border-[#2a3942] bg-[#005c4b]/20">
+              <div className="px-4 py-2 text-xs font-semibold text-[#00a884] uppercase">
+                Solicitações ({pendingRequests.length})
               </div>
               {pendingRequests.map(req => (
-                <div key={req.id} className="px-4 py-3 border-b dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{req.from_email}</p>
+                <div key={req.id} className="px-4 py-3 border-b border-[#2a3942]">
+                  <p className="text-sm font-medium text-white mb-2">{req.from_email}</p>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       onClick={() => updateRequestMutation.mutate({ id: req.id, status: 'accepted' })}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      className="flex-1 bg-[#00a884] hover:bg-[#00a884]/90 text-black"
                     >
                       Aceitar
                     </Button>
@@ -329,7 +365,7 @@ export default function Chat() {
                       size="sm"
                       variant="outline"
                       onClick={() => updateRequestMutation.mutate({ id: req.id, status: 'rejected' })}
-                      className="flex-1"
+                      className="flex-1 border-[#2a3942] text-[#aebac1] hover:bg-[#2a3942]"
                     >
                       Recusar
                     </Button>
@@ -339,89 +375,103 @@ export default function Chat() {
             </div>
           )}
 
-          <div className="px-4 py-2 border-b dark:border-gray-700 bg-purple-50 dark:bg-purple-900/20">
-            <Link 
-              to="https://api.whatsapp.com/send?phone=5585981350090"
-              target="_blank"
-              className="flex items-center gap-2 p-2 hover:bg-purple-100 dark:hover:bg-purple-800/30 rounded-lg transition-colors"
-            >
-              <Headphones className="w-5 h-5 text-purple-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Suporte Técnico</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">walter2161@gmail.com</p>
-              </div>
-            </Link>
-          </div>
-
+          {/* Contacts/Teams List */}
           <ScrollArea className="flex-1">
-            {filteredConversations.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Nenhuma conversa ainda</p>
-              </div>
-            ) : (
-              filteredConversations.map(conv => (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelectedConversation(conv)}
-                  className={`w-full px-4 py-3 flex items-start gap-3 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    selectedConversation?.id === conv.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                  }`}
-                >
-                  <Avatar className="w-12 h-12 flex-shrink-0">
-                    <AvatarFallback className={`${conv.isSupport ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                      {conv.isSupport ? <Headphones className="w-6 h-6" /> : conv.email[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center justify-between mb-1">
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white text-sm block">
-                          {conv.isSupport ? 'Suporte Técnico' : conv.email.split('@')[0]}
+            {selectedTab === 'contacts' ? (
+              filteredConversations.length === 0 ? (
+                <div className="p-8 text-center text-[#667781]">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhuma conversa ainda</p>
+                  <p className="text-xs mt-2">Adicione contatos para começar a conversar</p>
+                </div>
+              ) : (
+                filteredConversations.map(conv => (
+                  <button
+                    key={conv.id}
+                    onClick={() => setSelectedConversation(conv)}
+                    className={`w-full px-4 py-3 flex items-start gap-3 border-b border-[#2a3942] hover:bg-[#202c33] transition-colors ${
+                      selectedConversation?.id === conv.id ? 'bg-[#2a3942]' : ''
+                    }`}
+                  >
+                    <Avatar className="w-12 h-12 flex-shrink-0">
+                      <AvatarFallback className="bg-[#00a884] text-black font-semibold">
+                        {conv.email[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-white text-sm">
+                          {conv.email.split('@')[0]}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {conv.email}
-                        </span>
+                        {conv.unread > 0 && (
+                          <Badge className="bg-[#00a884] text-black text-xs">{conv.unread}</Badge>
+                        )}
                       </div>
-                      {conv.unread > 0 && (
-                        <Badge className="bg-blue-600 text-white text-xs ml-2">{conv.unread}</Badge>
-                      )}
+                      <p className="text-xs text-[#667781] truncate">
+                        {conv.lastMessage}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                      {conv.lastMessage}
-                    </p>
-                  </div>
-                </button>
-              ))
+                  </button>
+                ))
+              )
+            ) : (
+              filteredTeams.length === 0 ? (
+                <div className="p-8 text-center text-[#667781]">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhuma equipe ainda</p>
+                  <p className="text-xs mt-2">Entre em uma equipe para conversar em grupo</p>
+                </div>
+              ) : (
+                filteredTeams.map(team => (
+                  <button
+                    key={team.id}
+                    className="w-full px-4 py-3 flex items-start gap-3 border-b border-[#2a3942] hover:bg-[#202c33] transition-colors"
+                  >
+                    <Avatar className="w-12 h-12 flex-shrink-0">
+                      <AvatarFallback className="bg-[#00a884] text-black">
+                        <Users className="w-6 h-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 text-left">
+                      <span className="font-medium text-white text-sm block">
+                        {team.name}
+                      </span>
+                      <p className="text-xs text-[#667781]">
+                        {team.members?.length || 0} membros
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )
             )}
           </ScrollArea>
         </div>
 
-        <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col bg-[#0b141a]">
           {selectedConversation ? (
             <>
-              <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
+              <div className="bg-[#202c33] border-b border-[#2a3942] px-6 py-3">
                 <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12">
-                    <AvatarFallback className={`${selectedConversation.isSupport ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                      {selectedConversation.isSupport ? <Headphones className="w-6 h-6" /> : selectedConversation.email[0].toUpperCase()}
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-[#00a884] text-black font-semibold">
+                      {selectedConversation.email[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h2 className="font-semibold text-gray-900 dark:text-white">
-                      {selectedConversation.isSupport ? 'Suporte Técnico' : selectedConversation.email.split('@')[0]}
+                    <h2 className="font-semibold text-white">
+                      {selectedConversation.email.split('@')[0]}
                     </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{selectedConversation.email}</p>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <Circle className="w-2 h-2 fill-green-500 text-green-500" />
-                      Online
+                    <div className="flex items-center gap-1 text-xs text-[#667781]">
+                      <Circle className="w-2 h-2 fill-[#00a884] text-[#00a884]" />
+                      online
                     </div>
                   </div>
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 p-6 bg-[#e5ddd5] dark:bg-gray-900">
-                <div className="space-y-3">
+              <ScrollArea className="flex-1 p-6" style={{ backgroundImage: 'url(https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png)' }}>
+                <div className="space-y-2">
                   {currentMessages.map(msg => {
                     const isOwn = msg.from_email === currentUser.email;
                     return (
@@ -429,7 +479,7 @@ export default function Chat() {
                         key={msg.id}
                         className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`max-w-md ${isOwn ? 'bg-[#d9fdd3]' : 'bg-white'} rounded-lg px-4 py-2 shadow-sm`}>
+                        <div className={`max-w-md ${isOwn ? 'bg-[#005c4b]' : 'bg-[#202c33]'} rounded-lg px-3 py-2 shadow-md`}>
                           {msg.message_type === 'image' && msg.file_url && (
                             <img src={msg.file_url} alt="Imagem" className="rounded-lg mb-2 max-w-xs" />
                           )}
@@ -439,18 +489,18 @@ export default function Chat() {
                             </audio>
                           )}
                           {msg.message_type === 'file' && (
-                            <Link to={createPageUrl(`FileViewer?id=${msg.file_id}`)} className="flex items-center gap-2 mb-2 text-blue-600 hover:underline">
+                            <Link to={createPageUrl(`FileViewer?id=${msg.file_id}`)} className="flex items-center gap-2 mb-2 text-[#00a884] hover:underline">
                               <File className="w-4 h-4" />
                               <span className="text-sm">{msg.file_name}</span>
                             </Link>
                           )}
-                          {msg.message && <p className="text-sm text-gray-900">{msg.message}</p>}
+                          {msg.message && <p className="text-sm text-white">{msg.message}</p>}
                           <div className="flex items-center justify-end gap-1 mt-1">
-                            <span className="text-xs text-gray-600">
+                            <span className="text-[10px] text-[#667781]">
                               {new Date(msg.created_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                             {isOwn && (
-                              msg.read ? <CheckCheck className="w-4 h-4 text-blue-600" /> : <Check className="w-4 h-4 text-gray-400" />
+                              msg.read ? <CheckCheck className="w-4 h-4 text-[#53bdeb]" /> : <Check className="w-4 h-4 text-[#667781]" />
                             )}
                           </div>
                         </div>
@@ -461,14 +511,15 @@ export default function Chat() {
                 </div>
               </ScrollArea>
 
-              <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-4">
+              <div className="bg-[#202c33] border-t border-[#2a3942] p-3">
                 <div className="flex gap-2 items-center">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => imageInputRef.current?.click()}
+                    className="text-[#aebac1] hover:bg-[#2a3942]"
                   >
-                    <Image className="w-5 h-5 text-gray-500" />
+                    <Image className="w-5 h-5" />
                   </Button>
                   <input
                     ref={imageInputRef}
@@ -481,7 +532,7 @@ export default function Chat() {
                     variant="ghost"
                     size="icon"
                     onClick={handleAudioRecord}
-                    className={recording ? 'text-red-600' : ''}
+                    className={`${recording ? 'text-red-500' : 'text-[#aebac1]'} hover:bg-[#2a3942]`}
                   >
                     <Mic className="w-5 h-5" />
                   </Button>
@@ -489,20 +540,22 @@ export default function Chat() {
                     variant="ghost"
                     size="icon"
                     onClick={() => setShareFileDialog(true)}
+                    className="text-[#aebac1] hover:bg-[#2a3942]"
                   >
-                    <Paperclip className="w-5 h-5 text-gray-500" />
+                    <Paperclip className="w-5 h-5" />
                   </Button>
                   <Input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Digite uma mensagem..."
-                    className="flex-1 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    placeholder="Mensagem"
+                    className="flex-1 bg-[#2a3942] border-none text-white placeholder:text-[#667781]"
                   />
                   <Button
                     onClick={() => handleSendMessage()}
                     disabled={!message.trim() || sendMessageMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-[#00a884] hover:bg-[#00a884]/90 text-black"
+                    size="icon"
                   >
                     {sendMessageMutation.isPending ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -514,10 +567,11 @@ export default function Chat() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+            <div className="flex-1 flex items-center justify-center text-[#667781]">
               <div className="text-center">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Selecione uma conversa para começar</p>
+                <MessageCircle className="w-24 h-24 mx-auto mb-4 opacity-20" />
+                <p className="text-xl mb-2">Bem-vindo ao onHub Chat</p>
+                <p className="text-sm">Selecione um contato para começar a conversar</p>
               </div>
             </div>
           )}
@@ -525,9 +579,9 @@ export default function Chat() {
       </div>
 
       <Dialog open={addUserDialog} onOpenChange={setAddUserDialog}>
-        <DialogContent>
+        <DialogContent className="bg-[#202c33] border-[#2a3942] text-white">
           <DialogHeader>
-            <DialogTitle>Adicionar Novo Contato</DialogTitle>
+            <DialogTitle className="text-white">Adicionar Novo Contato</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Input
@@ -535,8 +589,9 @@ export default function Chat() {
               onChange={(e) => setNewUserEmail(e.target.value)}
               placeholder="Digite o email do usuário"
               type="email"
+              className="bg-[#2a3942] border-[#2a3942] text-white placeholder:text-[#667781]"
             />
-            <Button onClick={handleAddUser} className="w-full" disabled={sendRequestMutation.isPending}>
+            <Button onClick={handleAddUser} className="w-full bg-[#00a884] hover:bg-[#00a884]/90 text-black" disabled={sendRequestMutation.isPending}>
               {sendRequestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enviar Solicitação'}
             </Button>
           </div>
@@ -544,9 +599,9 @@ export default function Chat() {
       </Dialog>
 
       <Dialog open={shareFileDialog} onOpenChange={setShareFileDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-[#202c33] border-[#2a3942] text-white">
           <DialogHeader>
-            <DialogTitle>Compartilhar Arquivo</DialogTitle>
+            <DialogTitle className="text-white">Compartilhar Arquivo</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-96">
             <div className="space-y-2">
@@ -554,10 +609,10 @@ export default function Chat() {
                 <button
                   key={file.id}
                   onClick={() => handleShareFile(file.id, file.name)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-3 p-3 hover:bg-[#2a3942] rounded-lg transition-colors"
                 >
-                  <File className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm text-gray-900 dark:text-white">{file.name}</span>
+                  <File className="w-5 h-5 text-[#00a884]" />
+                  <span className="text-sm text-white">{file.name}</span>
                 </button>
               ))}
             </div>
