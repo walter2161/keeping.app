@@ -48,6 +48,9 @@ export default function Sistema() {
   const [shortcuts, setShortcuts] = useState([]);
   const [draggedIcon, setDraggedIcon] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [clickedIcon, setClickedIcon] = useState(null);
+  const [clickTimeout, setClickTimeout] = useState(null);
   const [wallpaper, setWallpaper] = useState('https://images.unsplash.com/photo-1557683316-973673baf926?w=1920');
   const [createShortcutDialog, setCreateShortcutDialog] = useState(false);
   const [changeWallpaperDialog, setChangeWallpaperDialog] = useState(false);
@@ -146,16 +149,20 @@ export default function Sistema() {
 
   const handleMouseDown = (e, shortcut) => {
     if (e.button !== 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    e.preventDefault();
+    const rect = e.currentTarget.parentElement.getBoundingClientRect();
     setDragOffset({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top
     });
     setDraggedIcon(shortcut);
+    setIsDragging(false);
   };
 
   const handleMouseMove = (e) => {
     if (!draggedIcon) return;
+    
+    setIsDragging(true);
     
     const newShortcuts = shortcuts.map(s => {
       if (s.id === draggedIcon.id) {
@@ -172,9 +179,37 @@ export default function Sistema() {
 
   const handleMouseUp = () => {
     if (draggedIcon) {
-      saveShortcuts(shortcuts);
+      if (isDragging) {
+        saveShortcuts(shortcuts);
+      }
       setDraggedIcon(null);
+      setIsDragging(false);
     }
+  };
+
+  const handleIconClick = (e, shortcut) => {
+    e.preventDefault();
+    
+    if (clickedIcon === shortcut.id && clickTimeout) {
+      // Duplo clique
+      clearTimeout(clickTimeout);
+      setClickTimeout(null);
+      setClickedIcon(null);
+      window.location.href = createPageUrl(shortcut.link);
+    } else {
+      // Primeiro clique
+      setClickedIcon(shortcut.id);
+      const timeout = setTimeout(() => {
+        setClickedIcon(null);
+        setClickTimeout(null);
+      }, 300);
+      setClickTimeout(timeout);
+    }
+  };
+
+  const handleDeleteShortcut = (shortcutId) => {
+    const newShortcuts = shortcuts.filter(s => s.id !== shortcutId);
+    saveShortcuts(newShortcuts);
   };
 
   const handleCreateShortcut = () => {
@@ -238,7 +273,7 @@ export default function Sistema() {
       psd: JSON.stringify({ layers: [], canvas: { width: 1920, height: 1080, background: '#ffffff' } }),
     };
 
-    await createFileMutation.mutateAsync({
+    const newFile = await createFileMutation.mutateAsync({
       name: newFileName.trim(),
       type: newFileType,
       folder_id: targetFolderId,
@@ -250,6 +285,9 @@ export default function Sistema() {
     setNewFileName('');
     setNewFileType('');
     setTargetFolderId(null);
+    
+    // Redirecionar para o arquivo criado
+    window.location.href = createPageUrl(`FileViewer?id=${newFile.id}`);
   };
 
   const buildFolderTree = (parentId = null, level = 0) => {
@@ -333,29 +371,47 @@ export default function Sistema() {
           <div className="absolute inset-0 pb-16">
             {shortcuts.map((shortcut) => {
               const IconComponent = getIconComponent(shortcut.icon);
+              const canDelete = shortcut.id !== 'drive' && shortcut.id !== 'trash';
+              
               return (
-                <div
-                  key={shortcut.id}
-                  className="absolute cursor-move select-none"
-                  style={{
-                    left: `${shortcut.x}px`,
-                    top: `${shortcut.y}px`,
-                  }}
-                  onMouseDown={(e) => handleMouseDown(e, shortcut)}
-                >
-                  <Link
-                    to={createPageUrl(shortcut.link)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/20 transition-all w-24"
-                    draggable={false}
-                  >
-                    <div className={`${shortcut.color} p-3 rounded-xl shadow-lg`}>
-                      <IconComponent className="w-8 h-8 text-white" />
+                <ContextMenu key={shortcut.id}>
+                  <ContextMenuTrigger>
+                    <div
+                      className="absolute select-none"
+                      style={{
+                        left: `${shortcut.x}px`,
+                        top: `${shortcut.y}px`,
+                        cursor: isDragging && draggedIcon?.id === shortcut.id ? 'grabbing' : 'pointer'
+                      }}
+                    >
+                      <div
+                        className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all w-24 ${
+                          clickedIcon === shortcut.id ? 'bg-white/30' : 'hover:bg-white/20'
+                        }`}
+                        onMouseDown={(e) => handleMouseDown(e, shortcut)}
+                        onClick={(e) => handleIconClick(e, shortcut)}
+                      >
+                        <div className={`${shortcut.color} p-3 rounded-xl shadow-lg`}>
+                          <IconComponent className="w-8 h-8 text-white" />
+                        </div>
+                        <span className="text-white text-xs font-medium text-center drop-shadow-lg line-clamp-2">
+                          {shortcut.name}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-white text-xs font-medium text-center drop-shadow-lg line-clamp-2">
-                      {shortcut.name}
-                    </span>
-                  </Link>
-                </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => window.location.href = createPageUrl(shortcut.link)}>
+                      Abrir
+                    </ContextMenuItem>
+                    {canDelete && (
+                      <ContextMenuItem onClick={() => handleDeleteShortcut(shortcut.id)}>
+                        <Trash2 className="w-4 h-4 mr-2 text-red-500" />
+                        Excluir Atalho
+                      </ContextMenuItem>
+                    )}
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>
@@ -380,14 +436,13 @@ export default function Sistema() {
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => setStartMenuOpen(!startMenuOpen)}
-                className="h-10 w-10 hover:bg-blue-500/20"
+                className="h-10 px-3 hover:bg-blue-500/20"
               >
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
                   alt="onHub"
-                  className="h-6 w-auto"
+                  className="h-7 w-auto object-contain"
                 />
               </Button>
             </div>
