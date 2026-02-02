@@ -215,28 +215,30 @@ export default function Sistema() {
   const handleCreateShortcut = () => {
     if (selectedFolder) {
       const newShortcut = {
-        id: `folder-${selectedFolder.id}`,
+        id: `folder-${selectedFolder.id}-${Date.now()}`,
         name: selectedFolder.name,
         icon: 'Folder',
         link: `Drive?folder=${selectedFolder.id}`,
         color: 'bg-yellow-500',
         x: 20,
         y: shortcuts.length * 120 + 20,
-        type: 'folder'
+        type: 'folder',
+        isShortcut: true
       };
       saveShortcuts([...shortcuts, newShortcut]);
       setCreateShortcutDialog(false);
       setSelectedFolder(null);
     } else if (selectedFile) {
       const newShortcut = {
-        id: `file-${selectedFile.id}`,
+        id: `file-${selectedFile.id}-${Date.now()}`,
         name: selectedFile.name,
         icon: fileTypeIcons[selectedFile.type]?.name || 'File',
         link: `FileViewer?id=${selectedFile.id}`,
         color: 'bg-green-500',
         x: 20,
         y: shortcuts.length * 120 + 20,
-        type: 'file'
+        type: 'file',
+        isShortcut: true
       };
       saveShortcuts([...shortcuts, newShortcut]);
       setCreateShortcutDialog(false);
@@ -302,6 +304,58 @@ export default function Sistema() {
   };
 
   const folderTree = buildFolderTree();
+
+  const renderFolderTreeWithFiles = (folders, expandedSet, setExpandedSet, onSelectFolder, onSelectFile, selectedFolderId, selectedFileId) => {
+    return folders.map(folder => {
+      const filesInFolder = getFilesInFolder(folder.id);
+      return (
+        <div key={folder.id}>
+          <button
+            onClick={() => {
+              onSelectFolder(folder.id);
+              const newSet = new Set(expandedSet);
+              if (newSet.has(folder.id)) {
+                newSet.delete(folder.id);
+              } else {
+                newSet.add(folder.id);
+              }
+              setExpandedSet(newSet);
+            }}
+            className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+              selectedFolderId === folder.id ? 'bg-blue-100 dark:bg-blue-900' : ''
+            }`}
+            style={{ paddingLeft: `${folder.level * 16 + 8}px` }}
+          >
+            <ChevronRight className={`w-4 h-4 transition-transform ${expandedSet.has(folder.id) ? 'rotate-90' : ''}`} />
+            <Folder className="w-4 h-4 text-yellow-500" />
+            <span className="text-sm truncate flex-1 text-left">{folder.name}</span>
+          </button>
+          {expandedSet.has(folder.id) && (
+            <div>
+              {filesInFolder.map(file => {
+                const Icon = fileTypeIcons[file.type] || File;
+                return (
+                  <button
+                    key={file.id}
+                    onClick={() => onSelectFile(file)}
+                    className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                      selectedFileId === file.id ? 'bg-green-100 dark:bg-green-900' : ''
+                    }`}
+                    style={{ paddingLeft: `${(folder.level + 1) * 16 + 8}px` }}
+                  >
+                    <div className="w-4" />
+                    <Icon className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm truncate flex-1 text-left">{file.name}</span>
+                  </button>
+                );
+              })}
+              {renderFolderTreeWithFiles(folder.children, expandedSet, setExpandedSet, onSelectFolder, onSelectFile, selectedFolderId, selectedFileId)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
   const renderFolderTree = (folders, expandedSet, setExpandedSet, onSelect, selectedId) => {
     return folders.map(folder => (
@@ -385,14 +439,19 @@ export default function Sistema() {
                       }}
                     >
                       <div
-                        className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all w-24 ${
+                        className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all w-24 relative ${
                           clickedIcon === shortcut.id ? 'bg-white/30' : 'hover:bg-white/20'
                         }`}
                         onMouseDown={(e) => handleMouseDown(e, shortcut)}
                         onClick={(e) => handleIconClick(e, shortcut)}
                       >
-                        <div className={`${shortcut.color} p-3 rounded-xl shadow-lg`}>
+                        <div className={`${shortcut.color} p-3 rounded-xl shadow-lg relative`}>
                           <IconComponent className="w-8 h-8 text-white" />
+                          {shortcut.isShortcut && (
+                            <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5 border-2 border-white shadow-lg">
+                              <ArrowRight className="w-3 h-3 text-white" />
+                            </div>
+                          )}
                         </div>
                         <span className="text-white text-xs font-medium text-center drop-shadow-lg line-clamp-2">
                           {shortcut.name}
@@ -641,21 +700,40 @@ export default function Sistema() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-medium mb-2">Selecione uma Pasta:</h4>
-              <div className="max-h-64 overflow-y-auto border rounded-lg p-2">
+              <h4 className="text-sm font-medium mb-2">Selecione uma Pasta ou Arquivo:</h4>
+              <div className="max-h-96 overflow-y-auto border rounded-lg p-2">
                 <button
                   onClick={() => {
                     setSelectedFolder({ id: null, name: 'Meu Drive' });
                     setSelectedFile(null);
                   }}
                   className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                    selectedFolder?.id === null ? 'bg-blue-100 dark:bg-blue-900' : ''
+                    selectedFolder?.id === null && !selectedFile ? 'bg-blue-100 dark:bg-blue-900' : ''
                   }`}
                 >
                   <HardDrive className="w-4 h-4 text-blue-500" />
                   <span className="text-sm">Meu Drive (Raiz)</span>
                 </button>
-                {renderFolderTree(
+                {getFilesInFolder(null).map((file) => {
+                  const Icon = fileTypeIcons[file.type] || File;
+                  return (
+                    <button
+                      key={file.id}
+                      onClick={() => {
+                        setSelectedFile(file);
+                        setSelectedFolder(null);
+                      }}
+                      className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                        selectedFile?.id === file.id ? 'bg-green-100 dark:bg-green-900' : ''
+                      }`}
+                      style={{ paddingLeft: '24px' }}
+                    >
+                      <Icon className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm truncate">{file.name}</span>
+                    </button>
+                  );
+                })}
+                {renderFolderTreeWithFiles(
                   folderTree,
                   expandedFoldersInDialog,
                   setExpandedFoldersInDialog,
@@ -664,40 +742,15 @@ export default function Sistema() {
                     setSelectedFolder(folder);
                     setSelectedFile(null);
                   },
-                  selectedFolder?.id
+                  (file) => {
+                    setSelectedFile(file);
+                    setSelectedFolder(null);
+                  },
+                  selectedFolder?.id,
+                  selectedFile?.id
                 )}
               </div>
             </div>
-            {selectedFolder && (
-              <div>
-                <h4 className="text-sm font-medium mb-2">
-                  Arquivos em "{selectedFolder.name}":
-                </h4>
-                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
-                  {getFilesInFolder(selectedFolder.id).length > 0 ? (
-                    getFilesInFolder(selectedFolder.id).map((file) => {
-                      const Icon = fileTypeIcons[file.type] || File;
-                      return (
-                        <button
-                          key={file.id}
-                          onClick={() => setSelectedFile(file)}
-                          className={`w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                            selectedFile?.id === file.id ? 'bg-blue-100 dark:bg-blue-900' : ''
-                          }`}
-                        >
-                          <Icon className="w-4 h-4 text-blue-500" />
-                          <span className="text-sm truncate">{file.name}</span>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <p className="text-sm text-gray-400 text-center py-4">
-                      Nenhum arquivo nesta pasta
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
             <Button
               onClick={handleCreateShortcut}
               disabled={!selectedFolder && !selectedFile}
