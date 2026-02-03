@@ -237,14 +237,38 @@ export default function Desktop() {
       setCreateShortcutDialog(false);
       setSelectedFolder(null);
     } else if (selectedFile) {
-      const iconName = Object.keys(fileTypeIcons).find(key => fileTypeIcons[key] === fileTypeIcons[selectedFile.type]);
+      const fileIconMap = {
+        docx: 'FileText',
+        xlsx: 'FileSpreadsheet',
+        pptx: 'Presentation',
+        kbn: 'LayoutGrid',
+        gnt: 'GanttChart',
+        crn: 'CalendarIcon',
+        flux: 'ArrowRight',
+        psd: 'Sparkles',
+        img: 'ImageIcon',
+        video: 'Video',
+      };
+
+      const fileColorMap = {
+        docx: 'bg-blue-500',
+        xlsx: 'bg-green-500',
+        pptx: 'bg-orange-500',
+        kbn: 'bg-purple-500',
+        gnt: 'bg-pink-500',
+        crn: 'bg-indigo-500',
+        flux: 'bg-teal-500',
+        psd: 'bg-yellow-500',
+        img: 'bg-cyan-500',
+        video: 'bg-violet-500',
+      };
 
       const newShortcut = {
         id: `file-${selectedFile.id}-${Date.now()}`,
         name: selectedFile.name,
-        icon: iconName || 'File',
+        icon: fileIconMap[selectedFile.type] || 'File',
         link: `FileViewer?id=${selectedFile.id}`,
-        color: 'bg-green-500',
+        color: fileColorMap[selectedFile.type] || 'bg-gray-500',
         x: 20,
         y: shortcuts.length * 120 + 20,
         type: 'file',
