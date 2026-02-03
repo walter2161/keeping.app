@@ -215,32 +215,35 @@ export default function Chat() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream);
+        audioRecorderRef.current = { recorder: mediaRecorder, stream: stream };
         const chunks = [];
 
         mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
-          const blob = new Blob(chunks, { type: 'audio/webm' });
-          const file = new File([blob], 'audio.webm', { type: 'audio/webm' });
+          const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          const file = new File([blob], `audio.${blob.type.split('/')[1]}`, { type: blob.type });
           
           try {
             const { file_url } = await base44.integrations.Core.UploadFile({ file });
-            await handleSendMessage('audio', file_url, 'audio.webm');
+            await handleSendMessage('audio', file_url, file.name);
           } catch (error) {
+            console.error('Erro ao enviar áudio:', error);
             alert('Erro ao enviar áudio: ' + error.message);
           }
-          
-          stream.getTracks().forEach(track => track.stop());
         };
 
-        audioRecorderRef.current = mediaRecorder;
         mediaRecorder.start();
         setRecording(true);
       } catch (error) {
+        console.error('Erro ao acessar microfone:', error);
         alert('Erro ao acessar microfone: ' + error.message);
       }
     } else {
-      audioRecorderRef.current?.stop();
-      setRecording(false);
+      if (audioRecorderRef.current) {
+        audioRecorderRef.current.recorder.stop();
+        audioRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        setRecording(false);
+      }
     }
   };
 
@@ -302,9 +305,9 @@ export default function Chat() {
         </Button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden max-w-full">
         {/* Sidebar */}
-        <div className="w-80 bg-[#111b21] border-r border-[#2a3942] flex flex-col">
+        <div className={`w-full md:w-80 bg-[#111b21] border-r border-[#2a3942] flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           {/* Tabs */}
           <div className="flex border-b border-[#2a3942]">
             <button
@@ -448,10 +451,13 @@ export default function Chat() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-[#0b141a]">
+        <div className={`flex-1 flex-col bg-[#0b141a] ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
           {selectedConversation ? (
             <>
-              <div className="bg-[#202c33] border-b border-[#2a3942] px-6 py-3">
+              <div className="bg-[#202c33] border-b border-[#2a3942] px-4 md:px-6 py-3 flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="md:hidden text-[#aebac1] hover:bg-[#2a3942]" onClick={() => setSelectedConversation(null)}>
+            <ArrowLeft />
+          </Button>
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10">
                     <AvatarFallback className="bg-[#00a884] text-black font-semibold">

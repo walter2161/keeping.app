@@ -53,10 +53,10 @@ import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
 import FluxEditor from './pages/FluxEditor';
 import Profile from './pages/Profile';
-import Sistema from './pages/Sistema';
 import Terminal from './pages/Terminal';
 import Trash from './pages/Trash';
 import Wiki from './pages/Wiki';
+import Desktop from './pages/Desktop';
 import __Layout from './Layout.jsx';
 
 
@@ -67,14 +67,14 @@ export const PAGES = {
     "FileViewer": FileViewer,
     "FluxEditor": FluxEditor,
     "Profile": Profile,
-    "Sistema": Sistema,
     "Terminal": Terminal,
     "Trash": Trash,
     "Wiki": Wiki,
+    "Desktop": Desktop,
 }
 
 export const pagesConfig = {
-    mainPage: "Sistema",
+    mainPage: "AssistantSettings",
     Pages: PAGES,
     Layout: __Layout,
 };

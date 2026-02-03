@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { 
   Folder, File, FileText, FileSpreadsheet, Presentation, LayoutGrid, 
-  GanttChart, Calendar, ArrowRight, Sparkles, Users, MessageCircle,
+  GanttChart, Calendar as CalendarIcon, ArrowRight, Sparkles, Users, MessageCircle,
   Settings, Trash2, User, HardDrive, Image as ImageIcon, Video, Terminal, BookOpen,
   Menu, Search, Power, ChevronRight, Plus
 } from 'lucide-react';
@@ -21,6 +21,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -30,7 +36,7 @@ const fileTypeIcons = {
   pptx: Presentation,
   kbn: LayoutGrid,
   gnt: GanttChart,
-  crn: Calendar,
+  crn: CalendarIcon,
   flux: ArrowRight,
   psd: Sparkles,
   img: ImageIcon,
@@ -40,9 +46,10 @@ const fileTypeIcons = {
 const defaultShortcuts = [
   { id: 'drive', name: 'Meu Drive', icon: 'HardDrive', link: 'Drive', color: 'bg-blue-500', x: 20, y: 20 },
   { id: 'trash', name: 'Lixeira', icon: 'Trash2', link: 'Trash', color: 'bg-red-500', x: 20, y: 140 },
+  { id: 'chat', name: 'Chat', icon: 'MessageCircle', link: 'Chat', color: 'bg-green-500', x: 20, y: 260 },
 ];
 
-export default function Sistema() {
+export default function Desktop() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState([]);
@@ -68,6 +75,7 @@ export default function Sistema() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    document.title = 'onHub | Área de Trabalho';
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -229,10 +237,12 @@ export default function Sistema() {
       setCreateShortcutDialog(false);
       setSelectedFolder(null);
     } else if (selectedFile) {
+      const iconName = Object.keys(fileTypeIcons).find(key => fileTypeIcons[key] === fileTypeIcons[selectedFile.type]);
+
       const newShortcut = {
         id: `file-${selectedFile.id}-${Date.now()}`,
         name: selectedFile.name,
-        icon: fileTypeIcons[selectedFile.type]?.name || 'File',
+        icon: iconName || 'File',
         link: `FileViewer?id=${selectedFile.id}`,
         color: 'bg-green-500',
         x: 20,
@@ -256,8 +266,9 @@ export default function Sistema() {
 
   const createFileMutation = useMutation({
     mutationFn: (data) => base44.entities.File.create(data),
-    onSuccess: () => {
+    onSuccess: (newFile) => {
       queryClient.invalidateQueries({ queryKey: ['files'] });
+      window.location.href = createPageUrl(`FileViewer?id=${newFile.id}`);
     },
   });
 
@@ -275,7 +286,7 @@ export default function Sistema() {
       psd: JSON.stringify({ layers: [], canvas: { width: 1920, height: 1080, background: '#ffffff' } }),
     };
 
-    const newFile = await createFileMutation.mutateAsync({
+    await createFileMutation.mutateAsync({
       name: newFileName.trim(),
       type: newFileType,
       folder_id: targetFolderId,
@@ -287,9 +298,6 @@ export default function Sistema() {
     setNewFileName('');
     setNewFileType('');
     setTargetFolderId(null);
-    
-    // Redirecionar para o arquivo criado
-    window.location.href = createPageUrl(`FileViewer?id=${newFile.id}`);
   };
 
   const buildFolderTree = (parentId = null, level = 0) => {
@@ -400,9 +408,9 @@ export default function Sistema() {
 
   const getIconComponent = (iconName) => {
     const icons = { HardDrive, Trash2, Folder, File, FileText, FileSpreadsheet, 
-      Presentation, LayoutGrid, GanttChart, Calendar, ArrowRight, Sparkles, 
-      ImageIcon, Video };
-    return icons[iconName] || Folder;
+      Presentation, LayoutGrid, GanttChart, CalendarIcon, ArrowRight, Sparkles, 
+      ImageIcon, Video, MessageCircle };
+    return icons[iconName] || fileTypeIcons[iconName] || Folder;
   };
 
   return (
@@ -493,29 +501,208 @@ export default function Sistema() {
           <div className="flex items-center justify-between">
             {/* Start Button */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setStartMenuOpen(!startMenuOpen)}
-                className="h-10 px-3 hover:bg-blue-500/20"
-              >
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
-                  alt="onHub"
-                  className="h-7 w-auto object-contain"
-                />
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStartMenuOpen(!startMenuOpen)}
+                    className="h-10 px-3 hover:bg-blue-500/20"
+                  >
+                    <img 
+                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
+                      alt="onHub"
+                      className="h-7 w-auto object-contain"
+                    />
+                  </Button>
+                </PopoverTrigger>
+                {startMenuOpen && (
+                  <PopoverContent side="top" align="start" className="mb-2 p-0 w-auto bg-transparent border-none shadow-none">
+                    <div className="w-[640px] h-[600px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col">
+                      {/* Search */}
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input
+                            placeholder="Pesquisar aplicativos, pastas e arquivos..."
+                            className="pl-10"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto p-4">
+                        {/* Create New File */}
+                        <div className="mb-6">
+                          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                            Criar Novo
+                          </h3>
+                          <div className="grid grid-cols-4 gap-3">
+                            {[
+                              { type: 'docx', icon: FileText, name: 'Documento', color: 'from-blue-500 to-blue-600' },
+                              { type: 'xlsx', icon: FileSpreadsheet, name: 'Planilha', color: 'from-green-500 to-green-600' },
+                              { type: 'pptx', icon: Presentation, name: 'Apresentação', color: 'from-orange-500 to-orange-600' },
+                              { type: 'kbn', icon: LayoutGrid, name: 'Kanban', color: 'from-purple-500 to-purple-600' },
+                              { type: 'gnt', icon: GanttChart, name: 'Gantt', color: 'from-pink-500 to-pink-600' },
+                              { type: 'crn', icon: CalendarIcon, name: 'Cronograma', color: 'from-indigo-500 to-indigo-600' },
+                              { type: 'flux', icon: ArrowRight, name: 'FluxMap', color: 'from-teal-500 to-teal-600' },
+                              { type: 'psd', icon: Sparkles, name: 'PhotoSmart', color: 'from-yellow-500 to-yellow-600' },
+                            ].map((file) => (
+                              <button
+                                key={file.type}
+                                onClick={() => {
+                                  setNewFileType(file.type);
+                                  setCreateFileDialog(true);
+                                  setStartMenuOpen(false);
+                                }}
+                                className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                              >
+                                <div className={`bg-gradient-to-br ${file.color} p-3 rounded-xl`}>
+                                  <file.icon className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-xs font-medium text-gray-900 dark:text-white text-center line-clamp-2">
+                                  {file.name}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Applications */}
+                        <div className="mb-6">
+                          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                            Aplicativos
+                          </h3>
+                          <div className="grid grid-cols-4 gap-3">
+                            {filteredApps.map((app) => (
+                              <Link
+                                key={app.name}
+                                to={createPageUrl(app.link)}
+                                onClick={() => setStartMenuOpen(false)}
+                                className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                              >
+                                <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-xl">
+                                  <app.icon className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-xs font-medium text-gray-900 dark:text-white text-center line-clamp-2">
+                                  {app.name}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Folders with hierarchy */}
+                        <div className="mb-6">
+                          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                            Meu Drive
+                          </h3>
+                          <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                            <Link
+                              to={createPageUrl('Drive')}
+                              onClick={() => setStartMenuOpen(false)}
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                              <HardDrive className="w-5 h-5 text-blue-500" />
+                              <span className="text-sm text-gray-900 dark:text-white truncate flex-1">
+                                Raiz
+                              </span>
+                            </Link>
+                            {renderFolderTree(
+                              folderTree,
+                              expandedFoldersInMenu,
+                              setExpandedFoldersInMenu,
+                              (folderId) => {
+                                window.location.href = createPageUrl(`Drive?folder=${folderId}`);
+                                setStartMenuOpen(false);
+                              },
+                              null
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Files */}
+                        {filteredFiles.length > 0 && (
+                          <div>
+                            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                              Arquivos Recentes
+                            </h3>
+                            <div className="space-y-1">
+                              {filteredFiles.slice(0, 5).map((file) => {
+                                const Icon = fileTypeIcons[file.type] || File;
+                                return (
+                                  <Link
+                                    key={file.id}
+                                    to={createPageUrl(`FileViewer?id=${file.id}`)}
+                                    onClick={() => setStartMenuOpen(false)}
+                                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                  >
+                                    <Icon className="w-5 h-5 text-blue-500" />
+                                    <span className="text-sm text-gray-900 dark:text-white truncate flex-1">
+                                      {file.name}
+                                    </span>
+                                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <Link
+                          to={createPageUrl('Profile')}
+                          onClick={() => setStartMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                           {user?.profile_picture ? (
+                            <img src={user.profile_picture} alt="Perfil" className="w-6 h-6 rounded-full"/>
+                          ) : (
+                            <User className="w-4 h-4" />
+                          )}
+                          <span className="text-sm font-medium">{user?.full_name || 'Perfil'}</span>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => base44.auth.logout()}
+                          className="h-9 w-9"
+                          title="Sair"
+                        >
+                          <Power className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                )}
+              </Popover>
             </div>
 
             {/* Clock & User */}
             <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs font-medium text-gray-900 dark:text-white leading-none">
-                  {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <p className="text-[10px] text-gray-600 dark:text-gray-400">
-                  {currentTime.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                </p>
-              </div>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" className="text-right p-2 h-auto">
+                            <p className="text-xs font-medium text-gray-900 dark:text-white leading-none">
+                                {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+                                {currentTime.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </p>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 mb-2" align="end">
+                        <Calendar
+                        mode="single"
+                        selected={currentTime}
+                        onSelect={() => {}}
+                        disabled={(date) => date < new Date("1900-01-01")}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
               <Link to={createPageUrl('Profile')}>
                 {user?.profile_picture ? (
                   <img 
@@ -534,165 +721,7 @@ export default function Sistema() {
         </div>
       </div>
 
-      {/* Start Menu */}
-      {startMenuOpen && (
-        <div className="fixed bottom-16 left-2 z-50 w-[640px] h-[600px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col">
-          {/* Search */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Pesquisar aplicativos, pastas e arquivos..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            {/* Create New File */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                Criar Novo
-              </h3>
-              <div className="grid grid-cols-4 gap-3">
-                {[
-                  { type: 'docx', icon: FileText, name: 'Documento', color: 'from-blue-500 to-blue-600' },
-                  { type: 'xlsx', icon: FileSpreadsheet, name: 'Planilha', color: 'from-green-500 to-green-600' },
-                  { type: 'pptx', icon: Presentation, name: 'Apresentação', color: 'from-orange-500 to-orange-600' },
-                  { type: 'kbn', icon: LayoutGrid, name: 'Kanban', color: 'from-purple-500 to-purple-600' },
-                  { type: 'gnt', icon: GanttChart, name: 'Gantt', color: 'from-pink-500 to-pink-600' },
-                  { type: 'crn', icon: Calendar, name: 'Cronograma', color: 'from-indigo-500 to-indigo-600' },
-                  { type: 'flux', icon: ArrowRight, name: 'FluxMap', color: 'from-teal-500 to-teal-600' },
-                  { type: 'psd', icon: Sparkles, name: 'PhotoSmart', color: 'from-yellow-500 to-yellow-600' },
-                ].map((file) => (
-                  <button
-                    key={file.type}
-                    onClick={() => {
-                      setNewFileType(file.type);
-                      setCreateFileDialog(true);
-                      setStartMenuOpen(false);
-                    }}
-                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <div className={`bg-gradient-to-br ${file.color} p-3 rounded-xl`}>
-                      <file.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-xs font-medium text-gray-900 dark:text-white text-center line-clamp-2">
-                      {file.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Applications */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                Aplicativos
-              </h3>
-              <div className="grid grid-cols-4 gap-3">
-                {filteredApps.map((app) => (
-                  <Link
-                    key={app.name}
-                    to={createPageUrl(app.link)}
-                    onClick={() => setStartMenuOpen(false)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-xl">
-                      <app.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-xs font-medium text-gray-900 dark:text-white text-center line-clamp-2">
-                      {app.name}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Folders with hierarchy */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                Meu Drive
-              </h3>
-              <div className="space-y-0.5 max-h-64 overflow-y-auto">
-                <Link
-                  to={createPageUrl('Drive')}
-                  onClick={() => setStartMenuOpen(false)}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <HardDrive className="w-5 h-5 text-blue-500" />
-                  <span className="text-sm text-gray-900 dark:text-white truncate flex-1">
-                    Raiz
-                  </span>
-                </Link>
-                {renderFolderTree(
-                  folderTree,
-                  expandedFoldersInMenu,
-                  setExpandedFoldersInMenu,
-                  (folderId) => {
-                    window.location.href = createPageUrl(`Drive?folder=${folderId}`);
-                    setStartMenuOpen(false);
-                  },
-                  null
-                )}
-              </div>
-            </div>
-
-            {/* Files */}
-            {filteredFiles.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                  Arquivos Recentes
-                </h3>
-                <div className="space-y-1">
-                  {filteredFiles.slice(0, 5).map((file) => {
-                    const Icon = fileTypeIcons[file.type] || File;
-                    return (
-                      <Link
-                        key={file.id}
-                        to={createPageUrl(`FileViewer?id=${file.id}`)}
-                        onClick={() => setStartMenuOpen(false)}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        <Icon className="w-5 h-5 text-blue-500" />
-                        <span className="text-sm text-gray-900 dark:text-white truncate flex-1">
-                          {file.name}
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <Link
-              to={createPageUrl('Profile')}
-              onClick={() => setStartMenuOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <User className="w-4 h-4" />
-              <span className="text-sm font-medium">{user?.full_name || 'Perfil'}</span>
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => base44.auth.logout()}
-              className="h-9 w-9"
-              title="Sair"
-            >
-              <Power className="w-4 h-4 text-red-500" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Create Shortcut Dialog */}
+      {/* Dialogs... */}
       <Dialog open={createShortcutDialog} onOpenChange={setCreateShortcutDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -762,7 +791,6 @@ export default function Sistema() {
         </DialogContent>
       </Dialog>
 
-      {/* Create File Dialog */}
       <Dialog open={createFileDialog} onOpenChange={setCreateFileDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -818,7 +846,6 @@ export default function Sistema() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Wallpaper Dialog */}
       <Dialog open={changeWallpaperDialog} onOpenChange={setChangeWallpaperDialog}>
         <DialogContent>
           <DialogHeader>

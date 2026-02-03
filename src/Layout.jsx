@@ -26,9 +26,9 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Don't show layout for Wiki pages
-  if (currentPageName === 'Wiki' || currentPageName === 'WikiDev') {
-    return <>{children}</>;
-  }
+  if (currentPageName === 'Wiki' || currentPageName === 'WikiDev' || currentPageName === 'Desktop') {
+      return <>{children}</>;
+    }
 
   return (
     <Base44Init>
