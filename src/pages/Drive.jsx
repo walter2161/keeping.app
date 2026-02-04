@@ -572,6 +572,84 @@ export default function Drive() {
     setMoveDialog({ open: true, item: file, type: 'file' });
   };
 
+  const handleCreateFolderShortcut = async (folder) => {
+    if (!user) return;
+    
+    try {
+      const updatedShortcuts = [...(user.desktop_shortcuts || []), {
+        id: `folder-${folder.id}-${Date.now()}`,
+        name: folder.name,
+        icon: 'Folder',
+        link: `Drive?folder=${folder.id}`,
+        color: folder.color ? `bg-${folder.color}-500` : 'bg-gray-500',
+        x: 20,
+        y: (user.desktop_shortcuts?.length || 0) * 120 + 20,
+        type: 'folder',
+        isShortcut: true
+      }];
+      
+      await base44.auth.updateMe({ desktop_shortcuts: updatedShortcuts });
+      
+      const toast = (await import('react-hot-toast')).default;
+      toast.success('Atalho criado na Área de Trabalho!', { position: 'bottom-left' });
+    } catch (error) {
+      const toast = (await import('react-hot-toast')).default;
+      toast.error('Erro ao criar atalho', { position: 'bottom-left' });
+    }
+  };
+
+  const handleCreateFileShortcut = async (file) => {
+    if (!user) return;
+    
+    const fileIconMap = {
+      docx: 'FileText',
+      xlsx: 'FileSpreadsheet',
+      pptx: 'Presentation',
+      kbn: 'LayoutGrid',
+      gnt: 'GanttChart',
+      crn: 'CalendarIcon',
+      flux: 'ArrowRight',
+      psd: 'Sparkles',
+      img: 'ImageIcon',
+      video: 'Video',
+    };
+
+    const fileColorMap = {
+      docx: 'bg-blue-500',
+      xlsx: 'bg-green-500',
+      pptx: 'bg-orange-500',
+      kbn: 'bg-purple-500',
+      gnt: 'bg-pink-500',
+      crn: 'bg-indigo-500',
+      flux: 'bg-teal-500',
+      psd: 'bg-yellow-500',
+      img: 'bg-cyan-500',
+      video: 'bg-violet-500',
+    };
+    
+    try {
+      const updatedShortcuts = [...(user.desktop_shortcuts || []), {
+        id: `file-${file.id}-${Date.now()}`,
+        name: file.name,
+        icon: fileIconMap[file.type] || 'File',
+        link: `FileViewer?id=${file.id}`,
+        color: fileColorMap[file.type] || 'bg-gray-500',
+        x: 20,
+        y: (user.desktop_shortcuts?.length || 0) * 120 + 20,
+        type: 'file',
+        isShortcut: true
+      }];
+      
+      await base44.auth.updateMe({ desktop_shortcuts: updatedShortcuts });
+      
+      const toast = (await import('react-hot-toast')).default;
+      toast.success('Atalho criado na Área de Trabalho!', { position: 'bottom-left' });
+    } catch (error) {
+      const toast = (await import('react-hot-toast')).default;
+      toast.error('Erro ao criar atalho', { position: 'bottom-left' });
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (!window.confirm(`Deseja realmente excluir ${selectedItems.length} item(ns)?`)) return;
     
@@ -1401,6 +1479,7 @@ export default function Drive() {
                               onCompress={() => handleCompressFolder(folder)}
                               onColorChange={(folder, color) => updateFolderMutation.mutate({ id: folder.id, data: { color } })}
                               onMove={() => handleMoveFolder(folder)}
+                              onCreateShortcut={() => handleCreateFolderShortcut(folder)}
                               isOwner={folder.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}
@@ -1456,6 +1535,7 @@ export default function Drive() {
                               onExport={() => handleExportFile(file)}
                               onExtract={() => handleExtractZip(file)}
                               onMove={() => handleMoveFile(file)}
+                              onCreateShortcut={() => handleCreateFileShortcut(file)}
                               isOwner={file.owner === user?.email}
                               provided={provided}
                               isDragging={snapshot.isDragging}

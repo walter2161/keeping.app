@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, FileSpreadsheet, LayoutGrid, GanttChart, Calendar,
-  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive, Sparkles, Check
+  MoreVertical, Trash2, Edit2, Download, Image, File, Video, ArrowRight, Users, Presentation, Archive, Sparkles, Check, Link
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,7 +32,7 @@ const fileTypeConfig = {
   other: { icon: File, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Arquivo' },
 };
 
-export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, onExtract, isOwner, provided, isDragging, selectionMode = false, isSelected = false, onToggleSelection }) {
+export default function FileCard({ file, onClick, onDelete, onRename, onExport, onMove, onExtract, onCreateShortcut, isOwner, provided, isDragging, selectionMode = false, isSelected = false, onToggleSelection }) {
   const config = fileTypeConfig[file.type] || fileTypeConfig.other;
   const Icon = config.icon;
   const [clickCount, setClickCount] = React.useState(0);
@@ -175,6 +175,10 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
               Descompactar Aqui
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCreateShortcut?.(file); }}>
+            <Link className="w-4 h-4 mr-2" />
+            Criar Atalho
+          </DropdownMenuItem>
           {isOwner && (
             <>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove?.(file); }}>

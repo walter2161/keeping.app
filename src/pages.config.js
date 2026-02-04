@@ -49,6 +49,7 @@
  */
 import AssistantSettings from './pages/AssistantSettings';
 import Chat from './pages/Chat';
+import Desktop from './pages/Desktop';
 import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
 import FluxEditor from './pages/FluxEditor';
@@ -56,13 +57,13 @@ import Profile from './pages/Profile';
 import Terminal from './pages/Terminal';
 import Trash from './pages/Trash';
 import Wiki from './pages/Wiki';
-import Desktop from './pages/Desktop';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AssistantSettings": AssistantSettings,
     "Chat": Chat,
+    "Desktop": Desktop,
     "Drive": Drive,
     "FileViewer": FileViewer,
     "FluxEditor": FluxEditor,
@@ -70,7 +71,6 @@ export const PAGES = {
     "Terminal": Terminal,
     "Trash": Trash,
     "Wiki": Wiki,
-    "Desktop": Desktop,
 }
 
 export const pagesConfig = {
