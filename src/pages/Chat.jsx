@@ -64,6 +64,15 @@ export default function Chat() {
     enabled: !!currentUser && shareFileDialog,
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      return users;
+    },
+    enabled: !!currentUser,
+  });
+
   const sendMessageMutation = useMutation({
     mutationFn: (data) => base44.entities.DirectMessage.create(data),
     onSuccess: () => {
@@ -154,6 +163,23 @@ export default function Chat() {
     if (!currentUser) return [];
     return teams.filter(t => t.members && t.members.includes(currentUser.email));
   }, [teams, currentUser]);
+
+  const teamMembers = React.useMemo(() => {
+    if (!currentUser || !allUsers.length || !myTeams.length) return [];
+    
+    const memberEmails = new Set();
+    myTeams.forEach(team => {
+      if (team.members) {
+        team.members.forEach(email => {
+          if (email !== currentUser.email) {
+            memberEmails.add(email);
+          }
+        });
+      }
+    });
+    
+    return allUsers.filter(u => memberEmails.has(u.email));
+  }, [myTeams, allUsers, currentUser]);
 
   const currentMessages = React.useMemo(() => {
     if (!selectedConversation || !currentUser) return [];
@@ -278,6 +304,15 @@ export default function Chat() {
   const filteredTeams = myTeams.filter(t =>
     t.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const filteredTeamMembers = React.useMemo(() => {
+    if (!searchQuery.trim()) return teamMembers;
+    
+    return teamMembers.filter(member => 
+      member.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [teamMembers, searchQuery]);
 
   if (!currentUser) {
     return (
@@ -418,33 +453,46 @@ export default function Chat() {
                 ))
               )
             ) : (
-              filteredTeams.length === 0 ? (
+              filteredTeamMembers.length === 0 ? (
                 <div className="p-8 text-center text-[#667781]">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Nenhuma equipe ainda</p>
-                  <p className="text-xs mt-2">Entre em uma equipe para conversar em grupo</p>
+                  <p>Nenhum membro de equipe</p>
+                  <p className="text-xs mt-2">Adicione membros às suas equipes no Drive</p>
                 </div>
               ) : (
-                filteredTeams.map(team => (
-                  <button
-                    key={team.id}
-                    className="w-full px-4 py-3 flex items-start gap-3 border-b border-[#2a3942] hover:bg-[#202c33] transition-colors"
-                  >
-                    <Avatar className="w-12 h-12 flex-shrink-0">
-                      <AvatarFallback className="bg-[#00a884] text-black">
-                        <Users className="w-6 h-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0 text-left">
-                      <span className="font-medium text-white text-sm block">
-                        {team.name}
-                      </span>
-                      <p className="text-xs text-[#667781]">
-                        {team.members?.length || 0} membros
-                      </p>
-                    </div>
-                  </button>
-                ))
+                filteredTeamMembers.map(member => {
+                  const conv = conversations.find(c => c.email === member.email);
+                  const unread = conv?.unread || 0;
+                  
+                  return (
+                    <button
+                      key={member.email}
+                      onClick={() => setSelectedConversation({ id: getConversationId(currentUser.email, member.email), email: member.email })}
+                      className={`w-full px-4 py-3 flex items-start gap-3 border-b border-[#2a3942] hover:bg-[#202c33] transition-colors ${
+                        selectedConversation?.email === member.email ? 'bg-[#2a3942]' : ''
+                      }`}
+                    >
+                      <Avatar className="w-12 h-12 flex-shrink-0">
+                        <AvatarFallback className="bg-[#00a884] text-black font-semibold">
+                          {member.email[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-white text-sm">
+                            {member.full_name || member.email.split('@')[0]}
+                          </span>
+                          {unread > 0 && (
+                            <Badge className="bg-[#00a884] text-black text-xs">{unread}</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-[#667781] truncate">
+                          {conv?.lastMessage || 'Membro da equipe'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
               )
             )}
           </ScrollArea>
