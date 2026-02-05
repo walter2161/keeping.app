@@ -28,12 +28,12 @@ export default function Layout({ children, currentPageName }) {
 
   // Don't show layout for file viewer
   if (currentPageName === 'FileViewer') {
-    return <>{children}</>;
+    return <div className="min-h-screen bg-gray-900">{children}</div>;
   }
 
   // Don't show layout for Wiki pages
   if (currentPageName === 'Wiki' || currentPageName === 'WikiDev' || currentPageName === 'Desktop') {
-    return <>{children}</>;
+    return <div className="min-h-screen bg-gray-900">{children}</div>;
   }
 
   return (
