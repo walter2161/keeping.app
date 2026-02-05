@@ -3,40 +3,36 @@ import React from 'react';
 const PageLoader = () => {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-gray-900 z-50">
+      {/* Spinning Circle */}
+      <div className="relative mb-6">
+        <div className="w-16 h-16 rounded-full border-4 border-gray-700 border-t-blue-500 animate-spin" />
+        {/* Inner glow effect */}
+        <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-purple-500 animate-spin-reverse opacity-50" />
+      </div>
+      
       {/* Logo */}
-      <div className="relative mb-8">
+      <div className="relative mb-4">
         <img 
           src="/logo-onhub.png" 
           alt="OnHub" 
-          className="w-16 h-16 object-contain animate-pulse"
+          className="w-12 h-12 object-contain"
         />
       </div>
       
-      {/* Loading bar */}
-      <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-blue-600 via-purple-500 to-blue-600 rounded-full animate-loading-bar" />
-      </div>
-      
       {/* Loading text */}
-      <p className="mt-4 text-sm text-gray-500 animate-pulse">Carregando...</p>
+      <p className="mt-2 text-sm text-gray-400">Carregando...</p>
       
       <style>{`
-        @keyframes loading-bar {
+        @keyframes spin-reverse {
           0% {
-            width: 0%;
-            margin-left: 0%;
-          }
-          50% {
-            width: 60%;
-            margin-left: 20%;
+            transform: rotate(360deg);
           }
           100% {
-            width: 0%;
-            margin-left: 100%;
+            transform: rotate(0deg);
           }
         }
-        .animate-loading-bar {
-          animation: loading-bar 1.5s ease-in-out infinite;
+        .animate-spin-reverse {
+          animation: spin-reverse 1.2s linear infinite;
         }
       `}</style>
     </div>
