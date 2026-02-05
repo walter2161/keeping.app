@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Switch } from "@/components/ui/switch";
 import DesktopSyncDownload from '../components/profile/DesktopSyncDownload';
+import WordPressIntegration from '../components/profile/WordPressIntegration';
 
 export default function Profile() {
   const queryClient = useQueryClient();
@@ -701,6 +702,9 @@ export default function Profile() {
 
         {/* Sincronização Desktop */}
         <DesktopSyncDownload user={user} />
+
+        {/* Integração WordPress */}
+        <WordPressIntegration user={user} />
       </div>
     </div>
   );
