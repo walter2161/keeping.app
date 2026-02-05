@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -53,13 +53,13 @@ export default function Drive() {
   // Fetch current user
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   // Fetch teams
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => onhub.entities.Team.list(),
     enabled: !!user,
   });
 
@@ -86,14 +86,14 @@ export default function Drive() {
   // Fetch folders
   const { data: allFolders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
     enabled: !!user,
   });
 
   // Fetch files
   const { data: allFiles = [], isLoading: filesLoading } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
     enabled: !!user,
   });
 
@@ -147,32 +147,32 @@ export default function Drive() {
 
   // Mutations
   const createFolderMutation = useMutation({
-    mutationFn: (data) => base44.entities.Folder.create(data),
+    mutationFn: (data) => onhub.entities.Folder.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const createFileMutation = useMutation({
-    mutationFn: (data) => base44.entities.File.create(data),
+    mutationFn: (data) => onhub.entities.File.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
   const deleteFolderMutation = useMutation({
-    mutationFn: (id) => base44.entities.Folder.delete(id),
+    mutationFn: (id) => onhub.entities.Folder.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const deleteFileMutation = useMutation({
-    mutationFn: (id) => base44.entities.File.delete(id),
+    mutationFn: (id) => onhub.entities.File.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
   const updateFolderMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Folder.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.Folder.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const updateFileMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.File.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.File.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
@@ -233,7 +233,7 @@ export default function Drive() {
   const logTeamActivity = async (teamId, actionType, itemName, itemId) => {
     if (teamId && user) {
       try {
-        await base44.entities.TeamActivity.create({
+        await onhub.entities.TeamActivity.create({
           team_id: teamId,
           user_email: user.email,
           action_type: actionType,
@@ -508,7 +508,7 @@ export default function Drive() {
         const folderName = getUniqueName(folder.name, existingFolders);
         existingFolders.push(folderName.toLowerCase());
         
-        const newFolder = await base44.entities.Folder.create({
+        const newFolder = await onhub.entities.Folder.create({
           name: folderName,
           parent_id: parentId,
           color: folder.color,
@@ -525,7 +525,7 @@ export default function Drive() {
         const fileName = getUniqueName(file.name, existingFiles);
         existingFiles.push(fileName.toLowerCase());
         
-        await base44.entities.File.create({
+        await onhub.entities.File.create({
           name: fileName,
           type: file.type,
           folder_id: parentId,
@@ -541,7 +541,7 @@ export default function Drive() {
       const existingFiles = currentFiles.map(f => f.name.toLowerCase());
       const fileName = getUniqueName(data.file.name, existingFiles);
       
-      await base44.entities.File.create({
+      await onhub.entities.File.create({
         name: fileName,
         type: data.file.type,
         folder_id: currentFolderId,
@@ -588,7 +588,7 @@ export default function Drive() {
         isShortcut: true
       }];
       
-      await base44.auth.updateMe({ desktop_shortcuts: updatedShortcuts });
+      await onhub.auth.updateMe({ desktop_shortcuts: updatedShortcuts });
       
       const toast = (await import('react-hot-toast')).default;
       toast.success('Atalho criado na Área de Trabalho!', { position: 'bottom-left' });
@@ -640,7 +640,7 @@ export default function Drive() {
         isShortcut: true
       }];
       
-      await base44.auth.updateMe({ desktop_shortcuts: updatedShortcuts });
+      await onhub.auth.updateMe({ desktop_shortcuts: updatedShortcuts });
       
       const toast = (await import('react-hot-toast')).default;
       toast.success('Atalho criado na Área de Trabalho!', { position: 'bottom-left' });
@@ -979,7 +979,7 @@ export default function Drive() {
       const file = new File([content], `${folder.name}.zip`, { type: 'application/zip' });
       
       // Upload do ZIP
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await onhub.integrations.Core.UploadFile({ file });
       
       // Criar arquivo ZIP no sistema
       await createFileMutation.mutateAsync({
@@ -1085,7 +1085,7 @@ export default function Drive() {
         if (isBlob) {
           const blob = new Blob([content]);
           const file = new File([blob], fileName);
-          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          const { file_url } = await onhub.integrations.Core.UploadFile({ file });
           fileUrl = file_url;
         } else {
           if (fileName.toLowerCase().endsWith('.csv')) {
@@ -1259,7 +1259,7 @@ export default function Drive() {
         const fileType = detectFileType(file);
         
         // Upload do arquivo
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await onhub.integrations.Core.UploadFile({ file });
         
         // Gerar nome único
         const fileName = getUniqueName(file.name, existingFiles);

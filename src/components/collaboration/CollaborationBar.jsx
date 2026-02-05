@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ export default function CollaborationBar({ fileId, currentUser }) {
   const { data: sessions = [] } = useQuery({
     queryKey: ['activeSessions', fileId],
     queryFn: async () => {
-      const allSessions = await base44.entities.ActiveSession.list();
+      const allSessions = await onhub.entities.ActiveSession.list();
       const now = new Date();
       // Filter sessions active in last 30 seconds
       return allSessions.filter(s => {
@@ -35,7 +35,7 @@ export default function CollaborationBar({ fileId, currentUser }) {
   const { data: messages = [] } = useQuery({
     queryKey: ['chatMessages', fileId],
     queryFn: async () => {
-      const allMessages = await base44.entities.ChatMessage.list();
+      const allMessages = await onhub.entities.ChatMessage.list();
       return allMessages
         .filter(m => m.file_id === fileId)
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -45,7 +45,7 @@ export default function CollaborationBar({ fileId, currentUser }) {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (messageData) => base44.entities.ChatMessage.create(messageData),
+    mutationFn: (messageData) => onhub.entities.ChatMessage.create(messageData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatMessages', fileId] });
       setMessage('');
@@ -57,17 +57,17 @@ export default function CollaborationBar({ fileId, currentUser }) {
     if (!currentUser) return;
 
     const updateHeartbeat = async () => {
-      const existingSessions = await base44.entities.ActiveSession.list();
+      const existingSessions = await onhub.entities.ActiveSession.list();
       const mySession = existingSessions.find(
         s => s.file_id === fileId && s.user_email === currentUser.email
       );
 
       if (mySession) {
-        await base44.entities.ActiveSession.update(mySession.id, {
+        await onhub.entities.ActiveSession.update(mySession.id, {
           last_heartbeat: new Date().toISOString(),
         });
       } else {
-        await base44.entities.ActiveSession.create({
+        await onhub.entities.ActiveSession.create({
           file_id: fileId,
           user_email: currentUser.email,
           user_name: currentUser.full_name,
@@ -83,12 +83,12 @@ export default function CollaborationBar({ fileId, currentUser }) {
     return () => {
       clearInterval(interval);
       // Clean up session on unmount
-      base44.entities.ActiveSession.list().then(sessions => {
+      onhub.entities.ActiveSession.list().then(sessions => {
         const mySession = sessions.find(
           s => s.file_id === fileId && s.user_email === currentUser.email
         );
         if (mySession) {
-          base44.entities.ActiveSession.delete(mySession.id);
+          onhub.entities.ActiveSession.delete(mySession.id);
         }
       });
     };

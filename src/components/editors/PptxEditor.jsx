@@ -6,7 +6,7 @@ import {
   Plus, Trash2, ChevronLeft, ChevronRight, Type, Image as ImageIcon, 
   Play, X, Bold, Italic, Underline, Upload, ZoomIn, ZoomOut, Palette, Square, Circle, Minus, Download, GripVertical, Printer
 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import PptxGenJS from 'pptxgenjs';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import jsPDF from 'jspdf';
@@ -239,7 +239,7 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
       if (!file) return;
       
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await onhub.integrations.Core.UploadFile({ file });
         updateElement(elementId, { imageUrl: file_url });
       } catch (error) {
         alert('Erro ao fazer upload da imagem');
@@ -258,7 +258,7 @@ const PptxEditor = forwardRef(({ value, onChange, fileName = 'apresentacao' }, r
       
       setUploadingBg(true);
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await onhub.integrations.Core.UploadFile({ file });
         const newSlides = [...slides];
         newSlides[currentSlide].background = `url(${file_url})`;
         handleUpdate(newSlides);

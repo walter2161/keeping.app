@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ export default function AssistantSettings() {
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ export default function AssistantSettings() {
   }, [user]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
+    mutationFn: (data) => onhub.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       setSaving(false);
@@ -104,7 +104,7 @@ export default function AssistantSettings() {
     setCreatingStructure(true);
     try {
       await createDefaultStructure(user.email);
-      await base44.auth.updateMe({ default_structure_created: true });
+      await onhub.auth.updateMe({ default_structure_created: true });
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       alert('✅ Estrutura padrão criada com sucesso! Acesse o Drive para visualizar.');
     } catch (error) {

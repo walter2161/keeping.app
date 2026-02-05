@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,24 +23,24 @@ export default function Profile() {
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
     enabled: !!user,
   });
 
   const { data: files = [] } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
     enabled: !!user,
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => onhub.entities.Team.list(),
     enabled: !!user,
   });
 
@@ -61,7 +61,7 @@ export default function Profile() {
   }, [user]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
+    mutationFn: (data) => onhub.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       setSaving(false);
@@ -92,8 +92,8 @@ export default function Profile() {
       
       // Deletar permanentemente
       const deletePromises = [
-        ...deletedFolders.map(f => base44.entities.Folder.delete(f.id)),
-        ...deletedFiles.map(f => base44.entities.File.delete(f.id))
+        ...deletedFolders.map(f => onhub.entities.Folder.delete(f.id)),
+        ...deletedFiles.map(f => onhub.entities.File.delete(f.id))
       ];
       
       await Promise.all(deletePromises);
@@ -121,7 +121,7 @@ export default function Profile() {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await onhub.integrations.Core.UploadFile({ file });
       setFormData({ ...formData, profile_picture: file_url });
     } catch (error) {
       alert('Erro ao fazer upload da imagem: ' + error.message);

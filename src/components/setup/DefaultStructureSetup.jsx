@@ -1,4 +1,4 @@
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 
 export async function createDefaultStructure(userEmail) {
   console.log('🚀 Iniciando criação de estrutura padrão...');
@@ -38,7 +38,7 @@ export async function createDefaultStructure(userEmail) {
 
   try {
     // 1. EMPRESA (raiz)
-    const empresa = await base44.entities.Folder.create({
+    const empresa = await onhub.entities.Folder.create({
       name: 'EMPRESA',
       parent_id: null,
       owner: userEmail,
@@ -48,7 +48,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ EMPRESA criada');
 
     // 2. ADMINISTRATIVO
-    const administrativo = await base44.entities.Folder.create({
+    const administrativo = await onhub.entities.Folder.create({
       name: 'ADMINISTRATIVO',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -56,14 +56,14 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.ADMINISTRATIVO = administrativo.id;
 
-    const admin_documentos = await base44.entities.Folder.create({
+    const admin_documentos = await onhub.entities.Folder.create({
       name: 'Documentos',
       parent_id: tempRefs.ADMINISTRATIVO,
       owner: userEmail
     });
     tempRefs.ADMIN_DOCUMENTOS = admin_documentos.id;
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Contrato_Social_Atualizado',
       type: 'docx',
       folder_id: tempRefs.ADMIN_DOCUMENTOS,
@@ -71,7 +71,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.contrato_social
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Politica_Conduta_Interna',
       type: 'docx',
       folder_id: tempRefs.ADMIN_DOCUMENTOS,
@@ -79,7 +79,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.politica_conduta
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Regimento_Interno',
       type: 'docx',
       folder_id: tempRefs.ADMIN_DOCUMENTOS,
@@ -87,7 +87,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.regimento_interno
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Comunicacao_Interna_2026-01',
       type: 'docx',
       folder_id: tempRefs.ADMIN_DOCUMENTOS,
@@ -95,14 +95,14 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.comunicacao_interna
     });
 
-    const admin_processos = await base44.entities.Folder.create({
+    const admin_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.ADMINISTRATIVO,
       owner: userEmail
     });
     tempRefs.ADMIN_PROCESSOS = admin_processos.id;
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Aprovacao_Documentos',
       type: 'flux',
       folder_id: tempRefs.ADMIN_PROCESSOS,
@@ -123,13 +123,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const admin_tarefas = await base44.entities.Folder.create({
+    const admin_tarefas = await onhub.entities.Folder.create({
       name: 'Tarefas',
       parent_id: tempRefs.ADMINISTRATIVO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Administrativo_Semanal',
       type: 'kbn',
       folder_id: admin_tarefas.id,
@@ -148,13 +148,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const admin_cronogramas = await base44.entities.Folder.create({
+    const admin_cronogramas = await onhub.entities.Folder.create({
       name: 'Cronogramas',
       parent_id: tempRefs.ADMINISTRATIVO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Rotinas_Administrativas',
       type: 'crn',
       folder_id: admin_cronogramas.id,
@@ -177,7 +177,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ ADMINISTRATIVO completo');
 
     // 3. FINANCEIRO
-    const financeiro = await base44.entities.Folder.create({
+    const financeiro = await onhub.entities.Folder.create({
       name: 'FINANCEIRO',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -185,13 +185,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.FINANCEIRO = financeiro.id;
 
-    const fin_planilhas = await base44.entities.Folder.create({
+    const fin_planilhas = await onhub.entities.Folder.create({
       name: 'Planilhas',
       parent_id: tempRefs.FINANCEIRO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Caixa_2026',
       type: 'xlsx',
       folder_id: fin_planilhas.id,
@@ -199,7 +199,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.fluxo_caixa
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Contas_a_Pagar_2026',
       type: 'xlsx',
       folder_id: fin_planilhas.id,
@@ -207,7 +207,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.contas_pagar
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Contas_a_Receber_2026',
       type: 'xlsx',
       folder_id: fin_planilhas.id,
@@ -215,7 +215,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.contas_receber
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Controle_Notas_Fiscais',
       type: 'xlsx',
       folder_id: fin_planilhas.id,
@@ -223,13 +223,13 @@ export async function createDefaultStructure(userEmail) {
       content: 'Número,Data,Fornecedor/Cliente,Valor,Tipo,Status,Categoria\nNF-001,2026-01-05,Fornecedor A,5000,Entrada,Paga,Matéria-prima\nNF-002,2026-01-08,Cliente Alpha,15000,Saída,Recebida,Serviços\nNF-003,2026-01-12,Fornecedor B,3500,Entrada,Paga,Equipamentos\nNF-004,2026-01-15,Cliente Beta,22000,Saída,Recebida,Desenvolvimento\nNF-005,2026-01-18,Fornecedor C,8000,Entrada,Pendente,Consultoria\nNF-006,2026-01-20,Cliente Gamma,18500,Saída,Pendente,Consultoria\nNF-007,2026-01-22,Fornecedor D,2500,Entrada,Paga,Manutenção\nNF-008,2026-01-25,Cliente Delta,12000,Saída,A vencer,Treinamento'
     });
 
-    const fin_processos = await base44.entities.Folder.create({
+    const fin_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.FINANCEIRO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Fechamento_Mensal',
       type: 'flux',
       folder_id: fin_processos.id,
@@ -249,13 +249,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const fin_tarefas = await base44.entities.Folder.create({
+    const fin_tarefas = await onhub.entities.Folder.create({
       name: 'Tarefas',
       parent_id: tempRefs.FINANCEIRO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Financeiro_Mensal',
       type: 'kbn',
       folder_id: fin_tarefas.id,
@@ -275,13 +275,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const fin_cronogramas = await base44.entities.Folder.create({
+    const fin_cronogramas = await onhub.entities.Folder.create({
       name: 'Cronogramas',
       parent_id: tempRefs.FINANCEIRO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Calendario_Fechamentos',
       type: 'crn',
       folder_id: fin_cronogramas.id,
@@ -304,7 +304,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ FINANCEIRO completo');
 
     // 4. COMERCIAL
-    const comercial = await base44.entities.Folder.create({
+    const comercial = await onhub.entities.Folder.create({
       name: 'COMERCIAL',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -312,13 +312,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.COMERCIAL = comercial.id;
 
-    const com_clientes = await base44.entities.Folder.create({
+    const com_clientes = await onhub.entities.Folder.create({
       name: 'Clientes',
       parent_id: tempRefs.COMERCIAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Base_Clientes_Ativos',
       type: 'xlsx',
       folder_id: com_clientes.id,
@@ -326,13 +326,13 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.base_clientes
     });
 
-    const com_propostas = await base44.entities.Folder.create({
+    const com_propostas = await onhub.entities.Folder.create({
       name: 'Propostas',
       parent_id: tempRefs.COMERCIAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Proposta_Cliente_A_2026-01',
       type: 'docx',
       folder_id: com_propostas.id,
@@ -340,7 +340,7 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.proposta_cliente_a
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Proposta_Cliente_B_2026-01',
       type: 'docx',
       folder_id: com_propostas.id,
@@ -348,13 +348,13 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.proposta_cliente_a.replace('Cliente A', 'Cliente B').replace('Alpha', 'Beta')
     });
 
-    const com_processos = await base44.entities.Folder.create({
+    const com_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.COMERCIAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Vendas_Consultivas',
       type: 'flux',
       folder_id: com_processos.id,
@@ -376,13 +376,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const com_tarefas = await base44.entities.Folder.create({
+    const com_tarefas = await onhub.entities.Folder.create({
       name: 'Tarefas',
       parent_id: tempRefs.COMERCIAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Pipeline_Vendas',
       type: 'kbn',
       folder_id: com_tarefas.id,
@@ -405,13 +405,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const com_cronogramas = await base44.entities.Folder.create({
+    const com_cronogramas = await onhub.entities.Folder.create({
       name: 'Cronogramas',
       parent_id: tempRefs.COMERCIAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Pipeline_Semanal',
       type: 'crn',
       folder_id: com_cronogramas.id,
@@ -431,13 +431,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const com_apresentacoes = await base44.entities.Folder.create({
+    const com_apresentacoes = await onhub.entities.Folder.create({
       name: 'Apresentacoes',
       parent_id: tempRefs.COMERCIAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Pitch_Comercial_Atual',
       type: 'pptx',
       folder_id: com_apresentacoes.id,
@@ -486,7 +486,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ COMERCIAL completo');
 
     // 5. MARKETING
-    const marketing = await base44.entities.Folder.create({
+    const marketing = await onhub.entities.Folder.create({
       name: 'MARKETING',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -494,13 +494,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.MARKETING = marketing.id;
 
-    const mkt_planejamento = await base44.entities.Folder.create({
+    const mkt_planejamento = await onhub.entities.Folder.create({
       name: 'Planejamento',
       parent_id: tempRefs.MARKETING,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Planejamento_Marketing_2026',
       type: 'docx',
       folder_id: mkt_planejamento.id,
@@ -508,13 +508,13 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.planejamento_marketing
     });
 
-    const mkt_campanhas = await base44.entities.Folder.create({
+    const mkt_campanhas = await onhub.entities.Folder.create({
       name: 'Campanhas',
       parent_id: tempRefs.MARKETING,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Campanha_Lancamento_Q1',
       type: 'kbn',
       folder_id: mkt_campanhas.id,
@@ -537,7 +537,7 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Cronograma_Campanha_Q1',
       type: 'gnt',
       folder_id: mkt_campanhas.id,
@@ -554,7 +554,7 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Calendario_Postagens_Q1',
       type: 'crn',
       folder_id: mkt_campanhas.id,
@@ -576,13 +576,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const mkt_processos = await base44.entities.Folder.create({
+    const mkt_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.MARKETING,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Criacao_Conteudo',
       type: 'flux',
       folder_id: mkt_processos.id,
@@ -604,13 +604,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const mkt_midias = await base44.entities.Folder.create({
+    const mkt_midias = await onhub.entities.Folder.create({
       name: 'Midias',
       parent_id: tempRefs.MARKETING,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Criacoes_PhotoSmart',
       type: 'psd',
       folder_id: mkt_midias.id,
@@ -618,13 +618,13 @@ export async function createDefaultStructure(userEmail) {
       content: JSON.stringify({ layers: [], canvas: { width: 1920, height: 1080, background: '#ffffff' } })
     });
 
-    await base44.entities.Folder.create({
+    await onhub.entities.Folder.create({
       name: 'Instagram',
       parent_id: mkt_midias.id,
       owner: userEmail
     });
 
-    await base44.entities.Folder.create({
+    await onhub.entities.Folder.create({
       name: 'Videos',
       parent_id: mkt_midias.id,
       owner: userEmail
@@ -633,7 +633,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ MARKETING completo');
 
     // 6. OPERACIONAL
-    const operacional = await base44.entities.Folder.create({
+    const operacional = await onhub.entities.Folder.create({
       name: 'OPERACIONAL',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -641,13 +641,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.OPERACIONAL = operacional.id;
 
-    const op_projetos = await base44.entities.Folder.create({
+    const op_projetos = await onhub.entities.Folder.create({
       name: 'Projetos',
       parent_id: tempRefs.OPERACIONAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Projeto_Cliente_X',
       type: 'gnt',
       folder_id: op_projetos.id,
@@ -666,7 +666,7 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Cronograma_Sprint_Projeto_X',
       type: 'crn',
       folder_id: op_projetos.id,
@@ -688,13 +688,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const op_tarefas = await base44.entities.Folder.create({
+    const op_tarefas = await onhub.entities.Folder.create({
       name: 'Tarefas',
       parent_id: tempRefs.OPERACIONAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Operacional_Diario',
       type: 'kbn',
       folder_id: op_tarefas.id,
@@ -716,13 +716,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const op_processos = await base44.entities.Folder.create({
+    const op_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.OPERACIONAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Entrega_Projeto',
       type: 'flux',
       folder_id: op_processos.id,
@@ -744,13 +744,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const op_controle = await base44.entities.Folder.create({
+    const op_controle = await onhub.entities.Folder.create({
       name: 'Controle',
       parent_id: tempRefs.OPERACIONAL,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Status_Projetos',
       type: 'xlsx',
       folder_id: op_controle.id,
@@ -761,7 +761,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ OPERACIONAL completo');
 
     // 7. RH
-    const rh = await base44.entities.Folder.create({
+    const rh = await onhub.entities.Folder.create({
       name: 'RH',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -769,13 +769,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.RH = rh.id;
 
-    const rh_colaboradores = await base44.entities.Folder.create({
+    const rh_colaboradores = await onhub.entities.Folder.create({
       name: 'Colaboradores',
       parent_id: tempRefs.RH,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Cadastro_Colaboradores_Ativos',
       type: 'xlsx',
       folder_id: rh_colaboradores.id,
@@ -783,13 +783,13 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.cadastro_colaboradores
     });
 
-    const rh_processos = await base44.entities.Folder.create({
+    const rh_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.RH,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Admissao_Demissao',
       type: 'flux',
       folder_id: rh_processos.id,
@@ -810,13 +810,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const rh_tarefas = await base44.entities.Folder.create({
+    const rh_tarefas = await onhub.entities.Folder.create({
       name: 'Tarefas',
       parent_id: tempRefs.RH,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'RH_Rotinas',
       type: 'kbn',
       folder_id: rh_tarefas.id,
@@ -837,13 +837,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const rh_cronogramas = await base44.entities.Folder.create({
+    const rh_cronogramas = await onhub.entities.Folder.create({
       name: 'Cronogramas',
       parent_id: tempRefs.RH,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Ferias_Equipe_2026',
       type: 'crn',
       folder_id: rh_cronogramas.id,
@@ -867,7 +867,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ RH completo');
 
     // 8. JURIDICO
-    const juridico = await base44.entities.Folder.create({
+    const juridico = await onhub.entities.Folder.create({
       name: 'JURIDICO',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -875,13 +875,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.JURIDICO = juridico.id;
 
-    const jur_contratos = await base44.entities.Folder.create({
+    const jur_contratos = await onhub.entities.Folder.create({
       name: 'Contratos',
       parent_id: tempRefs.JURIDICO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Contrato_Prestacao_Servico_Cliente_A',
       type: 'docx',
       folder_id: jur_contratos.id,
@@ -889,7 +889,7 @@ export async function createDefaultStructure(userEmail) {
       content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p><strong>Contrato nº:</strong> 001/2026</p><p><strong>Data:</strong> 05 de Janeiro de 2026</p><p><br></p><h2><strong>1. DAS PARTES</strong></h2><p><strong>CONTRATANTE:</strong> Empresa Alpha LTDA, CNPJ 12.345.678/0001-90</p><p>Endereço: Av. Paulista, 1000 - São Paulo/SP</p><p><br></p><p><strong>CONTRATADA:</strong> Nossa Empresa LTDA, CNPJ 98.765.432/0001-00</p><p>Endereço: Rua Comercial, 500 - São Paulo/SP</p><p><br></p><h2><strong>2. DO OBJETO</strong></h2><p>O presente contrato tem por objeto a prestação de serviços de <strong>Desenvolvimento de Sistema de Gestão Integrado</strong>, conforme especificações técnicas do Anexo I.</p><p><br></p><h2><strong>3. DO VALOR E FORMA DE PAGAMENTO</strong></h2><p>O valor total dos serviços é de <strong>R$ 100.000,00</strong> (cem mil reais), a ser pago da seguinte forma:</p><p>• 30% na assinatura do contrato: R$ 30.000,00</p><p>• 40% na entrega dos módulos principais: R$ 40.000,00</p><p>• 30% após homologação final: R$ 30.000,00</p><p><br></p><h2><strong>4. DO PRAZO</strong></h2><p>O prazo de execução dos serviços é de <strong>18 (dezoito) semanas</strong>, com início em 08/01/2026 e término previsto para 30/04/2026.</p><p><br></p><h2><strong>5. DAS OBRIGAÇÕES</strong></h2><p><strong>Da CONTRATADA:</strong></p><p>• Executar os serviços com qualidade técnica</p><p>• Fornecer relatórios semanais de andamento</p><p>• Realizar treinamento da equipe</p><p>• Garantir suporte técnico por 12 meses</p><p><br></p><p><strong>Da CONTRATANTE:</strong></p><p>• Fornecer informações necessárias</p><p>• Disponibilizar ambiente de testes</p><p>• Realizar pagamentos nos prazos acordados</p><p>• Designar responsável para acompanhamento</p>'
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Contrato_Prestacao_Servico_Cliente_B',
       type: 'docx',
       folder_id: jur_contratos.id,
@@ -897,13 +897,13 @@ export async function createDefaultStructure(userEmail) {
       content: '<h1 style="text-align: center;"><strong>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</strong></h1><p><br></p><p><strong>Contrato nº:</strong> 002/2026</p><p><strong>Data:</strong> 10 de Janeiro de 2026</p><p><br></p><h2><strong>1. DAS PARTES</strong></h2><p><strong>CONTRATANTE:</strong> Beta Comércio SA, CNPJ 23.456.789/0001-01</p><p>Endereço: Rua Augusta, 2500 - São Paulo/SP</p><p><br></p><p><strong>CONTRATADA:</strong> Nossa Empresa LTDA, CNPJ 98.765.432/0001-00</p><p>Endereço: Rua Comercial, 500 - São Paulo/SP</p><p><br></p><h2><strong>2. DO OBJETO</strong></h2><p>O presente contrato tem por objeto a prestação de serviços de <strong>Consultoria em Processos Empresariais</strong>, incluindo mapeamento, análise e otimização.</p><p><br></p><h2><strong>3. DO VALOR E FORMA DE PAGAMENTO</strong></h2><p>O valor total dos serviços é de <strong>R$ 75.000,00</strong> (setenta e cinco mil reais), a ser pago em 3 parcelas mensais de R$ 25.000,00.</p><p><br></p><h2><strong>4. DO PRAZO</strong></h2><p>O prazo de execução dos serviços é de <strong>12 (doze) semanas</strong>, com início em 15/01/2026 e término previsto para 15/03/2026.</p><p><br></p><h2><strong>5. ESCOPO DOS SERVIÇOS</strong></h2><p>• Diagnóstico organizacional completo</p><p>• Mapeamento de 10 processos principais</p><p>• Análise de gargalos e oportunidades</p><p>• Proposta de melhoria e automação</p><p>• Acompanhamento de implementação (60 dias)</p><p>• Treinamento de 3 turmas</p>'
     });
 
-    const jur_processos = await base44.entities.Folder.create({
+    const jur_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.JURIDICO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Analise_Contratos',
       type: 'flux',
       folder_id: jur_processos.id,
@@ -925,13 +925,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const jur_controle = await base44.entities.Folder.create({
+    const jur_controle = await onhub.entities.Folder.create({
       name: 'Controle',
       parent_id: tempRefs.JURIDICO,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Acompanhamento_Contratos',
       type: 'xlsx',
       folder_id: jur_controle.id,
@@ -942,7 +942,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ JURIDICO completo');
 
     // 9. TI
-    const ti = await base44.entities.Folder.create({
+    const ti = await onhub.entities.Folder.create({
       name: 'TI',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -950,13 +950,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.TI = ti.id;
 
-    const ti_documentacao = await base44.entities.Folder.create({
+    const ti_documentacao = await onhub.entities.Folder.create({
       name: 'Documentacao',
       parent_id: tempRefs.TI,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Infraestrutura_Sistemas',
       type: 'docx',
       folder_id: ti_documentacao.id,
@@ -964,13 +964,13 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.infraestrutura_ti
     });
 
-    const ti_processos = await base44.entities.Folder.create({
+    const ti_processos = await onhub.entities.Folder.create({
       name: 'Processos',
       parent_id: tempRefs.TI,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Fluxo_Suporte_TI',
       type: 'flux',
       folder_id: ti_processos.id,
@@ -992,13 +992,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const ti_tarefas = await base44.entities.Folder.create({
+    const ti_tarefas = await onhub.entities.Folder.create({
       name: 'Tarefas',
       parent_id: tempRefs.TI,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Suporte_TI',
       type: 'kbn',
       folder_id: ti_tarefas.id,
@@ -1020,13 +1020,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const ti_controle = await base44.entities.Folder.create({
+    const ti_controle = await onhub.entities.Folder.create({
       name: 'Controle',
       parent_id: tempRefs.TI,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Acessos_Sistemas',
       type: 'xlsx',
       folder_id: ti_controle.id,
@@ -1037,7 +1037,7 @@ export async function createDefaultStructure(userEmail) {
     console.log('✓ TI completo');
 
     // 10. DIRETORIA
-    const diretoria = await base44.entities.Folder.create({
+    const diretoria = await onhub.entities.Folder.create({
       name: 'DIRETORIA',
       parent_id: tempRefs.EMPRESA,
       owner: userEmail,
@@ -1045,13 +1045,13 @@ export async function createDefaultStructure(userEmail) {
     });
     tempRefs.DIRETORIA = diretoria.id;
 
-    const dir_planejamento = await base44.entities.Folder.create({
+    const dir_planejamento = await onhub.entities.Folder.create({
       name: 'Planejamento',
       parent_id: tempRefs.DIRETORIA,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Planejamento_Estrategico_2026',
       type: 'docx',
       folder_id: dir_planejamento.id,
@@ -1059,13 +1059,13 @@ export async function createDefaultStructure(userEmail) {
       content: exampleData.planejamento_estrategico
     });
 
-    const dir_projetos = await base44.entities.Folder.create({
+    const dir_projetos = await onhub.entities.Folder.create({
       name: 'Projetos',
       parent_id: tempRefs.DIRETORIA,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Expansao_Empresa',
       type: 'gnt',
       folder_id: dir_projetos.id,
@@ -1084,7 +1084,7 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Tarefas_Expansao',
       type: 'kbn',
       folder_id: dir_projetos.id,
@@ -1106,13 +1106,13 @@ export async function createDefaultStructure(userEmail) {
       })
     });
 
-    const dir_apresentacoes = await base44.entities.Folder.create({
+    const dir_apresentacoes = await onhub.entities.Folder.create({
       name: 'Apresentacoes',
       parent_id: tempRefs.DIRETORIA,
       owner: userEmail
     });
 
-    await base44.entities.File.create({
+    await onhub.entities.File.create({
       name: 'Reuniao_Diretoria_Janeiro_2026',
       type: 'pptx',
       folder_id: dir_apresentacoes.id,

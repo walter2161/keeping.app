@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -192,31 +192,31 @@ export default function Trash() {
 
   const { data: folders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
   });
 
   const { data: files = [], isLoading: filesLoading } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
   });
 
   const updateFolderMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Folder.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.Folder.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const updateFileMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.File.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.File.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
   const deleteFolderMutation = useMutation({
-    mutationFn: (id) => base44.entities.Folder.delete(id),
+    mutationFn: (id) => onhub.entities.Folder.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const deleteFileMutation = useMutation({
-    mutationFn: (id) => base44.entities.File.delete(id),
+    mutationFn: (id) => onhub.entities.File.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 

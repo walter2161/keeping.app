@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -22,41 +22,41 @@ export default function Terminal() {
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
   });
 
   const { data: files = [] } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
   });
 
   const createFolderMutation = useMutation({
-    mutationFn: (data) => base44.entities.Folder.create(data),
+    mutationFn: (data) => onhub.entities.Folder.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const createFileMutation = useMutation({
-    mutationFn: (data) => base44.entities.File.create(data),
+    mutationFn: (data) => onhub.entities.File.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
   const updateFolderMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Folder.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.Folder.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const updateFileMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.File.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.File.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
   const deleteFolderMutation = useMutation({
-    mutationFn: (id) => base44.entities.Folder.update(id, { deleted: true, deleted_at: new Date().toISOString() }),
+    mutationFn: (id) => onhub.entities.Folder.update(id, { deleted: true, deleted_at: new Date().toISOString() }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['folders'] }),
   });
 
   const deleteFileMutation = useMutation({
-    mutationFn: (id) => base44.entities.File.update(id, { deleted: true, deleted_at: new Date().toISOString() }),
+    mutationFn: (id) => onhub.entities.File.update(id, { deleted: true, deleted_at: new Date().toISOString() }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['files'] }),
   });
 
@@ -238,7 +238,7 @@ export default function Terminal() {
             break;
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
-          const user = await base44.auth.me();
+          const user = await onhub.auth.me();
           
           // Check for duplicate name
           const existingFolder = folders.find(f => f.name === args[0] && f.parent_id === currentFolderId && !f.deleted);
@@ -255,7 +255,7 @@ export default function Terminal() {
               team_id = parentFolder.team_id;
               // Check team permissions
               if (team_id) {
-                const { data: teams } = await base44.entities.Team.list();
+                const { data: teams } = await onhub.entities.Team.list();
                 const team = teams?.find(t => t.id === team_id);
                 if (team && !team.members.includes(user.email) && team.owner !== user.email) {
                   addToHistory(input, 'Permission denied: Not a team member', true);
@@ -282,7 +282,7 @@ export default function Terminal() {
             break;
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
-          const user = await base44.auth.me();
+          const user = await onhub.auth.me();
           const fileType = args[1] || 'other';
           
           // Check for duplicate name
@@ -300,7 +300,7 @@ export default function Terminal() {
               team_id = parentFolder.team_id;
               // Check team permissions
               if (team_id) {
-                const { data: teams } = await base44.entities.Team.list();
+                const { data: teams } = await onhub.entities.Team.list();
                 const team = teams?.find(t => t.id === team_id);
                 if (team && !team.members.includes(user.email) && team.owner !== user.email) {
                   addToHistory(input, 'Permission denied: Not a team member', true);
@@ -329,7 +329,7 @@ export default function Terminal() {
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
           const isRecursive = args.includes('-r');
-          const user = await base44.auth.me();
+          const user = await onhub.auth.me();
           
           const targetFile = findFileByName(args[0], currentFolderId);
           const targetFolder = findFolderByName(args[0], currentFolderId);
@@ -337,7 +337,7 @@ export default function Terminal() {
           if (targetFile) {
             // Check ownership or team membership
             if (targetFile.owner !== user.email && targetFile.team_id) {
-              const { data: teams } = await base44.entities.Team.list();
+              const { data: teams } = await onhub.entities.Team.list();
               const team = teams?.find(t => t.id === targetFile.team_id);
               if (team && !team.members.includes(user.email) && team.owner !== user.email) {
                 addToHistory(input, 'Permission denied: Not the owner', true);
@@ -360,7 +360,7 @@ export default function Terminal() {
           } else if (targetFolder && isRecursive) {
             // Check ownership or team membership
             if (targetFolder.owner !== user.email && targetFolder.team_id) {
-              const { data: teams } = await base44.entities.Team.list();
+              const { data: teams } = await onhub.entities.Team.list();
               const team = teams?.find(t => t.id === targetFolder.team_id);
               if (team && !team.members.includes(user.email) && team.owner !== user.email) {
                 addToHistory(input, 'Permission denied: Not the owner', true);
@@ -394,7 +394,7 @@ export default function Terminal() {
             break;
           }
           const currentFolderId = currentPath === '/' ? null : currentPath;
-          const user = await base44.auth.me();
+          const user = await onhub.auth.me();
           const targetFile = findFileByName(args[0], currentFolderId);
           const targetFolder = findFolderByName(args[0], currentFolderId);
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -261,13 +261,13 @@ export default function FileViewer() {
   
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const { data: file, isLoading, error } = useQuery({
     queryKey: ['file', fileId],
     queryFn: async () => {
-      const files = await base44.entities.File.list();
+      const files = await onhub.entities.File.list();
       const file = files.find(f => f.id === fileId);
       console.log('Loaded file from DB:', file);
       console.log('Content length:', file?.content?.length || 0);
@@ -358,7 +358,7 @@ export default function FileViewer() {
   const updateFileMutation = useMutation({
     mutationFn: async (data) => {
       console.log('Updating file with data:', data);
-      const result = await base44.entities.File.update(fileId, data);
+      const result = await onhub.entities.File.update(fileId, data);
       console.log('Update result:', result);
       return result;
     },
@@ -551,11 +551,11 @@ export default function FileViewer() {
     if (file.type === 'pptx' && (fileName.endsWith('.pptx') || fileName.endsWith('.ppt'))) {
       const handlePptxImport = async () => {
         try {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: importFile });
+          const { file_url } = await onhub.integrations.Core.UploadFile({ file: importFile });
           
-          const user = await base44.auth.me();
+          const user = await onhub.auth.me();
           
-          const result = await base44.integrations.Core.InvokeLLM({
+          const result = await onhub.integrations.Core.InvokeLLM({
             prompt: `Você é um especialista em extração de dados de apresentações PowerPoint. Extraia o conteúdo deste arquivo PPTX e retorne no formato JSON especificado. Para cada slide, extraia o texto e organize-o em elementos de texto/título com posições aproximadas.`,
             response_json_schema: {
               type: "object",

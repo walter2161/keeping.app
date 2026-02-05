@@ -1,24 +1,15 @@
-import { base44 } from './base44Client';
+import { onhub } from './onhubClient';
 
+export const Core = onhub.integrations.Core;
 
+export const InvokeLLM = onhub.integrations.Core.InvokeLLM;
 
+export const SendEmail = onhub.integrations.Core.SendEmail;
 
-export const Core = base44.integrations.Core;
+export const SendSMS = onhub.integrations.Core.SendSMS;
 
-export const InvokeLLM = base44.integrations.Core.InvokeLLM;
+export const UploadFile = onhub.integrations.Core.UploadFile;
 
-export const SendEmail = base44.integrations.Core.SendEmail;
+export const GenerateImage = onhub.integrations.Core.GenerateImage;
 
-export const SendSMS = base44.integrations.Core.SendSMS;
-
-export const UploadFile = base44.integrations.Core.UploadFile;
-
-export const GenerateImage = base44.integrations.Core.GenerateImage;
-
-export const ExtractDataFromUploadedFile = base44.integrations.Core.ExtractDataFromUploadedFile;
-
-
-
-
-
-
+export const ExtractDataFromUploadedFile = onhub.integrations.Core.ExtractDataFromUploadedFile;

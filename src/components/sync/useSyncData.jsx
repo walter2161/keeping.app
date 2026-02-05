@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 
 /**
  * SYNC DIRECTIVE - Real-time synchronization hook
@@ -15,43 +15,43 @@ export function useSyncData() {
 
   useEffect(() => {
     // Subscribe to Folder changes
-    const unsubscribeFolders = base44.entities.Folder.subscribe((event) => {
+    const unsubscribeFolders = onhub.entities.Folder.subscribe((event) => {
       console.log('[SYNC] Folder event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['folders'] });
     });
 
     // Subscribe to File changes
-    const unsubscribeFiles = base44.entities.File.subscribe((event) => {
+    const unsubscribeFiles = onhub.entities.File.subscribe((event) => {
       console.log('[SYNC] File event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['files'] });
     });
 
     // Subscribe to Team changes
-    const unsubscribeTeams = base44.entities.Team.subscribe((event) => {
+    const unsubscribeTeams = onhub.entities.Team.subscribe((event) => {
       console.log('[SYNC] Team event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['teams'] });
     });
 
     // Subscribe to TeamInvitation changes
-    const unsubscribeInvites = base44.entities.TeamInvitation.subscribe((event) => {
+    const unsubscribeInvites = onhub.entities.TeamInvitation.subscribe((event) => {
       console.log('[SYNC] TeamInvitation event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['teamInvitations'] });
     });
 
     // Subscribe to TeamActivity changes
-    const unsubscribeActivity = base44.entities.TeamActivity.subscribe((event) => {
+    const unsubscribeActivity = onhub.entities.TeamActivity.subscribe((event) => {
       console.log('[SYNC] TeamActivity event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['teamActivities'] });
     });
 
     // Subscribe to ActiveSession changes
-    const unsubscribeSessions = base44.entities.ActiveSession.subscribe((event) => {
+    const unsubscribeSessions = onhub.entities.ActiveSession.subscribe((event) => {
       console.log('[SYNC] ActiveSession event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['activeSessions'] });
     });
 
     // Subscribe to ChatMessage changes
-    const unsubscribeMessages = base44.entities.ChatMessage.subscribe((event) => {
+    const unsubscribeMessages = onhub.entities.ChatMessage.subscribe((event) => {
       console.log('[SYNC] ChatMessage event:', event.type, event.id);
       queryClient.invalidateQueries({ queryKey: ['chatMessages'] });
     });
@@ -79,7 +79,7 @@ export function useSyncData() {
  * 5. FileViewer MUST use useSyncData() for live editing sessions
  * 
  * 6. When creating new mutations, ALWAYS invalidate queries to trigger sync
- * 7. When updating entities, ALWAYS use base44.entities methods (never direct API)
+ * 7. When updating entities, ALWAYS use onhub.entities methods (never direct API)
  * 8. Real-time subscriptions handle automatic updates across all components
  * 
  * This ensures Terminal and AI Assistant are ALWAYS synchronized with the app state.

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, FileText, FileSpreadsheet, Image, Video, Archive } from 'lucide-react';
 import JSZip from 'jszip';
@@ -75,7 +75,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
   };
 
   const extractAndUploadZip = async (zipFile) => {
-    const user = await base44.auth.me();
+    const user = await onhub.auth.me();
     const zip = await JSZip.loadAsync(zipFile);
     const folderMap = new Map(); // path -> folder id
     
@@ -97,7 +97,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
     // Função para criar pasta
     const createFolder = async (folderPath, parentId) => {
       const folderName = folderPath.split('/').pop();
-      const newFolder = await base44.entities.Folder.create({
+      const newFolder = await onhub.entities.Folder.create({
         name: folderName,
         parent_id: parentId,
         team_id: teamId,
@@ -119,7 +119,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
         // Upload do blob
         const blob = new Blob([content]);
         const file = new File([blob], fileName);
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await onhub.integrations.Core.UploadFile({ file });
         fileUrl = file_url;
       } else {
         // Converter CSV para XLSX se necessário
@@ -137,7 +137,7 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
         }
       }
       
-      await base44.entities.File.create({
+      await onhub.entities.File.create({
         name: baseName,
         type: fileType,
         folder_id: parentId,
@@ -246,11 +246,11 @@ export default function UploadDialog({ open, onOpenChange, onUploadComplete, fol
       setProgress(prev => ({ ...prev, [i]: 'uploading' }));
       
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await onhub.integrations.Core.UploadFile({ file });
         const fileType = detectFileType(file.name);
         const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
         
-        const newFile = await base44.entities.File.create({
+        const newFile = await onhub.entities.File.create({
           name: fileName,
           type: fileType,
           folder_id: folderId,
