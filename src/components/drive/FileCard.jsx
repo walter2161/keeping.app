@@ -17,6 +17,16 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 
+// Helper to resolve local:// URLs to data URLs
+const resolveFileUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('local://')) {
+    const key = url.replace('local://', '');
+    return localStorage.getItem(key) || null;
+  }
+  return url;
+};
+
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50', label: 'Documento' },
   xlsx: { icon: FileSpreadsheet, color: 'text-green-600', bg: 'bg-green-50', label: 'Planilha' },
@@ -65,11 +75,13 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
 
   const renderThumbnail = () => {
     const thumbnailContent = () => {
-      if (file.type === 'img' && file.file_url) {
+      const resolvedUrl = resolveFileUrl(file.file_url);
+      
+      if (file.type === 'img' && resolvedUrl) {
         return (
           <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
             <img 
-              src={file.file_url} 
+              src={resolvedUrl} 
               alt={file.name}
               className="w-full h-full object-cover"
             />
@@ -77,11 +89,11 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
         );
       }
       
-      if (file.type === 'video' && file.file_url) {
+      if (file.type === 'video' && resolvedUrl) {
         return (
           <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
             <video 
-              src={file.file_url}
+              src={resolvedUrl}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -91,7 +103,7 @@ export default function FileCard({ file, onClick, onDelete, onRename, onExport, 
         );
       }
       
-      if (file.type === 'pdf' && file.file_url) {
+      if (file.type === 'pdf' && resolvedUrl) {
         return (
           <div className="w-16 h-16 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
             <FileText className="w-8 h-8 text-red-600" />

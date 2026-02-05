@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -50,6 +51,7 @@ const defaultShortcuts = [
 ];
 
 export default function Desktop() {
+  const { logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState([]);
@@ -691,7 +693,7 @@ export default function Desktop() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => base44.auth.logout()}
+                          onClick={() => logout()}
                           className="h-9 w-9"
                           title="Sair"
                         >

@@ -35,6 +35,16 @@ import CollaborationBar from '../components/collaboration/CollaborationBar';
 import { useSyncData } from '../components/sync/useSyncData';
 import MiniTerminal from '../components/terminal/MiniTerminal';
 
+// Helper to resolve local:// URLs to data URLs
+const resolveFileUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('local://')) {
+    const key = url.replace('local://', '');
+    return localStorage.getItem(key) || null;
+  }
+  return url;
+};
+
 const fileTypeConfig = {
   docx: { icon: FileText, color: 'text-blue-600', label: 'Documento' },
   xlsx: { icon: FileSpreadsheet, color: 'text-green-600', label: 'Planilha' },
@@ -457,7 +467,7 @@ export default function FileViewer() {
     // Para imagens, vídeos e PDFs, fazer download direto do arquivo original
     if ((file.type === 'img' || file.type === 'video' || file.type === 'pdf') && file.file_url) {
       const a = document.createElement('a');
-      a.href = file.file_url;
+      a.href = resolveFileUrl(file.file_url);
       a.download = file.name;
       a.target = '_blank';
       a.click();
@@ -954,10 +964,10 @@ export default function FileViewer() {
         {file.type === 'img' && file.file_url && (
           <div className="p-6 flex items-center justify-center min-h-[500px]">
             <img
-              src={file.file_url}
+              src={resolveFileUrl(file.file_url)}
               alt={file.name}
               className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg cursor-pointer"
-              onClick={() => setMediaPopup({ open: true, url: file.file_url, type: 'img' })}
+              onClick={() => setMediaPopup({ open: true, url: resolveFileUrl(file.file_url), type: 'img' })}
             />
           </div>
         )}
@@ -965,10 +975,10 @@ export default function FileViewer() {
         {file.type === 'video' && file.file_url && (
           <div className="p-6 flex items-center justify-center min-h-[500px]">
             <video
-              src={file.file_url}
+              src={resolveFileUrl(file.file_url)}
               controls
               className="max-w-full max-h-[80vh] rounded-lg shadow-lg cursor-pointer"
-              onClick={() => setMediaPopup({ open: true, url: file.file_url, type: 'video' })}
+              onClick={() => setMediaPopup({ open: true, url: resolveFileUrl(file.file_url), type: 'video' })}
             >
               Seu navegador não suporta a reprodução de vídeos.
             </video>

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity, Trash2, Moon, Sun } from 'lucide-react';
+import { User, Mail, Shield, Save, Loader2, ArrowLeft, Upload, X, Database, Folder, File, HardDrive, Activity, Trash2, Moon, Sun, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Switch } from "@/components/ui/switch";
 import DesktopSyncDownload from '../components/profile/DesktopSyncDownload';
 
 export default function Profile() {
+  const { logout } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -252,12 +254,18 @@ export default function Profile() {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Meu Perfil</h1>
-          <Link to={createPageUrl('Drive')}>
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao Drive
+          <div className="flex items-center gap-2">
+            <Link to={createPageUrl('Drive')}>
+              <Button variant="outline">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar ao Drive
+              </Button>
+            </Link>
+            <Button variant="destructive" onClick={() => logout()}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
             </Button>
-          </Link>
+          </div>
         </div>
 
         <Card>
