@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -49,9 +49,13 @@ const LoginForm = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <Card className="w-full max-w-md bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
-            <Lock className="w-6 h-6 text-white" />
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto flex items-center justify-center mb-2">
+            <img 
+              src="/logo-onhub.png" 
+              alt="OnHub" 
+              className="w-20 h-20 object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold text-white">OnHub</CardTitle>
           <CardDescription className="text-slate-400">
