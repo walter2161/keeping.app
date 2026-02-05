@@ -1,23 +1,36 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import { onhub } from '@/api/onhubClient';
 
 const AuthContext = createContext();
 
+// Check auth synchronously from localStorage to avoid flash
+const getInitialAuthState = () => {
+  try {
+    const isLoggedIn = localStorage.getItem('onhub_is_logged_in') === 'true';
+    if (isLoggedIn) {
+      const userData = localStorage.getItem('onhub_current_user');
+      if (userData) {
+        return { user: JSON.parse(userData), isAuthenticated: true };
+      }
+    }
+  } catch (e) {
+    console.error('Error reading initial auth state:', e);
+  }
+  return { user: null, isAuthenticated: false };
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const initialState = useMemo(() => getInitialAuthState(), []);
+  
+  const [user, setUser] = useState(initialState.user);
+  const [isAuthenticated, setIsAuthenticated] = useState(initialState.isAuthenticated);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false); // Start as false since we read synchronously
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState({});
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
   const checkAuth = async () => {
     try {
-      setIsLoadingAuth(true);
       setAuthError(null);
       
       const currentUser = await onhub.auth.me();
@@ -33,8 +46,6 @@ export const AuthProvider = ({ children }) => {
       console.error('Auth check failed:', error);
       setIsAuthenticated(false);
       setUser(null);
-    } finally {
-      setIsLoadingAuth(false);
     }
   };
 
