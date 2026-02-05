@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -82,24 +82,24 @@ export default function Desktop() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
     enabled: !!user,
   });
 
   const { data: files = [] } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
     enabled: !!user,
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => onhub.entities.Team.list(),
     enabled: !!user,
   });
 
@@ -113,7 +113,7 @@ export default function Desktop() {
   }, [user]);
 
   const updateUserMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
+    mutationFn: (data) => onhub.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
     },
@@ -289,7 +289,7 @@ export default function Desktop() {
   };
 
   const createFileMutation = useMutation({
-    mutationFn: (data) => base44.entities.File.create(data),
+    mutationFn: (data) => onhub.entities.File.create(data),
     onSuccess: (newFile) => {
       queryClient.invalidateQueries({ queryKey: ['files'] });
       window.location.href = createPageUrl(`FileViewer?id=${newFile.id}`);
@@ -691,7 +691,7 @@ export default function Desktop() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => base44.auth.logout()}
+                          onClick={() => onhub.auth.logout()}
                           className="h-9 w-9"
                           title="Sair"
                         >

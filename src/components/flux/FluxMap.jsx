@@ -3,7 +3,7 @@ import Drawflow from 'drawflow';
 import 'drawflow/dist/drawflow.min.css';
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Minus, Upload, Edit2, Copy, MoreVertical } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import {
   Dialog,
   DialogContent,
@@ -408,8 +408,8 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                   pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                 };
 
-                base44.auth.me().then(user => {
-                  return base44.entities.File.create({
+                onhub.auth.me().then(user => {
+                  return onhub.entities.File.create({
                     name: fileName,
                     type: fileType,
                     content: currentNodeData.data.content || defaultContent[fileType],
@@ -719,8 +719,8 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                             pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                           };
 
-                          base44.auth.me().then(user => {
-                            return base44.entities.File.create({
+                          onhub.auth.me().then(user => {
+                            return onhub.entities.File.create({
                               name: fileName,
                               type: fileType,
                               content: currentNodeData.data.content || defaultContent[fileType],
@@ -921,8 +921,8 @@ export default function FluxMap({ data, onChange, onImport, folderId }) {
                           pptx: JSON.stringify({ slides: [{ background: '#ffffff', elements: [] }] })
                         };
 
-                        base44.auth.me().then(user => {
-                          return base44.entities.File.create({
+                        onhub.auth.me().then(user => {
+                          return onhub.entities.File.create({
                             name: fileName,
                             type: fileType,
                             content: currentNodeData.data.content || defaultContent[fileType],

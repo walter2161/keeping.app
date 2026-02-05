@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Users, Check, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export default function NotificationBell({ currentUserEmail }) {
   const { data: invitations = [] } = useQuery({
     queryKey: ['teamInvitations', currentUserEmail],
     queryFn: async () => {
-      const all = await base44.entities.TeamInvitation.list();
+      const all = await onhub.entities.TeamInvitation.list();
       return all.filter(inv => inv.invited_email === currentUserEmail && inv.status === 'pending');
     },
     enabled: !!currentUserEmail,
@@ -25,14 +25,14 @@ export default function NotificationBell({ currentUserEmail }) {
   const acceptInvitationMutation = useMutation({
     mutationFn: async (invitation) => {
       // Atualizar status do convite
-      await base44.entities.TeamInvitation.update(invitation.id, { status: 'accepted' });
+      await onhub.entities.TeamInvitation.update(invitation.id, { status: 'accepted' });
       
       // Adicionar usuário à equipe
-      const team = await base44.entities.Team.filter({ id: invitation.team_id });
+      const team = await onhub.entities.Team.filter({ id: invitation.team_id });
       if (team.length > 0) {
         const currentMembers = team[0].members || [];
         if (!currentMembers.includes(invitation.invited_email)) {
-          await base44.entities.Team.update(invitation.team_id, {
+          await onhub.entities.Team.update(invitation.team_id, {
             members: [...currentMembers, invitation.invited_email]
           });
         }
@@ -46,7 +46,7 @@ export default function NotificationBell({ currentUserEmail }) {
 
   const rejectInvitationMutation = useMutation({
     mutationFn: (invitationId) => 
-      base44.entities.TeamInvitation.update(invitationId, { status: 'rejected' }),
+      onhub.entities.TeamInvitation.update(invitationId, { status: 'rejected' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teamInvitations'] });
     },

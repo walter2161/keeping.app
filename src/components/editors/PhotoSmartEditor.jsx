@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import {
   Select,
   SelectContent,
@@ -549,7 +549,7 @@ export default function PhotoSmartEditor({ data, onChange, fileName }) {
 
     setAiGenerating(true);
     try {
-      const result = await base44.integrations.Core.GenerateImage({
+      const result = await onhub.integrations.Core.GenerateImage({
         prompt: aiPrompt
       });
 

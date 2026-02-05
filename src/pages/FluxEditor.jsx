@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -38,7 +38,7 @@ export default function FluxEditor() {
   const { data: fluxFile, isLoading } = useQuery({
     queryKey: ['flux-file', fluxFileId],
     queryFn: async () => {
-      const files = await base44.entities.File.list();
+      const files = await onhub.entities.File.list();
       return files.find(f => f.id === fluxFileId);
     },
     enabled: !!fluxFileId,
@@ -92,7 +92,7 @@ export default function FluxEditor() {
       }
       
       // Salvar o FluxMap atualizado
-      await base44.entities.File.update(fluxFileId, {
+      await onhub.entities.File.update(fluxFileId, {
         content: JSON.stringify(updatedFluxData)
       });
       

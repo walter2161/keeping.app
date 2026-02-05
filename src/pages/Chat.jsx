@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -36,45 +36,45 @@ export default function Chat() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const { data: allMessages = [] } = useQuery({
     queryKey: ['messages'],
-    queryFn: () => base44.entities.DirectMessage.list('-created_date'),
+    queryFn: () => onhub.entities.DirectMessage.list('-created_date'),
     enabled: !!currentUser,
     refetchInterval: 2000,
   });
 
   const { data: chatRequests = [] } = useQuery({
     queryKey: ['chatRequests'],
-    queryFn: () => base44.entities.ChatRequest.list(),
+    queryFn: () => onhub.entities.ChatRequest.list(),
     enabled: !!currentUser,
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => onhub.entities.Team.list(),
     enabled: !!currentUser,
   });
 
   const { data: myFiles = [] } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
     enabled: !!currentUser && shareFileDialog,
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const users = await base44.entities.User.list();
+      const users = await onhub.entities.User.list();
       return users;
     },
     enabled: !!currentUser,
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: (data) => base44.entities.DirectMessage.create(data),
+    mutationFn: (data) => onhub.entities.DirectMessage.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       setMessage('');
@@ -82,7 +82,7 @@ export default function Chat() {
   });
 
   const sendRequestMutation = useMutation({
-    mutationFn: (data) => base44.entities.ChatRequest.create(data),
+    mutationFn: (data) => onhub.entities.ChatRequest.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatRequests'] });
       setNewUserEmail('');
@@ -92,12 +92,12 @@ export default function Chat() {
   });
 
   const updateRequestMutation = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.ChatRequest.update(id, { status }),
+    mutationFn: ({ id, status }) => onhub.entities.ChatRequest.update(id, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chatRequests'] }),
   });
 
   const markAsReadMutation = useMutation({
-    mutationFn: ({ id }) => base44.entities.DirectMessage.update(id, { read: true }),
+    mutationFn: ({ id }) => onhub.entities.DirectMessage.update(id, { read: true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['messages'] }),
   });
 
@@ -229,7 +229,7 @@ export default function Chat() {
     if (!file) return;
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await onhub.integrations.Core.UploadFile({ file });
       await handleSendMessage('image', file_url, file.name);
     } catch (error) {
       alert('Erro ao enviar imagem: ' + error.message);
@@ -250,7 +250,7 @@ export default function Chat() {
           const file = new File([blob], `audio.${blob.type.split('/')[1]}`, { type: blob.type });
           
           try {
-            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+            const { file_url } = await onhub.integrations.Core.UploadFile({ file });
             await handleSendMessage('audio', file_url, file.name);
           } catch (error) {
             console.error('Erro ao enviar áudio:', error);

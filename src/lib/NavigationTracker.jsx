@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
 
 export default function NavigationTracker() {
@@ -18,7 +17,7 @@ export default function NavigationTracker() {
         }, '*');
     }, [location]);
 
-    // Log user activity when navigating to a page
+    // Log user activity when navigating to a page (simplified for localStorage mode)
     useEffect(() => {
         // Extract page name from pathname
         const pathname = location.pathname;
@@ -39,10 +38,9 @@ export default function NavigationTracker() {
             pageName = matchedKey || null;
         }
 
+        // Logging is simplified in localStorage mode - just console log
         if (isAuthenticated && pageName) {
-            base44.appLogs.logUserInApp(pageName).catch(() => {
-                // Silently fail - logging shouldn't break the app
-            });
+            console.log('[Navigation] User navigated to:', pageName);
         }
     }, [location, isAuthenticated, Pages, mainPageKey]);
 

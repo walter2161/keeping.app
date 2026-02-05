@@ -26,7 +26,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import ReactMarkdown from 'react-markdown';
 import { useQuery } from '@tanstack/react-query';
 import { Link as LinkIcon } from 'lucide-react';
@@ -83,22 +83,22 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const { data: allFolders = [] } = useQuery({
     queryKey: ['all-folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
   });
 
   const { data: allFiles = [] } = useQuery({
     queryKey: ['all-files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
   });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => onhub.entities.Team.list(),
   });
 
   const myTeams = teams.filter(t => t.members?.includes(user?.email));
@@ -134,7 +134,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
     setUploadingFile(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await onhub.integrations.Core.UploadFile({ file });
       if (editData.coverType === 'image') {
         setEditData({ ...editData, coverImage: file_url });
       } else {
@@ -158,7 +158,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
     setGeneratingAI(true);
     try {
-      const result = await base44.integrations.Core.GenerateImage({
+      const result = await onhub.integrations.Core.GenerateImage({
         prompt: aiPrompt
       });
 

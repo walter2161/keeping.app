@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Image, Paperclip, X, Sparkles, Loader2, ZoomIn, ZoomOut, Download } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 
 const priorityColors = {
   low: 'bg-gray-100 text-gray-700',
@@ -52,7 +52,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
     setUploadingFile(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await onhub.integrations.Core.UploadFile({ file });
       if (editData.coverType === 'image') {
         setEditData({ ...editData, coverImage: file_url });
       } else {
@@ -81,7 +81,7 @@ export default function CardEditDialog({ open, onOpenChange, data, onSave }) {
 
     setGeneratingAI(true);
     try {
-      const result = await base44.integrations.Core.GenerateImage({
+      const result = await onhub.integrations.Core.GenerateImage({
         prompt: aiPrompt
       });
 

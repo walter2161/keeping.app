@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, HardDrive, Info, CheckCircle2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import {
   Dialog,
   DialogContent,

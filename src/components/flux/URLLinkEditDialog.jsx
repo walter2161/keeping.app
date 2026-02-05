@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,7 +66,7 @@ A URL da imagem DEVE ser completa (começar com http:// ou https://).`;
         }
       };
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await onhub.integrations.Core.InvokeLLM({
         prompt,
         add_context_from_internet: true,
         response_json_schema: schema

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
   
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
     staleTime: 0,
     cacheTime: 0,
   });
@@ -240,9 +240,9 @@ export default function AIAssistant({ fileContext = null, fileType = null, curre
 
     try {
       // Buscar todas as pastas, arquivos e equipes para contexto
-      const folders = await base44.entities.Folder.list();
-      const files = await base44.entities.File.list();
-      const teams = await base44.entities.Team.list();
+      const folders = await onhub.entities.Folder.list();
+      const files = await onhub.entities.File.list();
+      const teams = await onhub.entities.Team.list();
       
       const currentFolder = folders.find(f => f.id === currentFolderId);
       
@@ -437,7 +437,7 @@ Converta a ação em uma ou mais estruturas JSON executáveis em formato array.`
             required: ["actions"]
           };
 
-          const llmResult = await base44.integrations.Core.InvokeLLM({
+          const llmResult = await onhub.integrations.Core.InvokeLLM({
             prompt: actionPrompt,
             response_json_schema: actionSchema
           });
@@ -994,7 +994,7 @@ Converta o comando em uma ou mais ações estruturadas em formato array.`;
         // Ativar modo terminal ANTES de chamar LLM
         setTerminalMode(true);
         
-        const llmResult = await base44.integrations.Core.InvokeLLM({
+        const llmResult = await onhub.integrations.Core.InvokeLLM({
           prompt: actionPrompt,
           response_json_schema: actionSchema
         });
@@ -1213,7 +1213,7 @@ Responda de forma natural e amigável em português. Use o formato de links semp
 
 Usuário: ${input}`;
 
-        const chatResult = await base44.integrations.Core.InvokeLLM({
+        const chatResult = await onhub.integrations.Core.InvokeLLM({
           prompt: chatPrompt
         });
 
@@ -1260,7 +1260,7 @@ Usuário: ${input}`;
 
     if (action === 'create_folder' && user?.assistant_can_create_folders !== false) {
       console.log('Criando pasta:', data);
-      const result = await base44.entities.Folder.create({
+      const result = await onhub.entities.Folder.create({
         name: data.name,
         parent_id: data.parent_id || null,
         team_id: data.team_id || null,
@@ -1297,7 +1297,7 @@ Usuário: ${input}`;
         console.log('📊 Planilha criada com', lines.length, 'linhas');
       }
       
-      const result = await base44.entities.File.create({
+      const result = await onhub.entities.File.create({
         name: data.name,
         type: data.type,
         folder_id: data.folder_id || null,
@@ -1308,16 +1308,16 @@ Usuário: ${input}`;
       console.log('✅ Arquivo criado com sucesso:', result.id);
       return result;
     } else if (action === 'edit_file' && user?.assistant_can_edit_files !== false) {
-      const result = await base44.entities.File.update(data.file_id, {
+      const result = await onhub.entities.File.update(data.file_id, {
         content: typeof data.content === 'object' ? JSON.stringify(data.content) : data.content,
       });
       setTimeout(() => window.location.reload(), 800);
       return result;
     } else if (action === 'delete_item' && user?.assistant_can_delete_items !== false) {
       if (data.type === 'folder') {
-        return await base44.entities.Folder.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
+        return await onhub.entities.Folder.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
       } else if (data.type === 'file') {
-        return await base44.entities.File.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
+        return await onhub.entities.File.update(data.id, { deleted: true, deleted_at: new Date().toISOString() });
       }
     } else {
       throw new Error('Permissão negada para esta ação');

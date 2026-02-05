@@ -1,9 +1,6 @@
-import { base44 } from './base44Client';
+import { onhub } from './onhubClient';
 
-
-export const Query = base44.entities.Query;
-
-
+export const Query = onhub.entities.Query;
 
 // auth sdk:
-export const User = base44.auth;
+export const User = onhub.auth;

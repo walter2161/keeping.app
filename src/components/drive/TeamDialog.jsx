@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
     queryKey: ['team', team?.id],
     queryFn: async () => {
       if (!team?.id) return null;
-      const teams = await base44.entities.Team.filter({ id: team.id });
+      const teams = await onhub.entities.Team.filter({ id: team.id });
       return teams[0] || null;
     },
     enabled: !!team?.id && open,
@@ -67,10 +67,10 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
   
   const createTeamMutation = useMutation({
     mutationFn: async (data) => {
-      const newTeam = await base44.entities.Team.create(data);
+      const newTeam = await onhub.entities.Team.create(data);
       
       // Criar pasta automaticamente para a equipe
-      await base44.entities.Folder.create({
+      await onhub.entities.Folder.create({
         name: data.name,
         parent_id: null,
         team_id: newTeam.id,
@@ -88,7 +88,7 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
   });
   
   const updateTeamMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Team.update(id, data),
+    mutationFn: ({ id, data }) => onhub.entities.Team.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       onOpenChange(false);
@@ -98,32 +98,32 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
   const deleteTeamMutation = useMutation({
     mutationFn: async (teamId) => {
       // Buscar todas as pastas da equipe
-      const allFolders = await base44.entities.Folder.list();
+      const allFolders = await onhub.entities.Folder.list();
       const teamFolders = allFolders.filter(f => f.team_id === teamId);
       
       // Buscar todos os arquivos da equipe
-      const allFiles = await base44.entities.File.list();
+      const allFiles = await onhub.entities.File.list();
       const teamFiles = allFiles.filter(f => f.team_id === teamId);
       
       // Deletar todos os arquivos
       for (const file of teamFiles) {
-        await base44.entities.File.delete(file.id);
+        await onhub.entities.File.delete(file.id);
       }
       
       // Deletar todas as pastas
       for (const folder of teamFolders) {
-        await base44.entities.Folder.delete(folder.id);
+        await onhub.entities.Folder.delete(folder.id);
       }
 
       // Deletar convites pendentes da equipe
-      const allInvitations = await base44.entities.TeamInvitation.list();
+      const allInvitations = await onhub.entities.TeamInvitation.list();
       const teamInvitations = allInvitations.filter(inv => inv.team_id === teamId);
       for (const invitation of teamInvitations) {
-        await base44.entities.TeamInvitation.delete(invitation.id);
+        await onhub.entities.TeamInvitation.delete(invitation.id);
       }
       
       // Deletar a equipe
-      await base44.entities.Team.delete(teamId);
+      await onhub.entities.Team.delete(teamId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -139,7 +139,7 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
     mutationFn: async () => {
       if (!team || !currentTeam) return;
       const updatedMembers = currentTeam.members.filter(m => m !== currentUserEmail);
-      await base44.entities.Team.update(team.id, { members: updatedMembers });
+      await onhub.entities.Team.update(team.id, { members: updatedMembers });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -152,7 +152,7 @@ export default function TeamDialog({ open, onOpenChange, team, currentUserEmail 
     if (newMemberEmail && newMemberEmail.includes('@') && !members.includes(newMemberEmail)) {
       if (team) {
         // Se está editando, criar convite
-        await base44.entities.TeamInvitation.create({
+        await onhub.entities.TeamInvitation.create({
           team_id: team.id,
           team_name: team.name,
           invited_email: newMemberEmail,

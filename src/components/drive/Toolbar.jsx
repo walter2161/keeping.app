@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { onhub } from '@/api/onhubClient';
 import { useQuery } from '@tanstack/react-query';
 import { 
   FolderPlus, FilePlus, Upload, Download, LayoutGrid, 
@@ -50,18 +50,18 @@ export default function Toolbar({
   
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => onhub.auth.me(),
   });
 
   const { data: allFolders = [] } = useQuery({
     queryKey: ['folders'],
-    queryFn: () => base44.entities.Folder.list(),
+    queryFn: () => onhub.entities.Folder.list(),
     enabled: !!user,
   });
 
   const { data: allFiles = [] } = useQuery({
     queryKey: ['files'],
-    queryFn: () => base44.entities.File.list(),
+    queryFn: () => onhub.entities.File.list(),
     enabled: !!user,
   });
 
@@ -148,7 +148,7 @@ export default function Toolbar({
         
         <Link to={createPageUrl('Desktop')} className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
           <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/onhub-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
             alt="onHub"
             className="h-8 w-auto"
           />
