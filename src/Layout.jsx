@@ -23,12 +23,12 @@ export default function Layout({ children, currentPageName }) {
 
   // Don't show layout for file viewer
   if (currentPageName === 'FileViewer') {
-    return <>{children}</>;
+    return <Base44Init>{children}</Base44Init>;
   }
 
-  // Don't show layout for Wiki pages
+  // Don't show layout for Wiki pages and Desktop
   if (currentPageName === 'Wiki' || currentPageName === 'WikiDev' || currentPageName === 'Desktop') {
-    return <>{children}</>;
+    return <Base44Init>{children}</Base44Init>;
   }
 
   return (

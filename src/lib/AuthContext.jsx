@@ -17,31 +17,31 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
-    console.log('[v0] checkAppState: starting...');
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
       
       // Check if user is already logged in
       const isAuth = localDB.auth.isAuthenticated();
-      console.log('[v0] checkAppState: isAuthenticated =', isAuth);
       
       if (isAuth) {
         const currentUser = localDB.auth.me();
-        console.log('[v0] checkAppState: currentUser =', currentUser);
-        setUser(currentUser);
-        setIsAuthenticated(true);
-        setShowLogin(false);
+        if (currentUser) {
+          setUser(currentUser);
+          setIsAuthenticated(true);
+          setShowLogin(false);
+        } else {
+          setIsAuthenticated(false);
+          setShowLogin(true);
+        }
       } else {
-        console.log('[v0] checkAppState: not authenticated, showing login');
         setIsAuthenticated(false);
         setShowLogin(true);
       }
       
       setIsLoadingAuth(false);
-      console.log('[v0] checkAppState: complete, isLoadingAuth = false');
     } catch (error) {
-      console.error('[v0] checkAppState error:', error);
+      console.error('Auth check failed:', error);
       setIsAuthenticated(false);
       setShowLogin(true);
       setIsLoadingAuth(false);

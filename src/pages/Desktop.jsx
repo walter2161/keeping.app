@@ -82,9 +82,10 @@ export default function Desktop() {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    retry: false,
   });
 
   const { data: folders = [] } = useQuery({
@@ -111,6 +112,9 @@ export default function Desktop() {
       const savedShortcuts = user.desktop_shortcuts || defaultShortcuts;
       setShortcuts(savedShortcuts);
       setWallpaper(user.desktop_wallpaper || wallpaper);
+    } else {
+      // Use default shortcuts when no user
+      setShortcuts(defaultShortcuts);
     }
   }, [user]);
 
@@ -441,9 +445,9 @@ export default function Desktop() {
 
   return (
     <div 
-      className="h-screen w-screen overflow-hidden fixed inset-0"
+      className="h-screen w-screen overflow-hidden fixed inset-0 bg-gradient-to-br from-slate-800 to-slate-900"
       style={{
-        backgroundImage: `url(${wallpaper})`,
+        backgroundImage: wallpaper ? `url(${wallpaper})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

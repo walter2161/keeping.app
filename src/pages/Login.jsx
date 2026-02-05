@@ -8,14 +8,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Lock, User, FolderOpen } from 'lucide-react';
 
 export default function Login() {
-  console.log('[v0] Login component rendering');
   const { login, authError, isLoadingAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  console.log('[v0] Login: isLoadingAuth =', isLoadingAuth, 'authError =', authError);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

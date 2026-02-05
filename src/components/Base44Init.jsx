@@ -12,13 +12,11 @@ export default function Base44Init({ children }) {
       try {
         // Verificar se está autenticado primeiro
         if (!base44.auth.isAuthenticated()) {
-          console.log('[v0] Base44Init: not authenticated, skipping structure setup');
           setIsInitialized(true);
           return;
         }
         
         const user = base44.auth.me();
-        console.log('[v0] Base44Init: user =', user);
         
         if (!user) {
           setIsInitialized(true);
@@ -33,8 +31,6 @@ export default function Base44Init({ children }) {
         const empresaFolder = userFolders.find(f => f.name === 'EMPRESA');
         
         if (!empresaFolder) {
-          console.log('[v0] Base44Init: creating default structure for ' + user.email);
-          
           try {
             // Criar estrutura padrão
             await createDefaultStructure(user.email);
@@ -42,20 +38,18 @@ export default function Base44Init({ children }) {
             // Marcar como criado no perfil do usuário
             base44.auth.updateMe({ default_structure_created: true });
             
-            console.log('[v0] Base44Init: default structure created successfully!');
-            
             // Recarregar a página para mostrar as pastas criadas
             setTimeout(() => {
               window.location.reload();
             }, 500);
           } catch (structureError) {
-            console.error('[v0] Base44Init: error creating structure:', structureError);
+            console.error('Error creating structure:', structureError);
           }
         }
         
         setIsInitialized(true);
       } catch (error) {
-        console.error('[v0] Base44Init: error checking structure:', error);
+        console.error('Error checking structure:', error);
         setIsInitialized(true);
       }
     };
