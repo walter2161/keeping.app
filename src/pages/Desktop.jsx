@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -50,6 +51,7 @@ const defaultShortcuts = [
 ];
 
 export default function Desktop() {
+  const { logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState([]);
@@ -80,9 +82,10 @@ export default function Desktop() {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    retry: false,
   });
 
   const { data: folders = [] } = useQuery({
@@ -109,6 +112,9 @@ export default function Desktop() {
       const savedShortcuts = user.desktop_shortcuts || defaultShortcuts;
       setShortcuts(savedShortcuts);
       setWallpaper(user.desktop_wallpaper || wallpaper);
+    } else {
+      // Use default shortcuts when no user
+      setShortcuts(defaultShortcuts);
     }
   }, [user]);
 
@@ -439,9 +445,9 @@ export default function Desktop() {
 
   return (
     <div 
-      className="h-screen w-screen overflow-hidden fixed inset-0"
+      className="h-screen w-screen overflow-hidden fixed inset-0 bg-gradient-to-br from-slate-800 to-slate-900"
       style={{
-        backgroundImage: `url(${wallpaper})`,
+        backgroundImage: wallpaper ? `url(${wallpaper})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
@@ -691,7 +697,7 @@ export default function Desktop() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => base44.auth.logout()}
+                          onClick={() => logout()}
                           className="h-9 w-9"
                           title="Sair"
                         >

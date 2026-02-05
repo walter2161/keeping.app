@@ -19,21 +19,16 @@ export default function Layout({ children, currentPageName }) {
     if (isDark) {
       document.documentElement.classList.add('dark');
     }
-
-    // Redirect to Desktop if on root
-    if (window.location.pathname === '/' || window.location.pathname === '') {
-      window.location.href = createPageUrl('Desktop');
-    }
   }, []);
 
   // Don't show layout for file viewer
   if (currentPageName === 'FileViewer') {
-    return <>{children}</>;
+    return <Base44Init>{children}</Base44Init>;
   }
 
-  // Don't show layout for Wiki pages
+  // Don't show layout for Wiki pages and Desktop
   if (currentPageName === 'Wiki' || currentPageName === 'WikiDev' || currentPageName === 'Desktop') {
-    return <>{children}</>;
+    return <Base44Init>{children}</Base44Init>;
   }
 
   return (

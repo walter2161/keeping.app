@@ -1,13 +1,9 @@
-import { createClient } from '@base44/sdk';
-import { appParams } from '@/lib/app-params';
+// Redirect to localStorage database for offline/local development
+// This replaces the original base44 SDK with local storage
 
-const { appId, serverUrl, token, functionsVersion } = appParams;
+import { localDB } from '@/lib/localStorageDB';
 
-//Create a client with authentication required
-export const base44 = createClient({
-  appId,
-  serverUrl,
-  token,
-  functionsVersion,
-  requiresAuth: false
-});
+// Export localDB as base44 so all existing imports work
+export const base44 = localDB;
+
+export default base44;
