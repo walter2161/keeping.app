@@ -2,6 +2,72 @@
 // This replaces the base44 SDK with a local storage solution
 
 const STORAGE_PREFIX = 'onhub_';
+const WP_CONFIG_KEY = 'onhub_wp_config';
+
+// WordPress Sync Configuration
+const getWpConfig = () => {
+  try {
+    const config = localStorage.getItem(WP_CONFIG_KEY);
+    return config ? JSON.parse(config) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const setWpConfig = (url, apiKey, autoSync = true) => {
+  localStorage.setItem(WP_CONFIG_KEY, JSON.stringify({ url, apiKey, autoSync }));
+};
+
+export const clearWpConfig = () => {
+  localStorage.removeItem(WP_CONFIG_KEY);
+};
+
+export const isWpConnected = () => {
+  const config = getWpConfig();
+  return config && config.url && config.apiKey;
+};
+
+// Sync single item to WordPress
+const syncItemToWp = async (entityName, item, action = 'upsert') => {
+  const config = getWpConfig();
+  if (!config || !config.autoSync) return;
+
+  const tableMap = {
+    'folders': 'folders',
+    'files': 'files',
+    'teams': 'teams',
+    'team_invitations': 'team_invitations',
+    'team_activities': 'team_activities',
+    'active_sessions': 'active_sessions',
+    'chat_messages': 'chat_messages',
+    'queries': 'queries',
+  };
+
+  const table = tableMap[entityName];
+  if (!table) return;
+
+  try {
+    if (action === 'delete') {
+      await fetch(`${config.url}/wp-json/onhub/v1/${table}/${item.id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-OnHub-Key': config.apiKey,
+        },
+      });
+    } else {
+      await fetch(`${config.url}/wp-json/onhub/v1/${table}/${item.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-OnHub-Key': config.apiKey,
+        },
+        body: JSON.stringify(item),
+      });
+    }
+  } catch (error) {
+    console.warn('WordPress sync failed:', error.message);
+  }
+};
 
 // Helper functions for localStorage
 const getStorageKey = (entity) => `${STORAGE_PREFIX}${entity}`;
@@ -61,6 +127,8 @@ const createEntity = (entityName) => {
       };
       items.push(newItem);
       saveToStorage(storageKey, items);
+      // Auto-sync to WordPress
+      syncItemToWp(entityName, newItem, 'upsert');
       return newItem;
     },
 
@@ -74,6 +142,8 @@ const createEntity = (entityName) => {
           updated_at: new Date().toISOString(),
         };
         saveToStorage(storageKey, items);
+        // Auto-sync to WordPress
+        syncItemToWp(entityName, items[index], 'upsert');
         return items[index];
       }
       throw new Error(`Item with id ${id} not found`);
@@ -81,8 +151,13 @@ const createEntity = (entityName) => {
 
     delete: async (id) => {
       const items = getFromStorage(storageKey);
+      const itemToDelete = items.find(item => item.id === id);
       const filteredItems = items.filter(item => item.id !== id);
       saveToStorage(storageKey, filteredItems);
+      // Auto-sync delete to WordPress
+      if (itemToDelete) {
+        syncItemToWp(entityName, itemToDelete, 'delete');
+      }
       return true;
     },
 

@@ -31,17 +31,31 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { onhub } from '@/api/onhubClient';
+import { onhub, setWpConfig, clearWpConfig, isWpConnected } from '@/api/onhubClient';
+
+const WP_CONFIG_KEY = 'onhub_wp_config';
+
+const loadWpConfig = () => {
+  try {
+    const config = localStorage.getItem(WP_CONFIG_KEY);
+    return config ? JSON.parse(config) : { url: '', apiKey: '', autoSync: true };
+  } catch {
+    return { url: '', apiKey: '', autoSync: true };
+  }
+};
 
 export default function WordPressIntegration({ user }) {
+  const savedConfig = loadWpConfig();
   const [showDialog, setShowDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('download');
-  const [wpUrl, setWpUrl] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  const [wpUrl, setWpUrl] = useState(savedConfig.url || '');
+  const [apiKey, setApiKey] = useState(savedConfig.apiKey || '');
+  const [autoSync, setAutoSync] = useState(savedConfig.autoSync !== false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  const [isConnected, setIsConnected] = useState(isWpConnected());
 
   const handleDownloadPlugin = () => {
     // Gerar o arquivo PHP do plugin
@@ -333,7 +347,8 @@ new OnHubWPSync();
     setTestResult(null);
 
     try {
-      const response = await fetch(`${wpUrl}/wp-json/onhub/v1/health`, {
+      const cleanUrl = wpUrl.replace(/\/+$/, ''); // Remove trailing slashes
+      const response = await fetch(`${cleanUrl}/wp-json/onhub/v1/health`, {
         method: 'GET',
         headers: {
           'X-OnHub-Key': apiKey,
@@ -342,9 +357,12 @@ new OnHubWPSync();
 
       if (response.ok) {
         const data = await response.json();
+        // Salvar configuração para sincronização automática
+        setWpConfig(cleanUrl, apiKey, autoSync);
+        setIsConnected(true);
         setTestResult({ 
           success: true, 
-          message: `Conexão estabelecida! Versão: ${data.version}`,
+          message: `Conexão estabelecida e sincronização automática ${autoSync ? 'ativada' : 'desativada'}! Versão: ${data.version}`,
           data 
         });
       } else {
@@ -361,6 +379,15 @@ new OnHubWPSync();
     } finally {
       setTesting(false);
     }
+  };
+
+  const disconnectWp = () => {
+    clearWpConfig();
+    setIsConnected(false);
+    setWpUrl('');
+    setApiKey('');
+    setTestResult(null);
+    setSyncResult(null);
   };
 
   const syncToWordPress = async () => {
@@ -488,13 +515,36 @@ new OnHubWPSync();
             </div>
           </div>
 
-          <Button 
-            onClick={() => setShowDialog(true)}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-          >
-            <Plug className="w-4 h-4 mr-2" />
-            Configurar Integração WordPress
-          </Button>
+          {isConnected && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-green-800">Sincronização Automática Ativa</p>
+                  <p className="text-xs text-green-600">Todas as alterações serão enviadas automaticamente para o WordPress</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowDialog(true)}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
+              <Plug className="w-4 h-4 mr-2" />
+              {isConnected ? 'Configurações' : 'Configurar Integração'}
+            </Button>
+            {isConnected && (
+              <Button 
+                variant="outline" 
+                onClick={disconnectWp}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                Desconectar
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -667,6 +717,27 @@ new OnHubWPSync();
                   <p className="text-xs text-gray-500 mt-1">
                     Criada em OnHub Sync &gt; API Keys no WordPress
                   </p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-blue-900">Sincronização Automática</p>
+                        <p className="text-xs text-blue-700">Envia dados automaticamente ao criar, editar ou excluir</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoSync}
+                        onChange={(e) => setAutoSync(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
                 </div>
 
                 <Button 
