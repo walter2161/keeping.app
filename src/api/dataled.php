@@ -77,6 +77,7 @@ class OnHubWPSync {
     ];
 
     public function __construct() {
+        add_action('init', [$this, 'handle_preflight'], 1);
         add_action('init', [$this, 'register_all_cpts']);
         add_action('rest_api_init', [$this, 'register_routes']);
         add_action('admin_menu', [$this, 'admin_menu']);
@@ -85,6 +86,18 @@ class OnHubWPSync {
 
         register_activation_hook(__FILE__, [$this, 'on_activation']);
         register_deactivation_hook(__FILE__, [$this, 'on_deactivation']);
+    }
+
+    // Handle CORS preflight before WordPress processes the request
+    public function handle_preflight() {
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS' && strpos($_SERVER['REQUEST_URI'], '/wp-json/onhub/') !== false) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, X-OnHub-Key, Authorization, X-Requested-With');
+            header('Access-Control-Max-Age: 86400');
+            status_header(200);
+            exit;
+        }
     }
 
     public function on_activation() {
@@ -715,7 +728,9 @@ class OnHubWPSync {
     public function allow_cors_headers($served, $result, $request, $server) {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-OnHub-Key, X-Supabase-Lite-Key');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-OnHub-Key, X-Supabase-Lite-Key, X-Requested-With');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Max-Age: 86400');
         return $served;
     }
 

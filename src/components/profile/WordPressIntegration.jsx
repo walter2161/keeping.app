@@ -31,7 +31,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { onhub, setWpConfig, clearWpConfig, isWpConnected } from '@/api/onhubClient';
+import { onhub, setWpConfig, clearWpConfig, isWpConnected, wpSync } from '@/api/onhubClient';
 
 const WP_CONFIG_KEY = 'onhub_wp_config';
 
@@ -103,12 +103,24 @@ class OnHubWPSync {
     ];
 
     public function __construct() {
+        add_action('init', [$this, 'handle_preflight'], 1);
         add_action('init', [$this, 'register_all_cpts']);
         add_action('rest_api_init', [$this, 'register_routes']);
         add_action('admin_menu', [$this, 'admin_menu']);
         add_action('admin_init', [$this, 'register_settings']);
         add_filter('rest_pre_serve_request', [$this, 'allow_cors_headers'], 10, 4);
         register_activation_hook(__FILE__, [$this, 'on_activation']);
+    }
+
+    public function handle_preflight() {
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS' && strpos($_SERVER['REQUEST_URI'], '/wp-json/onhub/') !== false) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, X-OnHub-Key, Authorization, X-Requested-With');
+            header('Access-Control-Max-Age: 86400');
+            status_header(200);
+            exit;
+        }
     }
 
     public function on_activation() {
@@ -215,7 +227,9 @@ class OnHubWPSync {
     public function allow_cors_headers($served, $result, $request, $server) {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, X-OnHub-Key, Authorization');
+        header('Access-Control-Allow-Headers: Content-Type, X-OnHub-Key, Authorization, X-Requested-With');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Max-Age: 86400');
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { status_header(200); exit; }
         return $served;
     }
@@ -347,34 +361,22 @@ new OnHubWPSync();
     setTestResult(null);
 
     try {
-      const cleanUrl = wpUrl.replace(/\/+$/, ''); // Remove trailing slashes
-      const response = await fetch(`${cleanUrl}/wp-json/onhub/v1/health`, {
-        method: 'GET',
-        headers: {
-          'X-OnHub-Key': apiKey,
-        },
-      });
+      const cleanUrl = wpUrl.replace(/\/+$/, '');
+      // Use proxy to avoid CORS
+      const data = await wpSync.healthCheck(cleanUrl, apiKey);
 
-      if (response.ok) {
-        const data = await response.json();
-        // Salvar configuração para sincronização automática
-        setWpConfig(cleanUrl, apiKey, autoSync);
-        setIsConnected(true);
-        setTestResult({ 
-          success: true, 
-          message: `Conexão estabelecida e sincronização automática ${autoSync ? 'ativada' : 'desativada'}! Versão: ${data.version}`,
-          data 
-        });
-      } else {
-        setTestResult({ 
-          success: false, 
-          message: `Erro ${response.status}: ${response.statusText}` 
-        });
-      }
+      // Save config for auto-sync
+      setWpConfig(cleanUrl, apiKey, autoSync);
+      setIsConnected(true);
+      setTestResult({ 
+        success: true, 
+        message: `Conexao estabelecida! Versao: ${data.version}. Sync automatico ${autoSync ? 'ativado' : 'desativado'}.`,
+        data 
+      });
     } catch (error) {
       setTestResult({ 
         success: false, 
-        message: `Erro de conexão: ${error.message}` 
+        message: `Erro de conexao: ${error.message}` 
       });
     } finally {
       setTesting(false);
@@ -391,86 +393,72 @@ new OnHubWPSync();
   };
 
   const syncToWordPress = async () => {
-    if (!wpUrl || !apiKey) {
-      setSyncResult({ success: false, message: 'Configure a conexão primeiro' });
+    if (!isConnected && (!wpUrl || !apiKey)) {
+      setSyncResult({ success: false, message: 'Configure a conexao primeiro' });
       return;
+    }
+
+    // Ensure config is saved before syncing
+    if (wpUrl && apiKey) {
+      setWpConfig(wpUrl.replace(/\/+$/, ''), apiKey, autoSync);
     }
 
     setSyncing(true);
     setSyncResult(null);
 
     try {
-      // Buscar dados do OnHub
-      const [folders, files, teams] = await Promise.all([
+      // Fetch all data from OnHub localStorage
+      const [folders, files, teams, teamInvitations, teamActivities, activeSessions, chatMessages, queries] = await Promise.all([
         onhub.entities.Folder.list(),
         onhub.entities.File.list(),
         onhub.entities.Team.list(),
+        onhub.entities.TeamInvitation.list(),
+        onhub.entities.TeamActivity.list(),
+        onhub.entities.ActiveSession.list(),
+        onhub.entities.ChatMessage.list(),
+        onhub.entities.Query.list(),
       ]);
 
-      const results = {
-        folders: { synced: 0, errors: 0 },
-        files: { synced: 0, errors: 0 },
-        teams: { synced: 0, errors: 0 },
-      };
+      const tables = [
+        { name: 'folders', data: folders },
+        { name: 'files', data: files },
+        { name: 'teams', data: teams },
+        { name: 'team_invitations', data: teamInvitations },
+        { name: 'team_activities', data: teamActivities },
+        { name: 'active_sessions', data: activeSessions },
+        { name: 'chat_messages', data: chatMessages },
+        { name: 'queries', data: queries },
+      ];
 
-      // Sincronizar pastas
-      if (folders.length > 0) {
-        const foldersRes = await fetch(`${wpUrl}/wp-json/onhub/v1/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-OnHub-Key': apiKey,
-          },
-          body: JSON.stringify({ table: 'folders', data: folders }),
-        });
-        if (foldersRes.ok) {
-          const data = await foldersRes.json();
-          results.folders.synced = data.synced;
+      const results = {};
+      let totalSynced = 0;
+      let totalErrors = 0;
+
+      for (const table of tables) {
+        if (table.data.length > 0) {
+          try {
+            const res = await wpSync.bulkSync(table.name, table.data);
+            results[table.name] = { synced: res.synced || 0, errors: res.errors || 0 };
+            totalSynced += res.synced || 0;
+            totalErrors += res.errors || 0;
+          } catch (err) {
+            results[table.name] = { synced: 0, errors: table.data.length, message: err.message };
+            totalErrors += table.data.length;
+          }
+        } else {
+          results[table.name] = { synced: 0, errors: 0 };
         }
       }
 
-      // Sincronizar arquivos
-      if (files.length > 0) {
-        const filesRes = await fetch(`${wpUrl}/wp-json/onhub/v1/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-OnHub-Key': apiKey,
-          },
-          body: JSON.stringify({ table: 'files', data: files }),
-        });
-        if (filesRes.ok) {
-          const data = await filesRes.json();
-          results.files.synced = data.synced;
-        }
-      }
-
-      // Sincronizar equipes
-      if (teams.length > 0) {
-        const teamsRes = await fetch(`${wpUrl}/wp-json/onhub/v1/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-OnHub-Key': apiKey,
-          },
-          body: JSON.stringify({ table: 'teams', data: teams }),
-        });
-        if (teamsRes.ok) {
-          const data = await teamsRes.json();
-          results.teams.synced = data.synced;
-        }
-      }
-
-      const totalSynced = results.folders.synced + results.files.synced + results.teams.synced;
       setSyncResult({
-        success: true,
-        message: `Sincronização concluída! ${totalSynced} itens sincronizados.`,
+        success: totalErrors === 0,
+        message: `Sincronizacao concluida! ${totalSynced} itens sincronizados.${totalErrors > 0 ? ` ${totalErrors} erros.` : ''}`,
         details: results,
       });
     } catch (error) {
       setSyncResult({
         success: false,
-        message: `Erro na sincronização: ${error.message}`,
+        message: `Erro na sincronizacao: ${error.message}`,
       });
     } finally {
       setSyncing(false);

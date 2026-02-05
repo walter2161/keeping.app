@@ -27,6 +27,22 @@ export const isWpConnected = () => {
   return config && config.url && config.apiKey;
 };
 
+// WordPress Proxy helper - all WP requests go through /api/wp-proxy to avoid CORS
+const wpProxyFetch = async (config, endpoint, method = 'GET', data = null) => {
+  const res = await fetch('/api/wp-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      wpUrl: config.url,
+      wpApiKey: config.apiKey,
+      endpoint,
+      method,
+      data,
+    }),
+  });
+  return res;
+};
+
 // Sync single item to WordPress
 const syncItemToWp = async (entityName, item, action = 'upsert') => {
   const config = getWpConfig();
@@ -48,25 +64,49 @@ const syncItemToWp = async (entityName, item, action = 'upsert') => {
 
   try {
     if (action === 'delete') {
-      await fetch(`${config.url}/wp-json/onhub/v1/${table}/${item.id}`, {
-        method: 'DELETE',
-        headers: {
-          'X-OnHub-Key': config.apiKey,
-        },
-      });
+      await wpProxyFetch(config, `${table}/${item.id}`, 'DELETE');
     } else {
-      await fetch(`${config.url}/wp-json/onhub/v1/${table}/${item.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-OnHub-Key': config.apiKey,
-        },
-        body: JSON.stringify(item),
-      });
+      await wpProxyFetch(config, `${table}/${item.id}`, 'PUT', item);
     }
   } catch (error) {
     console.warn('WordPress sync failed:', error.message);
   }
+};
+
+// Export proxy helper for bulk sync
+export const wpSync = {
+  proxyFetch: async (endpoint, method = 'GET', data = null) => {
+    const config = getWpConfig();
+    if (!config) throw new Error('WordPress not configured');
+    const res = await wpProxyFetch(config, endpoint, method, data);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
+  healthCheck: async (url, apiKey) => {
+    const res = await fetch('/api/wp-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wpUrl: url, wpApiKey: apiKey, endpoint: 'health', method: 'GET' }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
+  bulkSync: async (table, items) => {
+    const config = getWpConfig();
+    if (!config) throw new Error('WordPress not configured');
+    const res = await wpProxyFetch(config, 'sync', 'POST', { table, data: items });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
 };
 
 // Helper functions for localStorage
