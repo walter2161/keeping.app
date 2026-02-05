@@ -56,24 +56,270 @@ export default function WordPressIntegration({ user }) {
   };
 
   const generatePluginCode = () => {
-    // Retorna o conteúdo do plugin PHP
+    // Retorna o conteúdo completo do plugin PHP em um único arquivo
     return `<?php
 /**
- * Plugin Name: OnHub WP Sync - Integração Completa
+ * Plugin Name: OnHub WP Sync
  * Plugin URI:  https://onhub.app/plugin
- * Description: Sincroniza dados do OnHub com WordPress via REST API.
+ * Description: Sincroniza dados do OnHub com WordPress via REST API. Inclui todas as entidades: Folders, Files, Teams, Sessions, Chat e mais.
  * Version:     3.0.0
  * Author:      OnHub Team
  * License:     GPLv2 or later
  */
 
-// Para o código completo, baixe de: src/api/dataled.php
-// Este é um arquivo simplificado para download rápido
+if (!defined('ABSPATH')) {
+    exit;
+}
 
-if (!defined('ABSPATH')) exit;
+class OnHubWPSync {
+    const VERSION = '3.0.0';
+    const OPTION_KEY = 'onhub_api_keys';
+    const CONFIG_KEY = 'onhub_config';
+    const REST_NAMESPACE = 'onhub/v1';
+    
+    const TABLES = [
+        'folders' => ['label' => 'Pastas', 'type' => 'onhub_folder', 'icon' => 'dashicons-category', 'fields' => ['name', 'parent_id', 'team_id', 'owner', 'deleted', 'color', 'icon']],
+        'files' => ['label' => 'Arquivos', 'type' => 'onhub_file', 'icon' => 'dashicons-media-document', 'fields' => ['name', 'type', 'content', 'folder_id', 'team_id', 'owner', 'deleted', 'file_url']],
+        'teams' => ['label' => 'Equipes', 'type' => 'onhub_team', 'icon' => 'dashicons-groups', 'fields' => ['name', 'description', 'owner', 'members', 'color', 'icon']],
+        'team_invitations' => ['label' => 'Convites', 'type' => 'onhub_invitation', 'icon' => 'dashicons-email-alt', 'fields' => ['team_id', 'email', 'status', 'invited_by', 'expires_at']],
+        'team_activities' => ['label' => 'Atividades', 'type' => 'onhub_activity', 'icon' => 'dashicons-clock', 'fields' => ['team_id', 'user_email', 'action', 'entity_type', 'entity_id', 'details']],
+        'active_sessions' => ['label' => 'Sessões', 'type' => 'onhub_session', 'icon' => 'dashicons-visibility', 'fields' => ['user_email', 'file_id', 'last_activity', 'cursor_position', 'is_editing']],
+        'chat_messages' => ['label' => 'Chat', 'type' => 'onhub_chat', 'icon' => 'dashicons-format-chat', 'fields' => ['team_id', 'user_email', 'user_name', 'message', 'type', 'file_id']],
+        'queries' => ['label' => 'Consultas', 'type' => 'onhub_query', 'icon' => 'dashicons-database', 'fields' => ['name', 'query', 'owner', 'folder_id', 'description']],
+    ];
 
-// Redirecionar para o arquivo principal
-require_once plugin_dir_path(__FILE__) . 'dataled.php';
+    public function __construct() {
+        add_action('init', [$this, 'register_all_cpts']);
+        add_action('rest_api_init', [$this, 'register_routes']);
+        add_action('admin_menu', [$this, 'admin_menu']);
+        add_action('admin_init', [$this, 'register_settings']);
+        add_filter('rest_pre_serve_request', [$this, 'allow_cors_headers'], 10, 4);
+        register_activation_hook(__FILE__, [$this, 'on_activation']);
+    }
+
+    public function on_activation() {
+        if (get_option(self::OPTION_KEY) === false) add_option(self::OPTION_KEY, []);
+        if (get_option(self::CONFIG_KEY) === false) add_option(self::CONFIG_KEY, ['onhub_url' => '', 'sync_enabled' => false, 'last_sync' => null]);
+        $this->register_all_cpts();
+        flush_rewrite_rules();
+    }
+
+    public function register_all_cpts() {
+        foreach (self::TABLES as $slug => $def) {
+            register_post_type($def['type'], [
+                'labels' => ['name' => $def['label'], 'singular_name' => $def['label']],
+                'public' => false, 'show_ui' => true, 'show_in_menu' => 'onhub-sync',
+                'capability_type' => 'post', 'supports' => ['title', 'custom-fields'],
+            ]);
+        }
+    }
+
+    public function admin_menu() {
+        add_menu_page('OnHub Sync', 'OnHub Sync', 'manage_options', 'onhub-sync', [$this, 'admin_dashboard'], 'dashicons-cloud-saved', 30);
+        add_submenu_page('onhub-sync', 'API Keys', 'API Keys', 'manage_options', 'onhub-api-keys', [$this, 'api_keys_page']);
+    }
+
+    public function register_settings() {
+        register_setting('onhub_settings_group', self::OPTION_KEY);
+        register_setting('onhub_settings_group', self::CONFIG_KEY);
+    }
+
+    public function admin_dashboard() {
+        if (!current_user_can('manage_options')) return;
+        $keys = get_option(self::OPTION_KEY, []);
+        $counts = [];
+        foreach (self::TABLES as $slug => $def) {
+            $counts[$slug] = wp_count_posts($def['type'])->publish + wp_count_posts($def['type'])->private;
+        }
+        ?>
+        <div class="wrap">
+            <h1><span class="dashicons dashicons-cloud-saved"></span> OnHub WP Sync</h1>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:20px;">
+                <?php foreach (self::TABLES as $slug => $def): ?>
+                <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #e0e0e0;">
+                    <span class="dashicons <?php echo $def['icon']; ?>" style="font-size:24px;color:#2271b1;"></span>
+                    <div style="font-weight:600;"><?php echo $def['label']; ?></div>
+                    <div style="font-size:24px;font-weight:bold;color:#2271b1;"><?php echo $counts[$slug]; ?></div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <p style="margin-top:20px;"><strong><?php echo count($keys); ?></strong> API Key(s) ativa(s). <a href="<?php echo admin_url('admin.php?page=onhub-api-keys'); ?>">Gerenciar</a></p>
+        </div>
+        <?php
+    }
+
+    public function api_keys_page() {
+        if (!current_user_can('manage_options')) return;
+        $keys = get_option(self::OPTION_KEY, []);
+        
+        if (isset($_POST['onhub_create_key']) && check_admin_referer('onhub_create_key')) {
+            $label = sanitize_text_field($_POST['key_label'] ?? 'Nova Key');
+            $new_key = 'onhub_' . bin2hex(random_bytes(24));
+            $keys[$new_key] = ['label' => $label, 'permissions' => ['read', 'write'], 'created' => current_time('mysql'), 'last_used' => null];
+            update_option(self::OPTION_KEY, $keys);
+            echo '<div class="notice notice-success"><p><strong>API Key criada:</strong><br><code style="font-size:14px;padding:10px;display:block;background:#f0f0f0;margin-top:10px;">' . esc_html($new_key) . '</code></p></div>';
+        }
+        
+        if (isset($_GET['revoke']) && check_admin_referer('onhub_revoke_' . $_GET['revoke'])) {
+            unset($keys[sanitize_text_field($_GET['revoke'])]);
+            update_option(self::OPTION_KEY, $keys);
+            echo '<div class="updated"><p>API Key revogada.</p></div>';
+        }
+        ?>
+        <div class="wrap">
+            <h1><span class="dashicons dashicons-admin-network"></span> API Keys</h1>
+            <div style="background:#fff;padding:20px;border:1px solid #c3c4c7;border-radius:4px;margin:20px 0;">
+                <h2 style="margin-top:0;">Criar Nova API Key</h2>
+                <form method="post">
+                    <?php wp_nonce_field('onhub_create_key'); ?>
+                    <p><label>Nome: <input type="text" name="key_label" value="OnHub App" required></label></p>
+                    <p><input type="submit" name="onhub_create_key" class="button button-primary" value="Criar API Key"></p>
+                </form>
+            </div>
+            <h2>API Keys Ativas</h2>
+            <?php if (empty($keys)): ?>
+                <p>Nenhuma API key criada.</p>
+            <?php else: ?>
+            <table class="wp-list-table widefat fixed striped">
+                <thead><tr><th>Key (parcial)</th><th>Rótulo</th><th>Criada</th><th>Ações</th></tr></thead>
+                <tbody>
+                <?php foreach ($keys as $key => $meta): ?>
+                <tr>
+                    <td><code><?php echo esc_html(substr($key, 0, 20) . '...'); ?></code></td>
+                    <td><?php echo esc_html($meta['label']); ?></td>
+                    <td><?php echo esc_html($meta['created']); ?></td>
+                    <td><a href="<?php echo wp_nonce_url(admin_url('admin.php?page=onhub-api-keys&revoke=' . $key), 'onhub_revoke_' . $key); ?>" class="button button-small" onclick="return confirm('Revogar esta key?');">Revogar</a></td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    public function allow_cors_headers($served, $result, $request, $server) {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, X-OnHub-Key, Authorization');
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { status_header(200); exit; }
+        return $served;
+    }
+
+    private function validate_api_key($request) {
+        $key = $request->get_header('X-OnHub-Key');
+        if (!$key) return new WP_Error('no_key', 'API Key obrigatória', ['status' => 401]);
+        $keys = get_option(self::OPTION_KEY, []);
+        if (!isset($keys[$key])) return new WP_Error('invalid_key', 'API Key inválida', ['status' => 403]);
+        $keys[$key]['last_used'] = current_time('mysql');
+        update_option(self::OPTION_KEY, $keys);
+        return true;
+    }
+
+    public function register_routes() {
+        register_rest_route(self::REST_NAMESPACE, '/health', ['methods' => 'GET', 'callback' => [$this, 'health_check'], 'permission_callback' => '__return_true']);
+        
+        foreach (self::TABLES as $slug => $def) {
+            register_rest_route(self::REST_NAMESPACE, '/' . $slug, [
+                ['methods' => 'GET', 'callback' => function($r) use ($def) { return $this->get_items($r, $def); }, 'permission_callback' => [$this, 'validate_api_key']],
+                ['methods' => 'POST', 'callback' => function($r) use ($def) { return $this->create_item($r, $def); }, 'permission_callback' => [$this, 'validate_api_key']],
+            ]);
+            register_rest_route(self::REST_NAMESPACE, '/' . $slug . '/(?P<id>[\\\\w-]+)', [
+                ['methods' => 'GET', 'callback' => function($r) use ($def) { return $this->get_item($r, $def); }, 'permission_callback' => [$this, 'validate_api_key']],
+                ['methods' => 'PUT', 'callback' => function($r) use ($def) { return $this->update_item($r, $def); }, 'permission_callback' => [$this, 'validate_api_key']],
+                ['methods' => 'DELETE', 'callback' => function($r) use ($def) { return $this->delete_item($r, $def); }, 'permission_callback' => [$this, 'validate_api_key']],
+            ]);
+        }
+        
+        register_rest_route(self::REST_NAMESPACE, '/sync', ['methods' => 'POST', 'callback' => [$this, 'bulk_sync'], 'permission_callback' => [$this, 'validate_api_key']]);
+    }
+
+    public function health_check() {
+        return rest_ensure_response(['status' => 'ok', 'version' => self::VERSION, 'tables' => array_keys(self::TABLES), 'time' => current_time('mysql')]);
+    }
+
+    public function get_items($request, $def) {
+        $posts = get_posts(['post_type' => $def['type'], 'numberposts' => -1, 'post_status' => 'any']);
+        $items = [];
+        foreach ($posts as $post) {
+            $item = ['id' => get_post_meta($post->ID, 'onhub_id', true) ?: $post->ID, 'wp_id' => $post->ID, 'created_at' => $post->post_date, 'updated_at' => $post->post_modified];
+            foreach ($def['fields'] as $field) { $item[$field] = get_post_meta($post->ID, $field, true); }
+            $items[] = $item;
+        }
+        return rest_ensure_response($items);
+    }
+
+    public function get_item($request, $def) {
+        $id = $request['id'];
+        $posts = get_posts(['post_type' => $def['type'], 'meta_key' => 'onhub_id', 'meta_value' => $id, 'numberposts' => 1, 'post_status' => 'any']);
+        if (empty($posts)) return new WP_Error('not_found', 'Item não encontrado', ['status' => 404]);
+        $post = $posts[0];
+        $item = ['id' => $id, 'wp_id' => $post->ID, 'created_at' => $post->post_date, 'updated_at' => $post->post_modified];
+        foreach ($def['fields'] as $field) { $item[$field] = get_post_meta($post->ID, $field, true); }
+        return rest_ensure_response($item);
+    }
+
+    public function create_item($request, $def) {
+        $data = $request->get_json_params();
+        $title = $data['name'] ?? $data['email'] ?? $data['id'] ?? 'Item OnHub';
+        $post_id = wp_insert_post(['post_type' => $def['type'], 'post_title' => $title, 'post_status' => 'publish']);
+        if (is_wp_error($post_id)) return $post_id;
+        if (isset($data['id'])) update_post_meta($post_id, 'onhub_id', $data['id']);
+        foreach ($def['fields'] as $field) { if (isset($data[$field])) update_post_meta($post_id, $field, $data[$field]); }
+        return rest_ensure_response(['success' => true, 'id' => $data['id'] ?? $post_id, 'wp_id' => $post_id]);
+    }
+
+    public function update_item($request, $def) {
+        $id = $request['id'];
+        $data = $request->get_json_params();
+        $posts = get_posts(['post_type' => $def['type'], 'meta_key' => 'onhub_id', 'meta_value' => $id, 'numberposts' => 1, 'post_status' => 'any']);
+        if (empty($posts)) return $this->create_item($request, $def);
+        $post = $posts[0];
+        foreach ($def['fields'] as $field) { if (isset($data[$field])) update_post_meta($post->ID, $field, $data[$field]); }
+        if (isset($data['name']) || isset($data['email'])) wp_update_post(['ID' => $post->ID, 'post_title' => $data['name'] ?? $data['email']]);
+        return rest_ensure_response(['success' => true, 'id' => $id, 'wp_id' => $post->ID, 'updated' => true]);
+    }
+
+    public function delete_item($request, $def) {
+        $id = $request['id'];
+        $posts = get_posts(['post_type' => $def['type'], 'meta_key' => 'onhub_id', 'meta_value' => $id, 'numberposts' => 1, 'post_status' => 'any']);
+        if (empty($posts)) return new WP_Error('not_found', 'Item não encontrado', ['status' => 404]);
+        wp_delete_post($posts[0]->ID, true);
+        return rest_ensure_response(['success' => true, 'id' => $id, 'deleted' => true]);
+    }
+
+    public function bulk_sync($request) {
+        $data = $request->get_json_params();
+        $table = $data['table'] ?? null;
+        $items = $data['data'] ?? [];
+        if (!$table || !isset(self::TABLES[$table])) return new WP_Error('invalid_table', 'Tabela inválida', ['status' => 400]);
+        $def = self::TABLES[$table];
+        $synced = 0; $errors = 0;
+        foreach ($items as $item) {
+            $id = $item['id'] ?? null;
+            $posts = $id ? get_posts(['post_type' => $def['type'], 'meta_key' => 'onhub_id', 'meta_value' => $id, 'numberposts' => 1, 'post_status' => 'any']) : [];
+            $title = $item['name'] ?? $item['email'] ?? $id ?? 'Item OnHub';
+            if (!empty($posts)) {
+                $post = $posts[0];
+                foreach ($def['fields'] as $field) { if (isset($item[$field])) update_post_meta($post->ID, $field, $item[$field]); }
+                $synced++;
+            } else {
+                $post_id = wp_insert_post(['post_type' => $def['type'], 'post_title' => $title, 'post_status' => 'publish']);
+                if (!is_wp_error($post_id)) {
+                    if ($id) update_post_meta($post_id, 'onhub_id', $id);
+                    foreach ($def['fields'] as $field) { if (isset($item[$field])) update_post_meta($post_id, $field, $item[$field]); }
+                    $synced++;
+                } else { $errors++; }
+            }
+        }
+        $config = get_option(self::CONFIG_KEY, []);
+        $config['last_sync'] = current_time('mysql');
+        update_option(self::CONFIG_KEY, $config);
+        return rest_ensure_response(['success' => true, 'table' => $table, 'synced' => $synced, 'errors' => $errors, 'total' => count($items)]);
+    }
+}
+
+new OnHubWPSync();
 `;
   };
 
