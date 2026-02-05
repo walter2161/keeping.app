@@ -74,7 +74,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "AssistantSettings",
+    mainPage: "Desktop",
     Pages: PAGES,
     Layout: __Layout,
 };

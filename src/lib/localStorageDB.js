@@ -24,23 +24,37 @@ const DEFAULT_USERS = [
 
 // Initialize localStorage with default data if empty
 const initializeStorage = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.FOLDERS)) {
-    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.FILES)) {
-    localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.TEAMS)) {
-    localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.TEAM_ACTIVITIES)) {
-    localStorage.setItem(STORAGE_KEYS.TEAM_ACTIVITIES, JSON.stringify([]));
+  if (typeof window === 'undefined') {
+    console.log('[v0] initializeStorage: window is undefined, skipping');
+    return;
   }
   
-  // Initialize users with default admin
-  const users = JSON.parse(localStorage.getItem('keeping_users') || '[]');
-  if (users.length === 0) {
-    localStorage.setItem('keeping_users', JSON.stringify(DEFAULT_USERS));
+  try {
+    console.log('[v0] initializeStorage: initializing localStorage...');
+    
+    if (!localStorage.getItem(STORAGE_KEYS.FOLDERS)) {
+      localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.FILES)) {
+      localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.TEAMS)) {
+      localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.TEAM_ACTIVITIES)) {
+      localStorage.setItem(STORAGE_KEYS.TEAM_ACTIVITIES, JSON.stringify([]));
+    }
+    
+    // Initialize users with default admin
+    const users = JSON.parse(localStorage.getItem('keeping_users') || '[]');
+    if (users.length === 0) {
+      localStorage.setItem('keeping_users', JSON.stringify(DEFAULT_USERS));
+      console.log('[v0] initializeStorage: created default admin user');
+    }
+    
+    console.log('[v0] initializeStorage: complete');
+  } catch (error) {
+    console.error('[v0] initializeStorage error:', error);
   }
 };
 
