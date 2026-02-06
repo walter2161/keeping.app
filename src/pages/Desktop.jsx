@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { onhub } from '@/api/onhubClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -7,7 +7,7 @@ import {
   Folder, File, FileText, FileSpreadsheet, Presentation, LayoutGrid, 
   GanttChart, Calendar as CalendarIcon, ArrowRight, Sparkles, Users, MessageCircle,
   Settings, Trash2, User, HardDrive, Image as ImageIcon, Video, Terminal, BookOpen,
-  Menu, Search, Power, ChevronRight, Plus
+  Menu, Search, Power, ChevronRight, Plus, Upload, Check, Database
 } from 'lucide-react';
 import {
   ContextMenu,
@@ -140,6 +140,7 @@ export default function Desktop() {
     { name: 'Wiki', icon: BookOpen, link: 'Wiki' },
     { name: 'Lixeira', icon: Trash2, link: 'Trash' },
     { name: 'Perfil', icon: User, link: 'Profile' },
+    { name: 'Banco de Dados', icon: Database, link: 'DatabaseSettings' },
     { name: 'Assistente IA', icon: Settings, link: 'AssistantSettings' },
   ];
 
@@ -280,12 +281,28 @@ export default function Desktop() {
     }
   };
 
+  const fileInputRef = useRef(null);
+
   const handleChangeWallpaper = () => {
     if (newWallpaperUrl.trim()) {
       saveWallpaper(newWallpaperUrl.trim());
       setChangeWallpaperDialog(false);
       setNewWallpaperUrl('');
     }
+  };
+
+  const handleWallpaperUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      setNewWallpaperUrl(dataUrl);
+      saveWallpaper(dataUrl);
+      setChangeWallpaperDialog(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const createFileMutation = useMutation({
@@ -533,8 +550,8 @@ export default function Desktop() {
                     className="h-10 px-3 hover:bg-blue-500/20"
                   >
                     <img 
-                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69402d779871a62c237ae85d/4b6abf78c_logo-horizontal-onhub.png"
-                      alt="onHub"
+                      src="/logo_horizon-onhub.png"
+                      alt="OnHub"
                       className="h-7 w-auto object-contain"
                     />
                   </Button>
@@ -871,39 +888,103 @@ export default function Desktop() {
       </Dialog>
 
       <Dialog open={changeWallpaperDialog} onOpenChange={setChangeWallpaperDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Alterar Papel de Parede</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Cole a URL da imagem aqui..."
-              value={newWallpaperUrl}
-              onChange={(e) => setNewWallpaperUrl(e.target.value)}
-            />
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                'https://images.unsplash.com/photo-1557683316-973673baf926?w=1920',
-                'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920',
-                'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920',
-                'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=1920',
-                'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
-                'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920',
-              ].map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => setNewWallpaperUrl(url)}
-                  className={`aspect-video rounded-lg border-2 overflow-hidden ${
-                    newWallpaperUrl === url ? 'border-blue-500' : 'border-gray-200'
-                  }`}
-                >
-                  <img src={url} alt={`Wallpaper ${i + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
+          <div className="space-y-5">
+            {/* Upload from PC */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Enviar do seu computador</h4>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleWallpaperUpload}
+              />
+              <Button
+                variant="outline"
+                className="w-full h-20 border-dashed border-2 flex flex-col gap-1"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-5 h-5 text-gray-500" />
+                <span className="text-sm text-gray-500">Clique para escolher uma imagem</span>
+              </Button>
             </div>
-            <Button onClick={handleChangeWallpaper} className="w-full">
-              Aplicar Papel de Parede
-            </Button>
+
+            {/* URL input */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Ou cole uma URL</h4>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://exemplo.com/imagem.jpg"
+                  value={newWallpaperUrl}
+                  onChange={(e) => setNewWallpaperUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={handleChangeWallpaper} disabled={!newWallpaperUrl.trim()}>
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+
+            {/* OnHub wallpapers */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Papeis de parede OnHub</h4>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  '/wallpapers/wallpaper-1.jpg',
+                  '/wallpapers/wallpaper-2.jpg',
+                  '/wallpapers/wallpaper-3.jpg',
+                ].map((url, i) => (
+                  <button
+                    key={`onhub-${i}`}
+                    onClick={() => { saveWallpaper(url); setChangeWallpaperDialog(false); }}
+                    className={`aspect-video rounded-lg border-2 overflow-hidden relative group ${
+                      wallpaper === url ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <img src={url} alt={`OnHub ${i + 1}`} className="w-full h-full object-cover" />
+                    {wallpaper === url && (
+                      <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                        <Check className="w-6 h-6 text-white drop-shadow-lg" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Unsplash wallpapers */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Galeria</h4>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  'https://images.unsplash.com/photo-1557683316-973673baf926?w=1920',
+                  'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920',
+                  'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920',
+                  'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=1920',
+                  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
+                  'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920',
+                ].map((url, i) => (
+                  <button
+                    key={`unsplash-${i}`}
+                    onClick={() => { saveWallpaper(url); setChangeWallpaperDialog(false); }}
+                    className={`aspect-video rounded-lg border-2 overflow-hidden relative group ${
+                      wallpaper === url ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <img src={url} alt={`Galeria ${i + 1}`} className="w-full h-full object-cover" />
+                    {wallpaper === url && (
+                      <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                        <Check className="w-6 h-6 text-white drop-shadow-lg" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
