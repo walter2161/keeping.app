@@ -24,8 +24,8 @@ export default function Layout({ children, currentPageName }) {
     return <div className="min-h-screen bg-gray-900">{children}</div>;
   }
 
-  // Don't show layout for Wiki pages
-  if (currentPageName === 'Wiki' || currentPageName === 'WikiDev' || currentPageName === 'Desktop') {
+  // Don't show layout for Wiki, Desktop, DatabaseSettings pages
+  if (currentPageName === 'Wiki' || currentPageName === 'WikiDev' || currentPageName === 'Desktop' || currentPageName === 'DatabaseSettings') {
     return <div className="min-h-screen bg-gray-900">{children}</div>;
   }
 

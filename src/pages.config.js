@@ -49,6 +49,7 @@
  */
 import AssistantSettings from './pages/AssistantSettings';
 import Chat from './pages/Chat';
+import DatabaseSettings from './pages/DatabaseSettings';
 import Desktop from './pages/Desktop';
 import Drive from './pages/Drive';
 import FileViewer from './pages/FileViewer';
@@ -63,6 +64,7 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "AssistantSettings": AssistantSettings,
     "Chat": Chat,
+    "DatabaseSettings": DatabaseSettings,
     "Desktop": Desktop,
     "Drive": Drive,
     "FileViewer": FileViewer,
@@ -74,7 +76,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "AssistantSettings",
+    mainPage: "Desktop",
     Pages: PAGES,
     Layout: __Layout,
 };
